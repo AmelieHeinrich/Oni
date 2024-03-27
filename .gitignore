@@ -1,0 +1,7 @@
+# Development files
+build
+.xmake
+.vscode
+
+# Engine files
+oni.log
