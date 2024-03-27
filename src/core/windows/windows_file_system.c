@@ -45,7 +45,7 @@ void file_close(file_t *file)
     free(file->path);
 }
 
-void file_write_utf8(file_t *file, const char* buffer, i64 len)
+void file_write_utf8(file_t *file, const char* buffer, uint64_t len)
 {
     DWORD dwSizeWritten = 0;
     if (!WriteFile(file->handle, buffer, len, &dwSizeWritten, NULL)) {

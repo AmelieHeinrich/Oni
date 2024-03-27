@@ -20,9 +20,9 @@ enum file_open_mode {
     FileOpen_Overwrite = BIT(4)
 };
 
-void file_open(file_t *file, const char *path, i32 mode);
+void file_open(file_t *file, const char *path, int mode);
 void file_close(file_t *file);
 
-void file_write_utf8(file_t *file, const char* buffer, i64 len);
+void file_write_utf8(file_t *file, const char* buffer, uint64_t len);
 
 #endif

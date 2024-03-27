@@ -14,4 +14,5 @@ target("Oni")
 
     if is_plat("windows") then
         add_files("src/core/windows/**.c")
+        add_syslinks("user32", "kernel32", "gdi32")
     end

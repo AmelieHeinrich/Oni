@@ -4,13 +4,19 @@
  */
 
 #include "core/log.h"
+#include "core/window.h"
 
 int main(void)
 {
+    window_t window;
+
     log_init();
-    log_info("Pipi");
-    log_warn("Prout");
-    log_error("Caca");
+    window_open(&window, 1280, 720, "Oni | <VULKAN> | <WIN32> | <1.0>");
+    while (!window_should_close(&window)) {
+        event_t event;
+        window_poll_event(&window, &event);
+    }
+    window_destroy(&window);
     log_exit();
     return 0;
 }
