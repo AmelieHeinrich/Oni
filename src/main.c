@@ -9,7 +9,8 @@ int main(void)
 {
     log_init();
     log_info("Pipi");
-    log_info("Prout");
+    log_warn("Prout");
+    log_error("Caca");
     log_exit();
     return 0;
 }
