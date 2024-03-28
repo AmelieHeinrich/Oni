@@ -20,6 +20,8 @@ public:
     ~Device();
 
     ID3D12Device* GetDevice() { return _device; }
+    IDXGIFactory3* GetFactory() { return _factory; }
+    IDXGIAdapter1* GetAdapter() { return _adapter; }
 private:
     struct DeviceFeatures {
         bool Raytracing = false;
