@@ -9,6 +9,12 @@
 
 #include "D3D12MA/D3D12MemAlloc.h"
 
+struct GPUResource
+{
+    ID3D12Resource* Resource;
+    D3D12MA::Allocation* Allocation;
+};
+
 class Allocator
 {
 public:
@@ -16,6 +22,8 @@ public:
 
     Allocator(Device::Ptr devicePtr);
     ~Allocator();
+
+    GPUResource Allocate(D3D12MA::ALLOCATION_DESC *allocDesc, D3D12_RESOURCE_DESC *resourceDesc, D3D12_RESOURCE_STATES state);
 private:
     D3D12MA::Allocator* _allocator;
 };
