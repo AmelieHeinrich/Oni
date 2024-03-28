@@ -6,13 +6,11 @@
 add_rules("mode.debug", "mode.release")
 
 target("Oni")
-    set_languages("c99")
-    add_files("src/*.c",
-              "src/core/*.c")
-    add_includedirs("src")
     set_rundir(".")
+    set_languages("c++17")
+    add_files("src/**.cpp")
+    add_includedirs("src", "agility")
 
     if is_plat("windows") then
-        add_files("src/core/windows/**.c")
-        add_syslinks("user32", "kernel32", "gdi32")
+        add_syslinks("user32", "kernel32", "gdi32", "dxgi", "d3d12")
     end
