@@ -9,13 +9,17 @@
 #include <dxgi1_6.h>
 
 #include <cstdint>
+#include <memory>
 
 class Device
 {
 public:
+    using Ptr = std::shared_ptr<Device>;
+
     Device();
     ~Device();
 
+    ID3D12Device* GetDevice() { return _device; }
 private:
     struct DeviceFeatures {
         bool Raytracing = false;
