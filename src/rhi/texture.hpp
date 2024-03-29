@@ -33,11 +33,11 @@ enum class TextureLayout
 
 enum class TextureUsage
 {
-    Copy = D3D12_RESOURCE_FLAG_NONE,
-    RenderTarget = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
-    DepthTarget = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
-    Storage = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
-    ShaderResource = 8
+    Copy,
+    RenderTarget,
+    DepthTarget,
+    Storage,
+    ShaderResource
 };
 
 class Texture
@@ -45,7 +45,7 @@ class Texture
 public:
     using Ptr = std::shared_ptr<Texture>;
 
-    Texture(Device::Ptr devicePtr, Allocator::Ptr allocator);
+    Texture(Device::Ptr devicePtr);
     Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage);
     ~Texture();
 
@@ -55,8 +55,12 @@ public:
     void BuildStorage(DescriptorHeap::Ptr heap);
 
     void SetState(D3D12_RESOURCE_STATES state) { _state = state; }
+    D3D12_RESOURCE_STATES GetState() { return _state; }
 
+    GPUResource& GetResource() { return _resource; }
 private:
+    friend class SwapChain;
+
     Device::Ptr _devicePtr;
     DescriptorHeap::Ptr _rtvHeap;
     DescriptorHeap::Ptr _dsvHeap;

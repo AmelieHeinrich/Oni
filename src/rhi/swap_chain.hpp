@@ -8,6 +8,7 @@
 #include "device.hpp"
 #include "descriptor_heap.hpp"
 #include "command_queue.hpp"
+#include "texture.hpp"
 
 #define FRAMES_IN_FLIGHT 3
 
@@ -25,7 +26,7 @@ public:
 
     int AcquireImage();
     void Resize(uint32_t width, uint32_t height);
-
+    Texture::Ptr GetTexture(uint32_t index) { return _textures[index]; }
 private:
     Device::Ptr _devicePtr;
     DescriptorHeap::Ptr _rtvHeap;
@@ -35,6 +36,7 @@ private:
 
     ID3D12Resource* _buffers[FRAMES_IN_FLIGHT];
     DescriptorHeap::Descriptor _descriptors[FRAMES_IN_FLIGHT];
+    Texture::Ptr _textures[FRAMES_IN_FLIGHT];
 
     int _width;
     int _height;

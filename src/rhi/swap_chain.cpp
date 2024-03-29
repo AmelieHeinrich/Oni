@@ -41,6 +41,13 @@ SwapChain::SwapChain(Device::Ptr device, CommandQueue::Ptr graphicsQueue, Descri
 
         _descriptors[i] = _rtvHeap->Allocate();
         _devicePtr->GetDevice()->CreateRenderTargetView(_buffers[i], nullptr, _descriptors[i].CPU);
+
+        _textures[i] = std::make_shared<Texture>(_devicePtr);
+        _textures[i]->_release = false;
+        _textures[i]->_resource.Resource = _buffers[i];
+        _textures[i]->_rtv = _descriptors[i];
+        _textures[i]->_format = TextureFormat::RGBA8;
+        _textures[i]->_state = D3D12_RESOURCE_STATE_COMMON;
     }
 }
 
@@ -74,6 +81,7 @@ void SwapChain::Resize(uint32_t width, uint32_t height)
         for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
             _buffers[i]->Release();
             _rtvHeap->Free(_descriptors[i]);
+            _textures[i].reset();
         }
 
         HRESULT result = _swapchain->ResizeBuffers(0, _width, _height, DXGI_FORMAT_UNKNOWN, 0);
@@ -89,6 +97,13 @@ void SwapChain::Resize(uint32_t width, uint32_t height)
     
             _descriptors[i] = _rtvHeap->Allocate();
             _devicePtr->GetDevice()->CreateRenderTargetView(_buffers[i], nullptr, _descriptors[i].CPU);
+
+            _textures[i] = std::make_shared<Texture>(_devicePtr);
+            _textures[i]->_release = false;
+            _textures[i]->_resource.Resource = _buffers[i];
+            _textures[i]->_rtv = _descriptors[i];
+            _textures[i]->_format = TextureFormat::RGBA8;
+            _textures[i]->_state = D3D12_RESOURCE_STATE_COMMON;
         }
     }
 }

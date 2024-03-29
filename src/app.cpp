@@ -21,6 +21,23 @@ App::~App()
 void App::Run()
 {
     while (_window->IsOpen()) {
+        _renderContext->BeginFrame();
+
+        CommandBuffer::Ptr commandBuffer = _renderContext->GetCurrentCommandBuffer();
+        Texture::Ptr texture = _renderContext->GetBackBuffer();
+
+        commandBuffer->Begin();
+        commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
+
+        // Draw stuff
+
+        commandBuffer->ImageBarrier(texture, TextureLayout::Present);
+        commandBuffer->End();
+        _renderContext->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
+
+        _renderContext->EndFrame();
+        _renderContext->Present(true);
+
         _window->Update();
     }
 }

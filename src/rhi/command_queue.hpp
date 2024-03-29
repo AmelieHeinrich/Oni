@@ -5,7 +5,10 @@
 
 #pragma once
 
-#include "Device.hpp"
+#include "device.hpp"
+#include "command_buffer.hpp"
+
+class Fence;
 
 enum class CommandQueueType
 {
@@ -22,7 +25,11 @@ public:
     CommandQueue(Device::Ptr device, CommandQueueType type);
     ~CommandQueue();
 
+    void Wait(std::shared_ptr<Fence> fence, uint64_t value);
+    void Submit(const std::vector<CommandBuffer::Ptr>& buffers);
+
     ID3D12CommandQueue* GetQueue() { return _queue; }
+    D3D12_COMMAND_LIST_TYPE GetType() { return _type; }
 private:
     Device::Ptr _devicePtr;
     D3D12_COMMAND_LIST_TYPE _type;

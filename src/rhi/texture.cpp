@@ -13,16 +13,16 @@ D3D12_RESOURCE_FLAGS GetResourceFlag(TextureUsage usage)
             return D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         case TextureUsage::DepthTarget:
             return D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        case TextureUsage::ShaderResource:
         case TextureUsage::Copy:
             return D3D12_RESOURCE_FLAG_NONE;
+        case TextureUsage::ShaderResource:
         case TextureUsage::Storage:
             return D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
     return D3D12_RESOURCE_FLAG_NONE;
 }
 
-Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator)
+Texture::Texture(Device::Ptr devicePtr)
     : _release(false), _devicePtr(devicePtr)
 {
 }
@@ -70,17 +70,16 @@ Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, uint32_t width
 
 Texture::~Texture()
 {
-    if (_srvUav.Valid) {
-        _shaderHeap->Free(_srvUav);
-    }
-    if (_dsv.Valid) {
-        _dsvHeap->Free(_dsv);
-    }
-    if (_rtv.Valid) {
-        _rtvHeap->Free(_rtv);
-    }
-
     if (_release) {
+        if (_srvUav.Valid) {
+            _shaderHeap->Free(_srvUav);
+        }
+        if (_dsv.Valid) {
+            _dsvHeap->Free(_dsv);
+        }
+        if (_rtv.Valid) {
+            _rtvHeap->Free(_rtv);
+        }
         _resource.Allocation->Release();
     }
 }
@@ -106,7 +105,7 @@ void Texture::BuildDepthTarget(DescriptorHeap::Ptr heap)
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
     dsvDesc.Format = DXGI_FORMAT(_format);
     dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    _devicePtr->GetDevice()->CreateDepthStencilView(_resource.Resource, &dsvDesc, _rtv.CPU);
+    _devicePtr->GetDevice()->CreateDepthStencilView(_resource.Resource, &dsvDesc, _dsv.CPU);
 }
 
 void Texture::BuildShaderResource(DescriptorHeap::Ptr heap)

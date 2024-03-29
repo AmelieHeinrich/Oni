@@ -4,6 +4,7 @@
  */
 
 #include "command_queue.hpp"
+#include "fence.hpp"
 
 #include <core/log.hpp>
 
@@ -22,4 +23,19 @@ CommandQueue::CommandQueue(Device::Ptr device, CommandQueueType type)
 CommandQueue::~CommandQueue()
 {
     _queue->Release();
+}
+
+void CommandQueue::Wait(Fence::Ptr fence, uint64_t value)
+{
+    _queue->Wait(fence->GetFence(), value);
+}
+
+void CommandQueue::Submit(const std::vector<CommandBuffer::Ptr>& buffers)
+{
+    std::vector<ID3D12CommandList*> lists;
+    for (auto& buffer : buffers) {
+        lists.push_back(buffer->GetCommandList());
+    }
+
+    _queue->ExecuteCommandLists(lists.size(), lists.data());
 }

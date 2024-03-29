@@ -24,6 +24,8 @@ public:
     ~Allocator();
 
     GPUResource Allocate(D3D12MA::ALLOCATION_DESC *allocDesc, D3D12_RESOURCE_DESC *resourceDesc, D3D12_RESOURCE_STATES state);
+
+    D3D12MA::Allocator* GetAllocator() { return _allocator; }
 private:
     D3D12MA::Allocator* _allocator;
 };

@@ -11,6 +11,9 @@
 #include "rhi/descriptor_heap.hpp"
 #include "rhi/allocator.hpp"
 #include "rhi/swap_chain.hpp"
+#include "rhi/texture.hpp"
+#include "rhi/buffer.hpp"
+#include "rhi/command_buffer.hpp"
 
 struct FencePair
 {
@@ -28,6 +31,16 @@ public:
 
     void Resize(uint32_t width, uint32_t height);
 
+    void BeginFrame();
+    void EndFrame();
+    void Present(bool vsync);
+
+    void WaitForPreviousHostSubmit(CommandQueueType type);
+    void WaitForPreviousDeviceSubmit(CommandQueueType type);
+    void ExecuteCommandBuffers(const std::vector<CommandBuffer::Ptr>& buffers, CommandQueueType type);
+
+    CommandBuffer::Ptr GetCurrentCommandBuffer();
+    Texture::Ptr GetBackBuffer();
 private:
     void FlushQueues();
     void WaitForPreviousFrame();
@@ -54,4 +67,5 @@ private:
     SwapChain::Ptr _swapChain;
     uint32_t _frameIndex;
     uint64_t _frameValues[FRAMES_IN_FLIGHT];
+    CommandBuffer::Ptr _commandBuffers[FRAMES_IN_FLIGHT];
 };
