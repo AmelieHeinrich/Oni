@@ -22,6 +22,9 @@ public:
     void End();
 
     void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout);
+    
+    void BindRenderTargets(const std::vector<Texture::Ptr> renderTargets, Texture::Ptr depthTarget);
+    void ClearRenderTarget(Texture::Ptr renderTarget, float r, float g, float b, float a);
 
     ID3D12GraphicsCommandList* GetCommandList() { return _commandList; }
 private:

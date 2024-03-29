@@ -60,6 +60,7 @@ public:
     GPUResource& GetResource() { return _resource; }
 private:
     friend class SwapChain;
+    friend class CommandBuffer;
 
     Device::Ptr _devicePtr;
     DescriptorHeap::Ptr _rtvHeap;

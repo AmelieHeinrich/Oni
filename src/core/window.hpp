@@ -6,7 +6,9 @@
 #pragma once
 
 #include <Windows.h>
+
 #include <string>
+#include <functional>
 
 class Window
 {
@@ -17,11 +19,13 @@ public:
     void Update();
     bool IsOpen();
     void Close();
+    void OnResize(std::function<void(uint32_t, uint32_t)> function) { _resize = function; }
 
     HWND GetHandle() { return _hwnd; }
 private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
+    std::function<void(uint32_t, uint32_t)> _resize;
     HWND _hwnd;
     bool _open;
 };

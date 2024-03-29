@@ -5,6 +5,8 @@
 
 #include "render_context.hpp"
 
+#include <core/log.hpp>
+
 RenderContext::RenderContext(HWND hwnd)
 {
     _device = std::make_shared<Device>();
@@ -47,6 +49,7 @@ void RenderContext::Resize(uint32_t width, uint32_t height)
 
     if (_swapChain) {
         _swapChain->Resize(width, height);
+        Logger::Info("D3D12: Resized to (%u, %u)", width, height);
     }
 }
 

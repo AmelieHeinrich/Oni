@@ -10,6 +10,10 @@ App::App()
     Logger::Init();
 
     _window = std::make_unique<Window>(1280, 720, "Oni | <D3D12> | <WINDOWS>");
+    _window->OnResize([&](uint32_t width, uint32_t height) {
+        _renderContext->Resize(width, height);
+    });
+
     _renderContext = std::make_unique<RenderContext>(_window->GetHandle());
 }
 
@@ -28,6 +32,8 @@ void App::Run()
 
         commandBuffer->Begin();
         commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
+        commandBuffer->BindRenderTargets({ texture }, nullptr);
+        commandBuffer->ClearRenderTarget(texture, 0.3f, 0.5f, 0.8f, 1.0f);
 
         // Draw stuff
 

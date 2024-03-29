@@ -62,6 +62,13 @@ LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
             window->_open = false;
             break;
         }
+        case WM_SIZE: {
+            int width = LOWORD(lparam);
+            int height = HIWORD(lparam);
+            if (window->_resize) {
+                window->_resize(width, height);
+            }
+        }
         default: {
             return DefWindowProc(hwnd, msg, wparam, lparam);
         }

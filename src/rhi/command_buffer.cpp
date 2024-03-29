@@ -60,3 +60,24 @@ void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout)
 
     texture->SetState(D3D12_RESOURCE_STATES(newLayout));
 }
+
+void CommandBuffer::BindRenderTargets(const std::vector<Texture::Ptr> renderTargets, Texture::Ptr depthTarget)
+{
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvDescriptors;
+    D3D12_CPU_DESCRIPTOR_HANDLE dsvDescriptor;
+
+    for (auto& renderTarget : renderTargets) {
+        rtvDescriptors.push_back(renderTarget->_rtv.CPU);
+    }
+    if (depthTarget) {
+        dsvDescriptor = depthTarget->_dsv.CPU;
+    }
+
+    _commandList->OMSetRenderTargets(rtvDescriptors.size(), rtvDescriptors.data(), false, depthTarget ? &dsvDescriptor : nullptr);
+}
+
+void CommandBuffer::ClearRenderTarget(Texture::Ptr renderTarget, float r, float g, float b, float a)
+{
+    float clearValues[4] = { r, g, b, a };
+    _commandList->ClearRenderTargetView(renderTarget->_rtv.CPU, clearValues, 0, nullptr);
+}
