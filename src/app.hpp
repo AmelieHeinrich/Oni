@@ -25,4 +25,5 @@ private:
 
     GraphicsPipeline::Ptr _triPipeline;
     Buffer::Ptr _vertexBuffer;
+    Buffer::Ptr _indexBuffer;
 };

@@ -24,7 +24,7 @@ App::App()
     specs.FormatCount = 1;
     specs.Formats[0] = TextureFormat::RGBA8;
     specs.DepthEnabled = false;
-    specs.Cull = CullMode::Back;
+    specs.Cull = CullMode::None;
     specs.Fill = FillMode::Solid;
     ShaderCompiler::CompileShader("shaders/HelloTriangle/TriVertex.hlsl", "Main", ShaderType::Vertex, specs.Bytecodes[ShaderType::Vertex]);
     ShaderCompiler::CompileShader("shaders/HelloTriangle/TriFrag.hlsl", "Main", ShaderType::Fragment, specs.Bytecodes[ShaderType::Fragment]);
@@ -32,15 +32,23 @@ App::App()
     _triPipeline = _renderContext->CreateGraphicsPipeline(specs);
 
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
+         0.5f,  0.5f, 0.0f,
          0.5f, -0.5f, 0.0f,
-         0.0f,  0.5f, 0.0f
+        -0.5f, -0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f
+    };
+
+    uint32_t indices[] = {
+        0, 1, 3,
+        1, 2, 3
     };
 
     _vertexBuffer = _renderContext->CreateBuffer(sizeof(vertices), sizeof(float) * 3, BufferType::Vertex, false);
+    _indexBuffer = _renderContext->CreateBuffer(sizeof(indices), sizeof(uint32_t), BufferType::Index, false);
 
     Uploader uploader = _renderContext->CreateUploader();
     uploader.CopyHostToDeviceLocal(vertices, sizeof(vertices), _vertexBuffer);
+    uploader.CopyHostToDeviceLocal(indices, sizeof(indices), _indexBuffer);
     _renderContext->FlushUploader(uploader);
 }
 
@@ -69,10 +77,11 @@ void App::Run()
         commandBuffer->BindRenderTargets({ texture }, nullptr);
         commandBuffer->BindGraphicsPipeline(_triPipeline);
         commandBuffer->BindVertexBuffer(_vertexBuffer);
+        commandBuffer->BindIndexBuffer(_indexBuffer);
 
         commandBuffer->ClearRenderTarget(texture, 0.3f, 0.5f, 0.8f, 1.0f);
 
-        commandBuffer->Draw(3);
+        commandBuffer->DrawIndexed(6);
 
         commandBuffer->BeginImGui();
         RenderOverlay();
