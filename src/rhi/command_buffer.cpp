@@ -152,6 +152,11 @@ void CommandBuffer::BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline)
     _commandList->SetGraphicsRootSignature(pipeline->GetRootSignature());
 }
 
+void CommandBuffer::BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index)
+{
+    _commandList->SetGraphicsRootDescriptorTable(index, buffer->_descriptor.GPU);
+}
+
 void CommandBuffer::BindGraphicsShaderResource(Texture::Ptr texture, int index)
 {
     _commandList->SetGraphicsRootDescriptorTable(index, texture->_srvUav.GPU);

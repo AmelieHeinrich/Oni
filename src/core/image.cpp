@@ -29,6 +29,8 @@ void Image::LoadFromFile(const std::string& path, bool flip)
     Bytes = reinterpret_cast<char*>(stbi_load(path.c_str(), &Width, &Height, &channels, STBI_rgb_alpha));
     if (!Bytes) {
         Logger::Error("Failed to load image {s}", path.c_str());
+    } else {
+        Logger::Info("Loaded texture: %s", path.c_str());
     }
 }
 

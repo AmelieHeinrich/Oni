@@ -11,12 +11,14 @@
 #include <ImGui/imgui.h>
 
 App::App()
+    : _camera(1280, 720), _lastFrame(0.0f)
 {
     Logger::Init();
 
     _window = std::make_unique<Window>(1280, 720, "Oni | <D3D12> | <WINDOWS>");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
+        _camera.Resize(width, height);
     });
 
     _renderContext = std::make_unique<RenderContext>(_window->GetHandle());
@@ -50,6 +52,9 @@ App::App()
     _vertexBuffer = _renderContext->CreateBuffer(sizeof(vertices), sizeof(float) * 5, BufferType::Vertex, false);
     _indexBuffer = _renderContext->CreateBuffer(sizeof(indices), sizeof(uint32_t), BufferType::Index, false);
     
+    _constantBuffer = _renderContext->CreateBuffer(256, 0, BufferType::Constant, false);
+    _constantBuffer->BuildConstantBuffer();
+
     _texture = _renderContext->CreateTexture(image.Width, image.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
     _texture->BuildShaderResource();
     
@@ -64,35 +69,52 @@ App::App()
 
 App::~App()
 {
+    _renderContext->WaitForPreviousDeviceSubmit(CommandQueueType::Graphics);
+    _renderContext->WaitForPreviousHostSubmit(CommandQueueType::Graphics);
+
     Logger::Exit();
 }
 
 void App::Run()
 {
     while (_window->IsOpen()) {
+        _window->Update();
+
         uint32_t width, height;
         _window->GetSize(width, height);
+
+        float time = _dtTimer.GetElapsed();
+        float dt = (time - _lastFrame) / 1000.0f;
+        _lastFrame = time;
+
+        _camera.Update(dt);
+
+        SceneBuffer buffer;
+        buffer.View = _camera.View();
+        buffer.Projection = _camera.Projection();
 
         _renderContext->BeginFrame();
 
         CommandBuffer::Ptr commandBuffer = _renderContext->GetCurrentCommandBuffer();
         Texture::Ptr texture = _renderContext->GetBackBuffer();
 
+        void *pData;
+        _constantBuffer->Map(0, 0, &pData);
+        memcpy(pData, &buffer, sizeof(SceneBuffer));
+        _constantBuffer->Unmap(0, 0);
+
         commandBuffer->Begin();
         commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
-
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->SetTopology(Topology::TriangleList);
-
         commandBuffer->BindRenderTargets({ texture }, nullptr);
         commandBuffer->BindGraphicsPipeline(_triPipeline);
         commandBuffer->BindVertexBuffer(_vertexBuffer);
         commandBuffer->BindIndexBuffer(_indexBuffer);
-        commandBuffer->BindGraphicsShaderResource(_texture, 0);
-        commandBuffer->BindGraphicsSampler(_sampler, 1);
-
+        commandBuffer->BindGraphicsConstantBuffer(_constantBuffer, 0);
+        commandBuffer->BindGraphicsShaderResource(_texture, 1);
+        commandBuffer->BindGraphicsSampler(_sampler, 2);
         commandBuffer->ClearRenderTarget(texture, 0.3f, 0.5f, 0.8f, 1.0f);
-
         commandBuffer->DrawIndexed(6);
 
         commandBuffer->BeginImGui();
@@ -102,11 +124,10 @@ void App::Run()
         commandBuffer->ImageBarrier(texture, TextureLayout::Present);
         commandBuffer->End();
         _renderContext->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
-
         _renderContext->EndFrame();
         _renderContext->Present(true);
 
-        _window->Update();
+        _camera.Input(dt);
     }
 }
 

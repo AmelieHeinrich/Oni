@@ -7,8 +7,8 @@
 
 #include <core/log.hpp>
 
-Buffer::Buffer(Allocator::Ptr allocator, uint64_t size, uint64_t stride, BufferType type, bool readback)
-    : _size(size)
+Buffer::Buffer(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint64_t size, uint64_t stride, BufferType type, bool readback)
+    : _size(size), _heaps(heaps), _devicePtr(devicePtr)
 {
     D3D12MA::ALLOCATION_DESC AllocationDesc = {};
     AllocationDesc.HeapType = readback == true ? D3D12_HEAP_TYPE_READBACK : ((type == BufferType::Constant || type == BufferType::Copy) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT);
@@ -52,31 +52,27 @@ Buffer::Buffer(Allocator::Ptr allocator, uint64_t size, uint64_t stride, BufferT
 Buffer::~Buffer()
 {
     if (_descriptor.Valid) {
-        _heap->Free(_descriptor);
+        _heaps.ShaderHeap->Free(_descriptor);
     }
     _resource.Allocation->Release();
 }
 
-void Buffer::BuildConstantBuffer(Device::Ptr device, DescriptorHeap::Ptr heap)
+void Buffer::BuildConstantBuffer()
 {
-    _heap = heap;
-
     _CBVD.BufferLocation = _resource.Resource->GetGPUVirtualAddress();
     _CBVD.SizeInBytes = _size;
     if (_descriptor.Valid == false)
-        _descriptor = heap->Allocate();
-    device->GetDevice()->CreateConstantBufferView(&_CBVD, _descriptor.CPU);
+        _descriptor = _heaps.ShaderHeap->Allocate();
+    _devicePtr->GetDevice()->CreateConstantBufferView(&_CBVD, _descriptor.CPU);
 }
 
-void Buffer::BuildStorage(Device::Ptr device, DescriptorHeap::Ptr heap)
+void Buffer::BuildStorage()
 {
-    _heap = heap;
-
     _UAVD.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
     _UAVD.Format = DXGI_FORMAT_UNKNOWN;
     if (_descriptor.Valid == false)
-        _descriptor = heap->Allocate();
-    device->GetDevice()->CreateUnorderedAccessView(_resource.Resource, nullptr, &_UAVD, _descriptor.CPU);
+        _descriptor = _heaps.ShaderHeap->Allocate();
+    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource.Resource, nullptr, &_UAVD, _descriptor.CPU);
 }
 
 void Buffer::Map(int start, int end, void **data)

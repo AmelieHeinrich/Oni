@@ -7,6 +7,7 @@
 
 #include "allocator.hpp"
 #include "texture.hpp"
+#include "descriptor_heap.hpp"
 
 typedef TextureLayout BufferLayout;
 
@@ -24,11 +25,11 @@ class Buffer
 public:
     using Ptr = std::shared_ptr<Buffer>;
 
-    Buffer(Allocator::Ptr allocator, uint64_t size, uint64_t stride, BufferType type, bool readback);
+    Buffer(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint64_t size, uint64_t stride, BufferType type, bool readback);
     ~Buffer();
 
-    void BuildConstantBuffer(Device::Ptr device, DescriptorHeap::Ptr heap);
-    void BuildStorage(Device::Ptr device, DescriptorHeap::Ptr heap);
+    void BuildConstantBuffer();
+    void BuildStorage();
 
     void Map(int start, int end, void **data);
     void Unmap(int start, int end);
@@ -37,7 +38,8 @@ public:
 private:
     friend class CommandBuffer;
 
-    DescriptorHeap::Ptr _heap;
+    Device::Ptr _devicePtr;
+    DescriptorHeap::Heaps _heaps;
 
     BufferType _type;
     uint64_t _size;

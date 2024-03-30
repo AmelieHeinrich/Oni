@@ -44,6 +44,7 @@ public:
     void BindVertexBuffer(Buffer::Ptr buffer);
     void BindIndexBuffer(Buffer::Ptr buffer);
     void BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline);
+    void BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index);
     void BindGraphicsShaderResource(Texture::Ptr texture, int index);
     void BindGraphicsSampler(Sampler::Ptr sampler, int index);
 

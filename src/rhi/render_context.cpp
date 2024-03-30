@@ -186,7 +186,7 @@ Texture::Ptr RenderContext::GetBackBuffer()
 
 Buffer::Ptr RenderContext::CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback)
 {
-    return std::make_shared<Buffer>(_allocator, size, stride, type, readback);
+    return std::make_shared<Buffer>(_device, _allocator, _heaps, size, stride, type, readback);
 }
 
 GraphicsPipeline::Ptr RenderContext::CreateGraphicsPipeline(GraphicsPipelineSpecs& specs)

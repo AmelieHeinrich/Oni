@@ -9,8 +9,8 @@ struct FragmentIn
     float2 TexCoords : TEXCOORD; 
 };
 
-Texture2D Texture : register(t0);
-SamplerState Sampler : register(s1);
+Texture2D Texture : register(t1);
+SamplerState Sampler : register(s2);
 
 float4 Main(FragmentIn Input) : SV_TARGET
 {
