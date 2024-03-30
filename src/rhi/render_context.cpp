@@ -7,6 +7,10 @@
 
 #include <core/log.hpp>
 
+#include <ImGui/imgui.h>
+#include <ImGui/imgui_impl_win32.h>
+#include <ImGui/imgui_impl_dx12.h>
+
 RenderContext::RenderContext(HWND hwnd)
 {
     _device = std::make_shared<Device>();
@@ -15,10 +19,10 @@ RenderContext::RenderContext(HWND hwnd)
     _computeQueue = std::make_shared<CommandQueue>(_device, CommandQueueType::Compute);
     _copyQueue = std::make_shared<CommandQueue>(_device, CommandQueueType::Copy);
 
-    _rtvHeap = std::make_shared<DescriptorHeap>(_device, DescriptorHeapType::RenderTarget, 1024);
-    _dsvHeap = std::make_shared<DescriptorHeap>(_device, DescriptorHeapType::DepthTarget, 1024);
-    _shaderHeap = std::make_shared<DescriptorHeap>(_device, DescriptorHeapType::ShaderResource, 1'000'000);
-    _samplerHeap = std::make_shared<DescriptorHeap>(_device, DescriptorHeapType::Sampler, 512);
+    _heaps.RTVHeap = std::make_shared<DescriptorHeap>(_device, DescriptorHeapType::RenderTarget, 1024);
+    _heaps.DSVHeap = std::make_shared<DescriptorHeap>(_device, DescriptorHeapType::DepthTarget, 1024);
+    _heaps.ShaderHeap = std::make_shared<DescriptorHeap>(_device, DescriptorHeapType::ShaderResource, 1'000'000);
+    _heaps.SamplerHeap = std::make_shared<DescriptorHeap>(_device, DescriptorHeapType::Sampler, 512);
 
     _allocator = std::make_shared<Allocator>(_device);
 
@@ -30,17 +34,46 @@ RenderContext::RenderContext(HWND hwnd)
     _computeFence.Value = 0;
     _copyFence.Value = 0;
 
-    _swapChain = std::make_shared<SwapChain>(_device, _graphicsQueue, _rtvHeap, hwnd);
+    _swapChain = std::make_shared<SwapChain>(_device, _graphicsQueue, _heaps.RTVHeap, hwnd);
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        _commandBuffers[i] = std::make_shared<CommandBuffer>(_device, CommandQueueType::Graphics);
+        _commandBuffers[i] = std::make_shared<CommandBuffer>(_device, _heaps, CommandQueueType::Graphics);
         _frameValues[i] = 0;
     }
+
+    _fontDescriptor = _heaps.ShaderHeap->Allocate();
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+
+    ImGuiIO& IO = ImGui::GetIO();
+    IO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    IO.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    //IO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+
+    ImGui::StyleColorsDark();
+    ImGuiStyle& Style = ImGui::GetStyle();
+
+    if (IO.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        Style.WindowRounding = 0.0f;
+        Style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+    
+    ImGui_ImplWin32_EnableDpiAwareness();
+    ImGui_ImplDX12_Init(_device->GetDevice(), FRAMES_IN_FLIGHT, DXGI_FORMAT_R8G8B8A8_UNORM, _heaps.ShaderHeap->GetHeap(), _fontDescriptor.CPU, _fontDescriptor.GPU);
+    ImGui_ImplWin32_Init(hwnd);
 }
 
 RenderContext::~RenderContext()
 {
     WaitForPreviousFrame();
+
+    ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+    _heaps.ShaderHeap->Free(_fontDescriptor);
 }
 
 void RenderContext::Resize(uint32_t width, uint32_t height)
@@ -149,4 +182,52 @@ CommandBuffer::Ptr RenderContext::GetCurrentCommandBuffer()
 Texture::Ptr RenderContext::GetBackBuffer()
 {
     return _swapChain->GetTexture(_frameIndex);
+}
+
+Buffer::Ptr RenderContext::CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback)
+{
+    return std::make_shared<Buffer>(_allocator, size, stride, type, readback);
+}
+
+GraphicsPipeline::Ptr RenderContext::CreateGraphicsPipeline(GraphicsPipelineSpecs& specs)
+{
+    return std::make_shared<GraphicsPipeline>(_device, specs);
+}
+
+Uploader RenderContext::CreateUploader()
+{
+    return Uploader(_device, _allocator, _heaps);
+}
+
+void RenderContext::FlushUploader(Uploader& uploader)
+{
+    uploader._commandBuffer->Begin();
+
+    for (auto& command : uploader._commands) {
+        auto cmdBuf = uploader._commandBuffer;
+
+        switch (command.type) {
+            case Uploader::UploadCommandType::HostToDeviceShared: {
+                void *pData;
+                command.destBuffer->Map(0, 0, &pData);
+                memcpy(pData, command.data, command.size);
+                command.destBuffer->Unmap(0, 0);
+                break;
+            }
+            case Uploader::UploadCommandType::BufferToBuffer:
+            case Uploader::UploadCommandType::HostToDeviceLocal: {
+                cmdBuf->CopyBufferToBuffer(command.destBuffer, command.sourceBuffer);
+                break;
+            }
+            case Uploader::UploadCommandType::TextureToTexture: {
+                cmdBuf->CopyTextureToTexture(command.destTexture, command.sourceTexture);
+                break;
+            }
+        } 
+    }
+
+    uploader._commandBuffer->End();
+    ExecuteCommandBuffers({ uploader._commandBuffer }, CommandQueueType::Copy);
+    WaitForPreviousDeviceSubmit(CommandQueueType::Copy);
+    uploader._commands.clear();
 }

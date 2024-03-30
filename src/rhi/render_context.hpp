@@ -14,6 +14,8 @@
 #include "rhi/texture.hpp"
 #include "rhi/buffer.hpp"
 #include "rhi/command_buffer.hpp"
+#include "rhi/graphics_pipeline.hpp"
+#include "rhi/uploader.hpp"
 
 struct FencePair
 {
@@ -33,6 +35,7 @@ public:
 
     void BeginFrame();
     void EndFrame();
+
     void Present(bool vsync);
 
     void WaitForPreviousHostSubmit(CommandQueueType type);
@@ -41,6 +44,12 @@ public:
 
     CommandBuffer::Ptr GetCurrentCommandBuffer();
     Texture::Ptr GetBackBuffer();
+
+    Buffer::Ptr CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback);
+    GraphicsPipeline::Ptr CreateGraphicsPipeline(GraphicsPipelineSpecs& specs);
+    
+    Uploader CreateUploader();
+    void FlushUploader(Uploader& uploader);
 private:
     void FlushQueues();
     void WaitForPreviousFrame();
@@ -57,10 +66,7 @@ private:
     CommandQueue::Ptr _copyQueue;
     FencePair _copyFence;
 
-    DescriptorHeap::Ptr _rtvHeap;
-    DescriptorHeap::Ptr _dsvHeap;
-    DescriptorHeap::Ptr _samplerHeap;
-    DescriptorHeap::Ptr _shaderHeap;
+    DescriptorHeap::Heaps _heaps;
 
     Allocator::Ptr _allocator;
 
@@ -68,4 +74,6 @@ private:
     uint32_t _frameIndex;
     uint64_t _frameValues[FRAMES_IN_FLIGHT];
     CommandBuffer::Ptr _commandBuffers[FRAMES_IN_FLIGHT];
+
+    DescriptorHeap::Descriptor _fontDescriptor;
 };

@@ -22,6 +22,8 @@ enum class BufferType
 class Buffer
 {
 public:
+    using Ptr = std::shared_ptr<Buffer>;
+
     Buffer(Allocator::Ptr allocator, uint64_t size, uint64_t stride, BufferType type, bool readback);
     ~Buffer();
 
@@ -33,6 +35,8 @@ public:
 
     void SetState(D3D12_RESOURCE_STATES eState) { _state = eState; }
 private:
+    friend class CommandBuffer;
+
     DescriptorHeap::Ptr _heap;
 
     BufferType _type;

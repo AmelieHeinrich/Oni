@@ -22,6 +22,14 @@ class DescriptorHeap
 public:
     using Ptr = std::shared_ptr<DescriptorHeap>;
 
+    struct Heaps
+    {
+        DescriptorHeap::Ptr RTVHeap;
+        DescriptorHeap::Ptr DSVHeap;
+        DescriptorHeap::Ptr ShaderHeap;
+        DescriptorHeap::Ptr SamplerHeap;
+    };
+
     struct Descriptor
     {
         bool Valid;

@@ -18,7 +18,11 @@ public:
 
     void Run();
 
+    void RenderOverlay();
 private:
     std::unique_ptr<Window> _window;
     std::unique_ptr<RenderContext> _renderContext;
+
+    GraphicsPipeline::Ptr _triPipeline;
+    Buffer::Ptr _vertexBuffer;
 };

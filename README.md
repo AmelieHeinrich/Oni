@@ -10,6 +10,7 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 
 - [xmake](https://xmake.io/#/)
 - Windows SDK Latest
+- Visual Studio 2022 + ATL Toolkit
 - GPU with the following features:
     - DXR
     - Mesh shaders
@@ -18,6 +19,8 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 ## Building
 
 - xmake
+- Copy the contents of the bin folder in build/windows/x64/{debug/release}/
+- Copy the contents of the D3D12 folder in build/windows/x64/{debug/release}/
 - xmake run
 - That's it!
 

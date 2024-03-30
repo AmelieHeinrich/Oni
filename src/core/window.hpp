@@ -21,6 +21,8 @@ public:
     void Close();
     void OnResize(std::function<void(uint32_t, uint32_t)> function) { _resize = function; }
 
+    void GetSize(uint32_t& width, uint32_t &height);
+
     HWND GetHandle() { return _hwnd; }
 private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);

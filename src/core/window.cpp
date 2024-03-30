@@ -7,6 +7,10 @@
 
 #include "log.hpp"
 
+#include <ImGui/imgui_impl_win32.h>
+
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 Window::Window(int width, int height, const std::string& title)
 {
     WNDCLASSA windowClass = {};
@@ -31,7 +35,9 @@ Window::Window(int width, int height, const std::string& title)
 
 Window::~Window()
 {
-    DestroyWindow(_hwnd);
+    if (_hwnd) {
+        DestroyWindow(_hwnd);
+    }
 }
 
 void Window::Update()
@@ -50,12 +56,24 @@ bool Window::IsOpen()
 
 void Window::Close()
 {
-    CloseWindow(_hwnd);
+    _open = false;
+    DestroyWindow(_hwnd);
+}
+
+void Window::GetSize(uint32_t& width, uint32_t& height)
+{
+    RECT ClientRect;
+    GetClientRect(_hwnd, &ClientRect);
+    width = ClientRect.right - ClientRect.left;
+    height = ClientRect.bottom - ClientRect.top;
 }
 
 LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
     Window *window = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
+        return 1;
 
     switch (msg) {
         case WM_CLOSE: {
