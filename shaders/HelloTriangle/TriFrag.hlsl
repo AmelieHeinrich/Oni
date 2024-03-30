@@ -6,9 +6,13 @@
 struct FragmentIn
 {
     float4 Position : SV_POSITION;
+    float2 TexCoords : TEXCOORD; 
 };
+
+Texture2D Texture : register(t0);
+SamplerState Sampler : register(s1);
 
 float4 Main(FragmentIn Input) : SV_TARGET
 {
-    return float4(1.0, 1.0, 1.0, 1.0);
+    return Texture.Sample(Sampler, Input.TexCoords);
 }

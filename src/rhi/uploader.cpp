@@ -6,9 +6,9 @@
 #include "uploader.hpp"
 
 Uploader::Uploader(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps)
-    : _devicePtr(device), _allocator(allocator)
+    : _devicePtr(device), _allocator(allocator), _heaps(heaps)
 {
-    _commandBuffer = std::make_shared<CommandBuffer>(device, heaps, CommandQueueType::Copy);
+    _commandBuffer = std::make_shared<CommandBuffer>(device, heaps, CommandQueueType::Graphics);
 }
 
 Uploader::~Uploader()
@@ -49,6 +49,29 @@ void Uploader::CopyHostToDeviceLocal(void* pData, uint64_t uiSize, Buffer::Ptr p
     }
 }
 
+void Uploader::CopyHostToDeviceTexture(Image& image, Texture::Ptr pDestTexture)
+{
+    Buffer::Ptr buffer = std::make_shared<Buffer>(_allocator, image.Width * image.Height * 4, 0, BufferType::Copy, false);
+
+    {
+        UploadCommand command;
+        command.type = UploadCommandType::HostToDeviceShared;
+        command.data = image.Bytes;
+        command.size = image.Width * image.Height * 4;
+        command.destBuffer = buffer;
+
+        _commands.push_back(command);
+    }
+    {
+        UploadCommand command;
+        command.type = UploadCommandType::BufferToTexture;
+        command.sourceBuffer = buffer;
+        command.destTexture = pDestTexture;
+
+        _commands.push_back(command);
+    }
+}
+
 void Uploader::CopyBufferToBuffer(Buffer::Ptr pSourceBuffer, Buffer::Ptr pDestBuffer)
 {
     UploadCommand command;
@@ -66,5 +89,25 @@ void Uploader::CopyTextureToTexture(Texture::Ptr pSourceTexture, Texture::Ptr pD
     command.sourceTexture = pSourceTexture;
     command.destTexture = pDestTexture;
     
+    _commands.push_back(command);
+}
+
+void Uploader::CopyBufferToTexture(Buffer::Ptr pSourceBuffer, Texture::Ptr pDestTexture)
+{
+    UploadCommand command;
+    command.type = UploadCommandType::BufferToTexture;
+    command.sourceBuffer = pSourceBuffer;
+    command.destTexture = pDestTexture;
+
+    _commands.push_back(command);
+}
+
+void Uploader::CopyTextureToBuffer(Texture::Ptr pSourceTexture, Buffer::Ptr pDestBuffer)
+{
+    UploadCommand command;
+    command.type = UploadCommandType::TextureToBuffer;
+    command.sourceTexture = pSourceTexture;
+    command.destBuffer = pDestBuffer;
+
     _commands.push_back(command);
 }

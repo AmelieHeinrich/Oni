@@ -7,6 +7,7 @@
 
 #include "buffer.hpp"
 #include "texture.hpp"
+#include "sampler.hpp"
 #include "descriptor_heap.hpp"
 #include "graphics_pipeline.hpp"
 
@@ -43,12 +44,16 @@ public:
     void BindVertexBuffer(Buffer::Ptr buffer);
     void BindIndexBuffer(Buffer::Ptr buffer);
     void BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline);
+    void BindGraphicsShaderResource(Texture::Ptr texture, int index);
+    void BindGraphicsSampler(Sampler::Ptr sampler, int index);
 
     void Draw(int vertexCount);
     void DrawIndexed(int indexCount);
 
     void CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src);
     void CopyBufferToBuffer(Buffer::Ptr dst, Buffer::Ptr src);
+    void CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src);
+    void CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src);
 
     void BeginImGui();
     void EndImGui();
@@ -56,6 +61,8 @@ public:
 
     ID3D12GraphicsCommandList* GetCommandList() { return _commandList; }
 private:
+    void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state);
+
     DescriptorHeap::Heaps _heaps;
     D3D12_COMMAND_LIST_TYPE _type;
     ID3D12GraphicsCommandList* _commandList; // TODO(ahi): Switch to newer version of command list to get access to DXR, Mesh shaders and Work Graphs

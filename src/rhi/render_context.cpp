@@ -194,6 +194,16 @@ GraphicsPipeline::Ptr RenderContext::CreateGraphicsPipeline(GraphicsPipelineSpec
     return std::make_shared<GraphicsPipeline>(_device, specs);
 }
 
+Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage)
+{
+    return std::make_shared<Texture>(_device, _allocator, _heaps, width, height, format, usage);
+}
+
+Sampler::Ptr RenderContext::CreateSampler(SamplerAddress address, SamplerFilter filter, int anisotropyLevel)
+{
+    return std::make_shared<Sampler>(_device, _heaps, address, filter, anisotropyLevel);
+}
+
 Uploader RenderContext::CreateUploader()
 {
     return Uploader(_device, _allocator, _heaps);
@@ -223,11 +233,25 @@ void RenderContext::FlushUploader(Uploader& uploader)
                 cmdBuf->CopyTextureToTexture(command.destTexture, command.sourceTexture);
                 break;
             }
+            case Uploader::UploadCommandType::TextureToBuffer: {
+                cmdBuf->CopyTextureToBuffer(command.destBuffer, command.sourceTexture);
+                break;
+            }
+            case Uploader::UploadCommandType::BufferToTexture: {
+                auto state = command.destTexture->GetState();
+                cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest);
+                cmdBuf->CopyBufferToTexture(command.destTexture, command.sourceBuffer);
+                cmdBuf->ImageBarrier(command.destTexture, TextureLayout(state));
+                break;
+            }
+            default: {
+                break;
+            }
         } 
     }
 
     uploader._commandBuffer->End();
-    ExecuteCommandBuffers({ uploader._commandBuffer }, CommandQueueType::Copy);
-    WaitForPreviousDeviceSubmit(CommandQueueType::Copy);
+    ExecuteCommandBuffers({ uploader._commandBuffer }, CommandQueueType::Graphics);
+    WaitForPreviousDeviceSubmit(CommandQueueType::Graphics);
     uploader._commands.clear();
 }

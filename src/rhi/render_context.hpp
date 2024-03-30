@@ -47,6 +47,8 @@ public:
 
     Buffer::Ptr CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback);
     GraphicsPipeline::Ptr CreateGraphicsPipeline(GraphicsPipelineSpecs& specs);
+    Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage);
+    Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, int anisotropyLevel);
     
     Uploader CreateUploader();
     void FlushUploader(Uploader& uploader);

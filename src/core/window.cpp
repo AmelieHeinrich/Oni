@@ -57,7 +57,6 @@ bool Window::IsOpen()
 void Window::Close()
 {
     _open = false;
-    DestroyWindow(_hwnd);
 }
 
 void Window::GetSize(uint32_t& width, uint32_t& height)

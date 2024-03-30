@@ -23,8 +23,7 @@ ID3D12ShaderReflection* GetReflection(ShaderBytecode& bytecode, D3D12_SHADER_DES
     ShaderBuffer.Size = bytecode.bytecode.size() * sizeof(uint32_t);
     ID3D12ShaderReflection* pReflection;
     HRESULT Result = pUtils->CreateReflection(&ShaderBuffer, IID_PPV_ARGS(&pReflection));
-    if (FAILED(Result))
-    {
+    if (FAILED(Result)) {
         Logger::Error("Failed to get reflection from shader");
     }
     pReflection->GetDesc(desc);
@@ -60,26 +59,23 @@ GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs&
     ID3D12ShaderReflection* pVertexReflection = GetReflection(vertexBytecode, &VertexDesc);
     ID3D12ShaderReflection* pPixelReflection = GetReflection(fragmentBytecode, &PixelDesc);
 
-    for (int BoundResourceIndex = 0; BoundResourceIndex < VertexDesc.BoundResources; BoundResourceIndex++)
-    {
+    for (int BoundResourceIndex = 0; BoundResourceIndex < VertexDesc.BoundResources; BoundResourceIndex++) {
         D3D12_SHADER_INPUT_BIND_DESC ShaderInputBindDesc = {};
         pVertexReflection->GetResourceBindingDesc(BoundResourceIndex, &ShaderInputBindDesc);
         ShaderBinds[BindCount] = ShaderInputBindDesc;
         BindCount++;
     }
 
-    for (int BoundResourceIndex = 0; BoundResourceIndex < PixelDesc.BoundResources; BoundResourceIndex++)
-    {
+    for (int BoundResourceIndex = 0; BoundResourceIndex < PixelDesc.BoundResources; BoundResourceIndex++) {
         D3D12_SHADER_INPUT_BIND_DESC ShaderInputBindDesc = {};
         pPixelReflection->GetResourceBindingDesc(BoundResourceIndex, &ShaderInputBindDesc);
         ShaderBinds[BindCount] = ShaderInputBindDesc;
         BindCount++;
     }
 
-    std::sort(ShaderBinds.begin(), ShaderBinds.end(), CompareShaderInput);
+    std::sort(ShaderBinds.begin(), ShaderBinds.begin() + BindCount, CompareShaderInput);
 
-    for (int ShaderBindIndex = 0; ShaderBindIndex < BindCount; ShaderBindIndex++)
-    {
+    for (int ShaderBindIndex = 0; ShaderBindIndex < BindCount; ShaderBindIndex++) {
         D3D12_SHADER_INPUT_BIND_DESC ShaderInputBindDesc = ShaderBinds[ShaderBindIndex];
 
         D3D12_ROOT_PARAMETER RootParameter = {};
@@ -89,8 +85,7 @@ GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs&
         Range.NumDescriptors = 1;
         Range.BaseShaderRegister = ShaderInputBindDesc.BindPoint;
 
-        switch (ShaderInputBindDesc.Type)
-        {
+        switch (ShaderInputBindDesc.Type) {
             case D3D_SIT_SAMPLER:
                 Range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
                 break;
@@ -103,9 +98,6 @@ GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs&
             case D3D_SIT_CBUFFER:
                 Range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
                 break;
-            default:
-                Logger::Warn("D3D12: Unsupported shader resource!");
-                continue;
         }
 
         Ranges[RangeCount] = Range;

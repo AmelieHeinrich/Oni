@@ -46,13 +46,13 @@ public:
     using Ptr = std::shared_ptr<Texture>;
 
     Texture(Device::Ptr devicePtr);
-    Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage);
+    Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage);
     ~Texture();
 
-    void BuildRenderTarget(DescriptorHeap::Ptr heap);
-    void BuildDepthTarget(DescriptorHeap::Ptr heap);
-    void BuildShaderResource(DescriptorHeap::Ptr heap);
-    void BuildStorage(DescriptorHeap::Ptr heap);
+    void BuildRenderTarget();
+    void BuildDepthTarget();
+    void BuildShaderResource();
+    void BuildStorage();
 
     void SetState(D3D12_RESOURCE_STATES state) { _state = state; }
     D3D12_RESOURCE_STATES GetState() { return _state; }
@@ -63,9 +63,7 @@ private:
     friend class CommandBuffer;
 
     Device::Ptr _devicePtr;
-    DescriptorHeap::Ptr _rtvHeap;
-    DescriptorHeap::Ptr _dsvHeap;
-    DescriptorHeap::Ptr _shaderHeap;
+    DescriptorHeap::Heaps _heaps;
 
     bool _release = true;
 
@@ -78,4 +76,6 @@ private:
     DescriptorHeap::Descriptor _srvUav;
 
     TextureFormat _format;
+    int _width;
+    int _height;
 };

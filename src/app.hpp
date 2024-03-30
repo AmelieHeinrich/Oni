@@ -26,4 +26,6 @@ private:
     GraphicsPipeline::Ptr _triPipeline;
     Buffer::Ptr _vertexBuffer;
     Buffer::Ptr _indexBuffer;
+    Texture::Ptr _texture;
+    Sampler::Ptr _sampler;
 };

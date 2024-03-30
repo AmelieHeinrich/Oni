@@ -27,8 +27,8 @@ Texture::Texture(Device::Ptr devicePtr)
 {
 }
 
-Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage)
-    : _devicePtr(devicePtr), _format(format)
+Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage)
+    : _devicePtr(devicePtr), _heaps(heaps), _format(format), _width(width), _height(height)
 {
     switch (usage)
     {
@@ -72,23 +72,21 @@ Texture::~Texture()
 {
     if (_release) {
         if (_srvUav.Valid) {
-            _shaderHeap->Free(_srvUav);
+            _heaps.ShaderHeap->Free(_srvUav);
         }
         if (_dsv.Valid) {
-            _dsvHeap->Free(_dsv);
+            _heaps.DSVHeap->Free(_dsv);
         }
         if (_rtv.Valid) {
-            _rtvHeap->Free(_rtv);
+            _heaps.RTVHeap->Free(_rtv);
         }
         _resource.Allocation->Release();
     }
 }
 
-void Texture::BuildRenderTarget(DescriptorHeap::Ptr heap)
+void Texture::BuildRenderTarget()
 {
-    _rtvHeap = heap;
-
-    _rtv = heap->Allocate();
+    _rtv = _heaps.RTVHeap->Allocate();
 
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
     rtvDesc.Format = DXGI_FORMAT(_format);
@@ -96,11 +94,9 @@ void Texture::BuildRenderTarget(DescriptorHeap::Ptr heap)
     _devicePtr->GetDevice()->CreateRenderTargetView(_resource.Resource, &rtvDesc, _rtv.CPU);
 }
 
-void Texture::BuildDepthTarget(DescriptorHeap::Ptr heap)
+void Texture::BuildDepthTarget()
 {
-    _dsvHeap = heap;
-
-    _dsv = heap->Allocate();
+    _dsv = _heaps.DSVHeap->Allocate();
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
     dsvDesc.Format = DXGI_FORMAT(_format);
@@ -108,11 +104,9 @@ void Texture::BuildDepthTarget(DescriptorHeap::Ptr heap)
     _devicePtr->GetDevice()->CreateDepthStencilView(_resource.Resource, &dsvDesc, _dsv.CPU);
 }
 
-void Texture::BuildShaderResource(DescriptorHeap::Ptr heap)
+void Texture::BuildShaderResource()
 {
-    _shaderHeap = heap;
-
-    _srvUav = heap->Allocate();
+    _srvUav = _heaps.ShaderHeap->Allocate();
     
     D3D12_SHADER_RESOURCE_VIEW_DESC ShaderResourceView = {};
     ShaderResourceView.Format = DXGI_FORMAT(_format);
@@ -123,11 +117,9 @@ void Texture::BuildShaderResource(DescriptorHeap::Ptr heap)
     _devicePtr->GetDevice()->CreateShaderResourceView(_resource.Resource, &ShaderResourceView, _srvUav.CPU);
 }
 
-void Texture::BuildStorage(DescriptorHeap::Ptr heap)
+void Texture::BuildStorage()
 {
-    _shaderHeap = heap;
-
-    _srvUav = heap->Allocate();
+    _srvUav = _heaps.ShaderHeap->Allocate();
     
     D3D12_UNORDERED_ACCESS_VIEW_DESC UnorderedAccessView = {};
     UnorderedAccessView.Format = DXGI_FORMAT(_format);

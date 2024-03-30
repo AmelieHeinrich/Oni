@@ -6,6 +6,7 @@
 #include "app.hpp"
 
 #include "shader/bytecode.hpp"
+#include "core/image.hpp"
 
 #include <ImGui/imgui.h>
 
@@ -32,10 +33,10 @@ App::App()
     _triPipeline = _renderContext->CreateGraphicsPipeline(specs);
 
     float vertices[] = {
-         0.5f,  0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f
+         0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
+         0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f
     };
 
     uint32_t indices[] = {
@@ -43,12 +44,21 @@ App::App()
         1, 2, 3
     };
 
-    _vertexBuffer = _renderContext->CreateBuffer(sizeof(vertices), sizeof(float) * 3, BufferType::Vertex, false);
+    Image image;
+    image.LoadFromFile("assets/textures/texture.jpg");
+
+    _vertexBuffer = _renderContext->CreateBuffer(sizeof(vertices), sizeof(float) * 5, BufferType::Vertex, false);
     _indexBuffer = _renderContext->CreateBuffer(sizeof(indices), sizeof(uint32_t), BufferType::Index, false);
+    
+    _texture = _renderContext->CreateTexture(image.Width, image.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+    _texture->BuildShaderResource();
+    
+    _sampler = _renderContext->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, 0);
 
     Uploader uploader = _renderContext->CreateUploader();
     uploader.CopyHostToDeviceLocal(vertices, sizeof(vertices), _vertexBuffer);
     uploader.CopyHostToDeviceLocal(indices, sizeof(indices), _indexBuffer);
+    uploader.CopyHostToDeviceTexture(image, _texture);
     _renderContext->FlushUploader(uploader);
 }
 
@@ -78,6 +88,8 @@ void App::Run()
         commandBuffer->BindGraphicsPipeline(_triPipeline);
         commandBuffer->BindVertexBuffer(_vertexBuffer);
         commandBuffer->BindIndexBuffer(_indexBuffer);
+        commandBuffer->BindGraphicsShaderResource(_texture, 0);
+        commandBuffer->BindGraphicsSampler(_sampler, 1);
 
         commandBuffer->ClearRenderTarget(texture, 0.3f, 0.5f, 0.8f, 1.0f);
 
@@ -100,15 +112,5 @@ void App::Run()
 
 void App::RenderOverlay()
 {
-    if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("File"))
-        {
-            if (ImGui::MenuItem("Quit", "Alt+F4")) {
-                _window->Close();
-            }
-            ImGui::EndMenu();
-        }
-        
-        ImGui::EndMainMenuBar();
-    }
+    
 }

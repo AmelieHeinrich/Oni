@@ -41,6 +41,14 @@ void CommandBuffer::Begin()
 {
     _commandAllocator->Reset();
     _commandList->Reset(_commandAllocator, nullptr);
+
+    if (_type == D3D12_COMMAND_LIST_TYPE_DIRECT) {
+        ID3D12DescriptorHeap* heaps[] = {
+            _heaps.ShaderHeap->GetHeap(),
+            _heaps.SamplerHeap->GetHeap()
+        };
+        _commandList->SetDescriptorHeaps(2, heaps);
+    }
 }
 
 void CommandBuffer::End()
@@ -63,6 +71,23 @@ void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout)
     _commandList->ResourceBarrier(1, &barrier);
 
     texture->SetState(D3D12_RESOURCE_STATES(newLayout));
+}
+
+void CommandBuffer::ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state)
+{
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = texture->GetResource().Resource;
+    barrier.Transition.StateBefore = texture->GetState();
+    barrier.Transition.StateAfter = state;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+    if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
+        return;
+
+    _commandList->ResourceBarrier(1, &barrier);
+
+    texture->SetState(state);
 }
 
 void CommandBuffer::SetViewport(float x, float y, float width, float height)
@@ -127,6 +152,16 @@ void CommandBuffer::BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline)
     _commandList->SetGraphicsRootSignature(pipeline->GetRootSignature());
 }
 
+void CommandBuffer::BindGraphicsShaderResource(Texture::Ptr texture, int index)
+{
+    _commandList->SetGraphicsRootDescriptorTable(index, texture->_srvUav.GPU);
+}
+
+void CommandBuffer::BindGraphicsSampler(Sampler::Ptr sampler, int index)
+{
+    _commandList->SetGraphicsRootDescriptorTable(index, sampler->GetDescriptor().GPU);
+}
+
 void CommandBuffer::Draw(int vertexCount)
 {
     _commandList->DrawInstanced(vertexCount, 1, 0, 0);
@@ -155,6 +190,48 @@ void CommandBuffer::CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src)
 void CommandBuffer::CopyBufferToBuffer(Buffer::Ptr dst, Buffer::Ptr src)
 {
     _commandList->CopyResource(dst->_resource.Resource, src->_resource.Resource);
+}
+
+void CommandBuffer::CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src)
+{
+    D3D12_TEXTURE_COPY_LOCATION CopySource = {};
+    CopySource.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    CopySource.pResource = src->_resource.Resource;
+    CopySource.PlacedFootprint.Offset = 0;
+    CopySource.PlacedFootprint.Footprint.Format = DXGI_FORMAT(dst->_format);
+    CopySource.PlacedFootprint.Footprint.Width = dst->_width;
+    CopySource.PlacedFootprint.Footprint.Height = dst->_height;
+    CopySource.PlacedFootprint.Footprint.Depth = 1;
+    CopySource.PlacedFootprint.Footprint.RowPitch = dst->_width * 4;
+    CopySource.SubresourceIndex = 0;
+
+    D3D12_TEXTURE_COPY_LOCATION CopyDest = {};
+    CopyDest.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    CopyDest.pResource = dst->_resource.Resource;
+    CopyDest.SubresourceIndex = 0;
+
+    _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);
+}
+
+void CommandBuffer::CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src)
+{
+    D3D12_TEXTURE_COPY_LOCATION CopySource = {};
+    CopySource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    CopySource.pResource = src->_resource.Resource;
+    CopySource.SubresourceIndex = 0;
+
+    D3D12_TEXTURE_COPY_LOCATION CopyDest = {};
+    CopyDest.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    CopyDest.pResource = dst->_resource.Resource;
+    CopyDest.PlacedFootprint.Offset = 0;
+    CopyDest.PlacedFootprint.Footprint.Format = DXGI_FORMAT(src->_format);
+    CopyDest.PlacedFootprint.Footprint.Width = src->_width;
+    CopyDest.PlacedFootprint.Footprint.Height = src->_height;
+    CopyDest.PlacedFootprint.Footprint.Depth = 1;
+    CopyDest.PlacedFootprint.Footprint.RowPitch = src->_width * 4;
+    CopyDest.SubresourceIndex = 0;
+
+    _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);
 }
 
 void CommandBuffer::BeginImGui()

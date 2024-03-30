@@ -12,7 +12,7 @@ target("Oni")
     set_languages("c++17")
     add_files("src/**.cpp")
     add_includedirs("src", "ext")
-    add_deps("D3D12MA", "ImGui")
+    add_deps("D3D12MA", "ImGui", "stb")
 
     if is_plat("windows") then
         add_syslinks("user32", "kernel32", "gdi32", "dxgi", "d3d12", "dxcompiler")
