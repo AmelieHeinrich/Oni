@@ -172,6 +172,22 @@ void CommandBuffer::BindGraphicsSampler(Sampler::Ptr sampler, int index)
     _commandList->SetGraphicsRootDescriptorTable(index, sampler->GetDescriptor().GPU);
 }
 
+void CommandBuffer::BindComputePipeline(ComputePipeline::Ptr pipeline)
+{
+    _commandList->SetPipelineState(pipeline->GetPipeline());
+    _commandList->SetComputeRootSignature(pipeline->GetRootSignature());
+}
+
+void CommandBuffer::BindComputeShaderResource(Texture::Ptr texture, int index)
+{
+    _commandList->SetComputeRootDescriptorTable(index, texture->_srvUav.GPU);
+}
+
+void CommandBuffer::BindComputeStorageTexture(Texture::Ptr texture, int index)
+{
+    _commandList->SetComputeRootDescriptorTable(index, texture->_srvUav.GPU);
+}
+
 void CommandBuffer::Draw(int vertexCount)
 {
     _commandList->DrawInstanced(vertexCount, 1, 0, 0);
@@ -180,6 +196,11 @@ void CommandBuffer::Draw(int vertexCount)
 void CommandBuffer::DrawIndexed(int indexCount)
 {
     _commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+}
+
+void CommandBuffer::Dispatch(int x, int y, int z)
+{
+    _commandList->Dispatch(x, y, z);
 }
 
 void CommandBuffer::CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src)

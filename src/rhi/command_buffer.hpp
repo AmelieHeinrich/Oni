@@ -10,6 +10,7 @@
 #include "sampler.hpp"
 #include "descriptor_heap.hpp"
 #include "graphics_pipeline.hpp"
+#include "compute_pipeline.hpp"
 
 enum class CommandQueueType;
 
@@ -44,13 +45,19 @@ public:
     void BindRenderTargets(const std::vector<Texture::Ptr> renderTargets, Texture::Ptr depthTarget);
     void BindVertexBuffer(Buffer::Ptr buffer);
     void BindIndexBuffer(Buffer::Ptr buffer);
+
     void BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline);
     void BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index);
     void BindGraphicsShaderResource(Texture::Ptr texture, int index);
     void BindGraphicsSampler(Sampler::Ptr sampler, int index);
 
+    void BindComputePipeline(ComputePipeline::Ptr pipeline);
+    void BindComputeShaderResource(Texture::Ptr texture, int index);
+    void BindComputeStorageTexture(Texture::Ptr texture, int index);
+
     void Draw(int vertexCount);
     void DrawIndexed(int indexCount);
+    void Dispatch(int x, int y, int z);
 
     void CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src);
     void CopyBufferToBuffer(Buffer::Ptr dst, Buffer::Ptr src);

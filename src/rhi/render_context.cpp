@@ -11,7 +11,8 @@
 #include <ImGui/imgui_impl_win32.h>
 #include <ImGui/imgui_impl_dx12.h>
 
-RenderContext::RenderContext(HWND hwnd)
+RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
+    : _window(hwnd)
 {
     _device = std::make_shared<Device>();
 
@@ -34,7 +35,7 @@ RenderContext::RenderContext(HWND hwnd)
     _computeFence.Value = 0;
     _copyFence.Value = 0;
 
-    _swapChain = std::make_shared<SwapChain>(_device, _graphicsQueue, _heaps.RTVHeap, hwnd);
+    _swapChain = std::make_shared<SwapChain>(_device, _graphicsQueue, _heaps.RTVHeap, hwnd->GetHandle());
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
         _commandBuffers[i] = std::make_shared<CommandBuffer>(_device, _heaps, CommandQueueType::Graphics);
@@ -63,7 +64,7 @@ RenderContext::RenderContext(HWND hwnd)
     
     ImGui_ImplWin32_EnableDpiAwareness();
     ImGui_ImplDX12_Init(_device->GetDevice(), FRAMES_IN_FLIGHT, DXGI_FORMAT_R8G8B8A8_UNORM, _heaps.ShaderHeap->GetHeap(), _fontDescriptor.CPU, _fontDescriptor.GPU);
-    ImGui_ImplWin32_Init(hwnd);
+    ImGui_ImplWin32_Init(hwnd->GetHandle());
 }
 
 RenderContext::~RenderContext()
@@ -159,16 +160,19 @@ void RenderContext::ExecuteCommandBuffers(const std::vector<CommandBuffer::Ptr>&
         case CommandQueueType::Graphics: {
             _graphicsQueue->Submit(buffers);
             _graphicsFence.Value = _graphicsFence.Fence->Signal(_graphicsQueue);
+            WaitForPreviousHostSubmit(CommandQueueType::Graphics);
             break;
         }
         case CommandQueueType::Compute:  {
             _computeQueue->Submit(buffers);
             _computeFence.Value = _computeFence.Fence->Signal(_computeQueue);
+            WaitForPreviousHostSubmit(CommandQueueType::Compute);
             break;
         }
         case CommandQueueType::Copy: {
             _copyQueue->Submit(buffers);
             _copyFence.Value = _copyFence.Fence->Signal(_copyQueue);
+            WaitForPreviousHostSubmit(CommandQueueType::Copy);
             break;
         }
     }
@@ -192,6 +196,11 @@ Buffer::Ptr RenderContext::CreateBuffer(uint64_t size, uint64_t stride, BufferTy
 GraphicsPipeline::Ptr RenderContext::CreateGraphicsPipeline(GraphicsPipelineSpecs& specs)
 {
     return std::make_shared<GraphicsPipeline>(_device, specs);
+}
+
+ComputePipeline::Ptr RenderContext::CreateComputePipeline(ShaderBytecode& shader)
+{
+    return std::make_shared<ComputePipeline>(_device, shader);
 }
 
 Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage)

@@ -15,11 +15,7 @@
 
 #include "rhi/render_context.hpp"
 
-struct SceneBuffer
-{
-    glm::mat4 View;
-    glm::mat4 Projection;
-};
+#include "renderer/renderer.hpp"
 
 class App
 {
@@ -31,19 +27,14 @@ public:
 
     void RenderOverlay();
 private:
-    std::unique_ptr<Window> _window;
+    std::shared_ptr<Window> _window;
+
     RenderContext::Ptr _renderContext;
+    std::unique_ptr<Renderer> _renderer;
 
     Timer _dtTimer;
     float _lastFrame;
 
     FreeCamera _camera;
-
-    GraphicsPipeline::Ptr _triPipeline;
-    Buffer::Ptr _sceneBuffer;
-    Buffer::Ptr _modelBuffer;
-    Texture::Ptr _depthBuffer;
-    Sampler::Ptr _sampler;
-
-    Model _model;
+    Scene scene;
 };

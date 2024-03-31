@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "core/window.hpp"
+
 #include "rhi/device.hpp"
 #include "rhi/command_queue.hpp"
 #include "rhi/fence.hpp"
@@ -15,6 +17,7 @@
 #include "rhi/buffer.hpp"
 #include "rhi/command_buffer.hpp"
 #include "rhi/graphics_pipeline.hpp"
+#include "rhi/compute_pipeline.hpp"
 #include "rhi/uploader.hpp"
 
 struct FencePair
@@ -28,8 +31,10 @@ class RenderContext
 public:
     using Ptr = std::shared_ptr<RenderContext>;
 
-    RenderContext(HWND hwnd);
+    RenderContext(std::shared_ptr<Window> hwnd);
     ~RenderContext();
+
+    std::shared_ptr<Window> GetWindow() { return _window; }
 
     void Resize(uint32_t width, uint32_t height);
 
@@ -47,6 +52,7 @@ public:
 
     Buffer::Ptr CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback);
     GraphicsPipeline::Ptr CreateGraphicsPipeline(GraphicsPipelineSpecs& specs);
+    ComputePipeline::Ptr CreateComputePipeline(ShaderBytecode& shader);
     Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage);
     Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, int anisotropyLevel);
     
@@ -58,6 +64,7 @@ private:
 
 private:
     Device::Ptr _device;
+    std::shared_ptr<Window> _window;
     
     CommandQueue::Ptr _graphicsQueue;
     FencePair _graphicsFence;
