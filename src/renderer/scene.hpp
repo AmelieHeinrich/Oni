@@ -9,6 +9,21 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#define MAX_POINT_LIGHTS 512
+
+struct PointLight
+{
+    glm::vec4 Position;
+    glm::vec4 Color;
+};
+
+struct LightData
+{
+    PointLight PointLights[MAX_POINT_LIGHTS];
+    int PointLightCount;
+    glm::vec3 Pad;
+};
+
 struct Scene
 {
     std::vector<Model> Models;
@@ -16,5 +31,5 @@ struct Scene
     glm::mat4 View;
     glm::mat4 Projection;
     
-    // TODO(ahi): Frustum planes
+    LightData LightBuffer;
 };

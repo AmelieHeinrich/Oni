@@ -22,6 +22,7 @@ public:
 private:
     RenderContext::Ptr _context;
 
+    Texture::Ptr _whiteTexture;
     Texture::Ptr _outputImage;
     Texture::Ptr _depthBuffer;
 
@@ -29,5 +30,6 @@ private:
 
     Buffer::Ptr _sceneBuffer;
     Buffer::Ptr _modelBuffer;
+    Buffer::Ptr _lightBuffer;
     Sampler::Ptr _sampler;
 };

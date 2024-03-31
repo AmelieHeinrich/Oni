@@ -11,6 +11,20 @@ Forward::Forward(RenderContext::Ptr context)
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
 
+    _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+    _whiteTexture->BuildShaderResource();
+
+    uint32_t color = 0xFFFFFFFF;
+    Image image;
+    image.Width = 1;
+    image.Height = 1;
+    image.Delete = false;
+    image.Bytes = reinterpret_cast<char*>(&color);
+
+    Uploader uploader = context->CreateUploader();
+    uploader.CopyHostToDeviceTexture(image, _whiteTexture);
+    _context->FlushUploader(uploader);
+
     _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA32Float, TextureUsage::RenderTarget);
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
@@ -37,6 +51,9 @@ Forward::Forward(RenderContext::Ptr context)
     _modelBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false);
     _modelBuffer->BuildConstantBuffer();
 
+    _lightBuffer = context->CreateBuffer(16384 + 256, 0, BufferType::Constant, false);
+    _lightBuffer->BuildConstantBuffer();
+
     _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, 0);
 }
 
@@ -59,6 +76,10 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
     memcpy(pData, array, sizeof(glm::mat4) * 2);
     _sceneBuffer->Unmap(0, 0);
 
+    _lightBuffer->Map(0, 0, &pData);
+    memcpy(pData, &scene.LightBuffer, sizeof(LightData));
+    _lightBuffer->Unmap(0, 0);
+
     commandBuffer->Begin();
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
     commandBuffer->SetViewport(0, 0, width, height);
@@ -68,11 +89,15 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->ClearDepthTarget(_depthBuffer);
     commandBuffer->BindGraphicsPipeline(_forwardPipeline);
     commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer, 0);
-    commandBuffer->BindGraphicsSampler(_sampler, 3);
+    commandBuffer->BindGraphicsSampler(_sampler, 4);
+    commandBuffer->BindGraphicsConstantBuffer(_lightBuffer, 5);
 
     for (auto& model : scene.Models) {
         for (auto& primitive : model.Primitives) {
             auto& material = model.Materials[primitive.MaterialIndex];
+
+            Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
+            Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
 
             _modelBuffer->Map(0, 0, &pData);
             memcpy(pData, glm::value_ptr(primitive.Transform), sizeof(glm::mat4));
@@ -81,7 +106,8 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
             commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
             commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
             commandBuffer->BindGraphicsConstantBuffer(_modelBuffer, 1);
-            commandBuffer->BindGraphicsShaderResource(material.AlbedoTexture, 2);
+            commandBuffer->BindGraphicsShaderResource(albedo, 2);
+            commandBuffer->BindGraphicsShaderResource(normal, 3);
             commandBuffer->DrawIndexed(primitive.IndexCount);
         }
     }

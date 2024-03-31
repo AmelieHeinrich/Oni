@@ -10,7 +10,9 @@
 
 Image::~Image()
 {
-    Destroy();
+    if (Delete) {
+        Destroy();
+    }
 }
 
 void Image::Destroy()

@@ -12,6 +12,7 @@ struct Image
     char* Bytes = nullptr;
     int Width = -1;
     int Height = -1;
+    bool Delete = true;
 
     ~Image();
     
