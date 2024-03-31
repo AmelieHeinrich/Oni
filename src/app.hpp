@@ -8,6 +8,8 @@
 #include "core/log.hpp"
 #include "core/window.hpp"
 
+#include "model.hpp"
+
 #include "camera.hpp"
 #include "timer.hpp"
 
@@ -30,7 +32,7 @@ public:
     void RenderOverlay();
 private:
     std::unique_ptr<Window> _window;
-    std::unique_ptr<RenderContext> _renderContext;
+    RenderContext::Ptr _renderContext;
 
     Timer _dtTimer;
     float _lastFrame;
@@ -38,9 +40,10 @@ private:
     FreeCamera _camera;
 
     GraphicsPipeline::Ptr _triPipeline;
-    Buffer::Ptr _vertexBuffer;
-    Buffer::Ptr _indexBuffer;
-    Buffer::Ptr _constantBuffer;
-    Texture::Ptr _texture;
+    Buffer::Ptr _sceneBuffer;
+    Buffer::Ptr _modelBuffer;
+    Texture::Ptr _depthBuffer;
     Sampler::Ptr _sampler;
+
+    Model _model;
 };

@@ -136,6 +136,11 @@ void CommandBuffer::ClearRenderTarget(Texture::Ptr renderTarget, float r, float 
     _commandList->ClearRenderTargetView(renderTarget->_rtv.CPU, clearValues, 0, nullptr);
 }
 
+void CommandBuffer::ClearDepthTarget(Texture::Ptr depthTarget)
+{
+    _commandList->ClearDepthStencilView(depthTarget->_dsv.CPU, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+}
+
 void CommandBuffer::BindVertexBuffer(Buffer::Ptr buffer)
 {
     _commandList->IASetVertexBuffers(0, 1, &buffer->_VBV);

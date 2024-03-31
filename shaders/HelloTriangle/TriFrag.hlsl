@@ -9,10 +9,13 @@ struct FragmentIn
     float2 TexCoords : TEXCOORD; 
 };
 
-Texture2D Texture : register(t1);
-SamplerState Sampler : register(s2);
+Texture2D Texture : register(t2);
+SamplerState Sampler : register(s3);
 
 float4 Main(FragmentIn Input) : SV_TARGET
 {
-    return Texture.Sample(Sampler, Input.TexCoords);
+    float4 color = Texture.Sample(Sampler, Input.TexCoords);
+    if (color.a < 0.25)
+        discard;
+    return color;
 }

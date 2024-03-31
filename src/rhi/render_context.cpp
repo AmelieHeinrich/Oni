@@ -252,6 +252,6 @@ void RenderContext::FlushUploader(Uploader& uploader)
 
     uploader._commandBuffer->End();
     ExecuteCommandBuffers({ uploader._commandBuffer }, CommandQueueType::Graphics);
-    WaitForPreviousDeviceSubmit(CommandQueueType::Graphics);
+    WaitForPreviousHostSubmit(CommandQueueType::Graphics);
     uploader._commands.clear();
 }

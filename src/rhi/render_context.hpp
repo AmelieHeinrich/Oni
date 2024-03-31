@@ -26,7 +26,7 @@ struct FencePair
 class RenderContext
 {
 public:
-    using Ptr = std::unique_ptr<RenderContext>;
+    using Ptr = std::shared_ptr<RenderContext>;
 
     RenderContext(HWND hwnd);
     ~RenderContext();

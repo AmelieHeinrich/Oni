@@ -8,7 +8,10 @@
 #include "shader/bytecode.hpp"
 #include "core/image.hpp"
 
+#include "model.hpp"
+
 #include <ImGui/imgui.h>
+#include <glm/gtc/type_ptr.hpp>
 
 App::App()
     : _camera(1280, 720), _lastFrame(0.0f)
@@ -19,52 +22,39 @@ App::App()
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
         _camera.Resize(width, height);
+        _depthBuffer.reset();
+        _depthBuffer = _renderContext->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget);
+        _depthBuffer->BuildDepthTarget();
     });
 
-    _renderContext = std::make_unique<RenderContext>(_window->GetHandle());
+    _renderContext = std::make_shared<RenderContext>(_window->GetHandle());
+
+    _depthBuffer = _renderContext->CreateTexture(1280, 720, TextureFormat::R32Depth, TextureUsage::DepthTarget);
+    _depthBuffer->BuildDepthTarget();
 
     GraphicsPipelineSpecs specs;
     specs.FormatCount = 1;
     specs.Formats[0] = TextureFormat::RGBA8;
-    specs.DepthEnabled = false;
+    specs.DepthFormat = TextureFormat::R32Depth;
+    specs.Depth = DepthOperation::Less;
+    specs.DepthEnabled = true;
     specs.Cull = CullMode::None;
     specs.Fill = FillMode::Solid;
     ShaderCompiler::CompileShader("shaders/HelloTriangle/TriVertex.hlsl", "Main", ShaderType::Vertex, specs.Bytecodes[ShaderType::Vertex]);
     ShaderCompiler::CompileShader("shaders/HelloTriangle/TriFrag.hlsl", "Main", ShaderType::Fragment, specs.Bytecodes[ShaderType::Fragment]);
     
     _triPipeline = _renderContext->CreateGraphicsPipeline(specs);
-
-    float vertices[] = {
-         0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
-         0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f
-    };
-
-    uint32_t indices[] = {
-        0, 1, 3,
-        1, 2, 3
-    };
-
-    Image image;
-    image.LoadFromFile("assets/textures/texture.jpg");
-
-    _vertexBuffer = _renderContext->CreateBuffer(sizeof(vertices), sizeof(float) * 5, BufferType::Vertex, false);
-    _indexBuffer = _renderContext->CreateBuffer(sizeof(indices), sizeof(uint32_t), BufferType::Index, false);
     
-    _constantBuffer = _renderContext->CreateBuffer(256, 0, BufferType::Constant, false);
-    _constantBuffer->BuildConstantBuffer();
-
-    _texture = _renderContext->CreateTexture(image.Width, image.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
-    _texture->BuildShaderResource();
+    _sceneBuffer = _renderContext->CreateBuffer(256, 0, BufferType::Constant, false);
+    _sceneBuffer->BuildConstantBuffer();
     
-    _sampler = _renderContext->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, 0);
+    _modelBuffer = _renderContext->CreateBuffer(256, 0, BufferType::Constant, false);
+    _modelBuffer->BuildConstantBuffer();
 
-    Uploader uploader = _renderContext->CreateUploader();
-    uploader.CopyHostToDeviceLocal(vertices, sizeof(vertices), _vertexBuffer);
-    uploader.CopyHostToDeviceLocal(indices, sizeof(indices), _indexBuffer);
-    uploader.CopyHostToDeviceTexture(image, _texture);
-    _renderContext->FlushUploader(uploader);
+    _sampler = _renderContext->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, 0);
+
+    // TEST MODEL
+    _model.Load(_renderContext, "assets/models/Sponza.gltf");
 }
 
 App::~App()
@@ -99,23 +89,34 @@ void App::Run()
         Texture::Ptr texture = _renderContext->GetBackBuffer();
 
         void *pData;
-        _constantBuffer->Map(0, 0, &pData);
+        _sceneBuffer->Map(0, 0, &pData);
         memcpy(pData, &buffer, sizeof(SceneBuffer));
-        _constantBuffer->Unmap(0, 0);
+        _sceneBuffer->Unmap(0, 0);
 
         commandBuffer->Begin();
         commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->SetTopology(Topology::TriangleList);
-        commandBuffer->BindRenderTargets({ texture }, nullptr);
-        commandBuffer->BindGraphicsPipeline(_triPipeline);
-        commandBuffer->BindVertexBuffer(_vertexBuffer);
-        commandBuffer->BindIndexBuffer(_indexBuffer);
-        commandBuffer->BindGraphicsConstantBuffer(_constantBuffer, 0);
-        commandBuffer->BindGraphicsShaderResource(_texture, 1);
-        commandBuffer->BindGraphicsSampler(_sampler, 2);
+        commandBuffer->BindRenderTargets({ texture }, _depthBuffer);
         commandBuffer->ClearRenderTarget(texture, 0.3f, 0.5f, 0.8f, 1.0f);
-        commandBuffer->DrawIndexed(6);
+        commandBuffer->ClearDepthTarget(_depthBuffer);
+        commandBuffer->BindGraphicsPipeline(_triPipeline);
+        commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer, 0);
+        commandBuffer->BindGraphicsSampler(_sampler, 3);
+
+        for (auto& primitive : _model.Primitives) {
+            auto& material = _model.Materials[primitive.MaterialIndex];
+
+            _modelBuffer->Map(0, 0, &pData);
+            memcpy(pData, glm::value_ptr(primitive.Transform), sizeof(glm::mat4));
+            _modelBuffer->Unmap(0, 0);
+
+            commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
+            commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
+            commandBuffer->BindGraphicsConstantBuffer(_modelBuffer, 1);
+            commandBuffer->BindGraphicsShaderResource(material.AlbedoTexture, 2);
+            commandBuffer->DrawIndexed(primitive.IndexCount);
+        }
 
         commandBuffer->BeginImGui();
         RenderOverlay();

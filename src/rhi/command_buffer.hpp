@@ -39,6 +39,7 @@ public:
     void SetTopology(Topology topology);
 
     void ClearRenderTarget(Texture::Ptr renderTarget, float r, float g, float b, float a);
+    void ClearDepthTarget(Texture::Ptr depthTarget);
 
     void BindRenderTargets(const std::vector<Texture::Ptr> renderTargets, Texture::Ptr depthTarget);
     void BindVertexBuffer(Buffer::Ptr buffer);
