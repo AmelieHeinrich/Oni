@@ -213,6 +213,16 @@ Sampler::Ptr RenderContext::CreateSampler(SamplerAddress address, SamplerFilter 
     return std::make_shared<Sampler>(_device, _heaps, address, filter, anisotropyLevel);
 }
 
+CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format)
+{
+    return std::make_shared<CubeMap>(_device, _allocator, _heaps, width, height, format);
+}
+
+CommandBuffer::Ptr RenderContext::CreateCommandBuffer(CommandQueueType type)
+{
+    return std::make_shared<CommandBuffer>(_device, _heaps, type);
+}
+
 Uploader RenderContext::CreateUploader()
 {
     return Uploader(_device, _allocator, _heaps);

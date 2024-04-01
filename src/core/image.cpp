@@ -38,11 +38,14 @@ void Image::LoadFromFile(const std::string& path, bool flip)
 
 void Image::LoadHDR(const std::string& path)
 {
+    HDR = true;
     int channels;
 
     stbi_set_flip_vertically_on_load(false);
     Bytes = reinterpret_cast<char*>(stbi_loadf(path.c_str(), &Width, &Height, &channels, STBI_rgb_alpha));
     if (!Bytes) {
         Logger::Error("Failed to load image %s", path.c_str());
+    } else {
+        Logger::Info("Loaded HDR map: %s", path.c_str());
     }
 }

@@ -96,6 +96,9 @@ DescriptorHeap::Descriptor DescriptorHeap::Allocate()
 
 void DescriptorHeap::Free(DescriptorHeap::Descriptor descriptor)
 {
+    if (!descriptor.Valid) {
+        return;
+    }
     _table[descriptor.HeapIndex] = false;
     descriptor.Valid = false;
     descriptor.ParentHeap = nullptr;

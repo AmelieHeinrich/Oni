@@ -7,6 +7,7 @@
 
 #include "buffer.hpp"
 #include "texture.hpp"
+#include "cube_map.hpp"
 #include "sampler.hpp"
 #include "descriptor_heap.hpp"
 #include "graphics_pipeline.hpp"
@@ -35,6 +36,7 @@ public:
     void End();
 
     void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout);
+    void CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout);
     
     void SetViewport(float x, float y, float width, float height);
     void SetTopology(Topology topology);
@@ -50,10 +52,14 @@ public:
     void BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index);
     void BindGraphicsShaderResource(Texture::Ptr texture, int index);
     void BindGraphicsSampler(Sampler::Ptr sampler, int index);
+    void BindGraphicsCubeMap(CubeMap::Ptr cubemap, int index);
 
     void BindComputePipeline(ComputePipeline::Ptr pipeline);
     void BindComputeShaderResource(Texture::Ptr texture, int index);
     void BindComputeStorageTexture(Texture::Ptr texture, int index);
+    void BindComputeCubeMapShaderResource(CubeMap::Ptr texture, int index);
+    void BindComputeCubeMapStorage(CubeMap::Ptr texture, int index);
+    void BindComputeSampler(Sampler::Ptr sampler, int index);
 
     void Draw(int vertexCount);
     void DrawIndexed(int indexCount);

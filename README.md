@@ -24,6 +24,10 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - xmake run
 - That's it!
 
+## Features:
+
+- Forward shading
+
 ## Roadmap:
 
 ### Techniques:
@@ -68,3 +72,4 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - Screenshot system
 - Custom shader post processing system
 - Shader graph
+- IBL

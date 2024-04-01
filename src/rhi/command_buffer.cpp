@@ -12,6 +12,13 @@
 #include <ImGui/imgui_impl_win32.h>
 #include <ImGui/imgui_impl_dx12.h>
 
+bool IsHDR(TextureFormat format)
+{
+    if (format == TextureFormat::RGBA32Float)
+        return true;
+    return false;
+}
+
 CommandBuffer::CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps, CommandQueueType type)
     : _type(D3D12_COMMAND_LIST_TYPE(type)), _heaps(heaps)
 {
@@ -42,7 +49,7 @@ void CommandBuffer::Begin()
     _commandAllocator->Reset();
     _commandList->Reset(_commandAllocator, nullptr);
 
-    if (_type == D3D12_COMMAND_LIST_TYPE_DIRECT) {
+    if (_type == D3D12_COMMAND_LIST_TYPE_DIRECT || _type == D3D12_COMMAND_LIST_TYPE_COMPUTE) {
         ID3D12DescriptorHeap* heaps[] = {
             _heaps.ShaderHeap->GetHeap(),
             _heaps.SamplerHeap->GetHeap()
@@ -71,6 +78,23 @@ void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout)
     _commandList->ResourceBarrier(1, &barrier);
 
     texture->SetState(D3D12_RESOURCE_STATES(newLayout));
+}
+
+void CommandBuffer::CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout)
+{
+     D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = cubemap->GetResource().Resource;
+    barrier.Transition.StateBefore = cubemap->GetState();
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATES(newLayout);
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+    if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
+        return;
+
+    _commandList->ResourceBarrier(1, &barrier);
+
+    cubemap->SetState(D3D12_RESOURCE_STATES(newLayout));
 }
 
 void CommandBuffer::ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state)
@@ -172,6 +196,11 @@ void CommandBuffer::BindGraphicsSampler(Sampler::Ptr sampler, int index)
     _commandList->SetGraphicsRootDescriptorTable(index, sampler->GetDescriptor().GPU);
 }
 
+void CommandBuffer::BindGraphicsCubeMap(CubeMap::Ptr cubemap, int index)
+{
+    _commandList->SetGraphicsRootDescriptorTable(index, cubemap->_srv.GPU);
+}
+
 void CommandBuffer::BindComputePipeline(ComputePipeline::Ptr pipeline)
 {
     _commandList->SetPipelineState(pipeline->GetPipeline());
@@ -186,6 +215,21 @@ void CommandBuffer::BindComputeShaderResource(Texture::Ptr texture, int index)
 void CommandBuffer::BindComputeStorageTexture(Texture::Ptr texture, int index)
 {
     _commandList->SetComputeRootDescriptorTable(index, texture->_srvUav.GPU);
+}
+
+void CommandBuffer::BindComputeCubeMapShaderResource(CubeMap::Ptr texture, int index)
+{
+    _commandList->SetComputeRootDescriptorTable(index, texture->_srv.GPU);
+}
+
+void CommandBuffer::BindComputeCubeMapStorage(CubeMap::Ptr texture, int index)
+{
+    _commandList->SetComputeRootDescriptorTable(index, texture->_uav.GPU);
+}
+
+void CommandBuffer::BindComputeSampler(Sampler::Ptr sampler, int index)
+{
+    _commandList->SetComputeRootDescriptorTable(index, sampler->GetDescriptor().GPU);
 }
 
 void CommandBuffer::Draw(int vertexCount)
@@ -233,7 +277,7 @@ void CommandBuffer::CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src)
     CopySource.PlacedFootprint.Footprint.Width = dst->_width;
     CopySource.PlacedFootprint.Footprint.Height = dst->_height;
     CopySource.PlacedFootprint.Footprint.Depth = 1;
-    CopySource.PlacedFootprint.Footprint.RowPitch = dst->_width * 4;
+    CopySource.PlacedFootprint.Footprint.RowPitch = dst->_width * (IsHDR(dst->_format) ? 16 : 4);
     CopySource.SubresourceIndex = 0;
 
     D3D12_TEXTURE_COPY_LOCATION CopyDest = {};
@@ -259,7 +303,7 @@ void CommandBuffer::CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src)
     CopyDest.PlacedFootprint.Footprint.Width = src->_width;
     CopyDest.PlacedFootprint.Footprint.Height = src->_height;
     CopyDest.PlacedFootprint.Footprint.Depth = 1;
-    CopyDest.PlacedFootprint.Footprint.RowPitch = src->_width * 4;
+    CopyDest.PlacedFootprint.Footprint.RowPitch = src->_width * (IsHDR(src->_format) ? (4 * sizeof(float)) : 4);
     CopyDest.SubresourceIndex = 0;
 
     _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);

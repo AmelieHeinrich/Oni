@@ -52,10 +52,16 @@ void GetHardwareAdapter(IDXGIFactory3 *Factory, IDXGIAdapter1 **RetAdapter, bool
 
 Device::Device()
 {
-    HRESULT Result = D3D12GetDebugInterface(IID_PPV_ARGS(&_debug));
+    ID3D12Debug* debug;
+    HRESULT Result = D3D12GetDebugInterface(IID_PPV_ARGS(&debug));
     if (FAILED(Result))
         Logger::Error("D3D12: Failed to get debug interface!");
+
+    debug->QueryInterface(IID_PPV_ARGS(&_debug));
+    debug->Release();
+
     _debug->EnableDebugLayer();
+    _debug->SetEnableGPUBasedValidation(true);
 
     Result = CreateDXGIFactory(IID_PPV_ARGS(&_factory));
     if (FAILED(Result))
@@ -84,7 +90,7 @@ Device::Device()
         D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
         D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
         D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
-        D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+        D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE
     };
 
     D3D12_INFO_QUEUE_FILTER filter = {0};

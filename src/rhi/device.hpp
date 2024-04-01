@@ -36,7 +36,7 @@ private:
     };
 
     ID3D12Device* _device;
-    ID3D12Debug* _debug;
+    ID3D12Debug1* _debug;
     ID3D12DebugDevice* _debugDevice;
     IDXGIAdapter1* _adapter;
     IDXGIDevice* _dxgiDevice;

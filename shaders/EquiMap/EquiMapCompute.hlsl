@@ -7,8 +7,8 @@ static const float PI = 3.141592;
 static const float TwoPI = 2 * PI;
 
 Texture2D Equi : register(t0);
-RWTexture2DArray<float4> Cube : register(u0);
-SamplerState CubeSampler : register(s0);
+RWTexture2DArray<float4> Cube : register(u1);
+SamplerState CubeSampler : register(s2);
 
 float3 GetSamplingVector(uint3 ThreadID)
 {
@@ -22,12 +22,12 @@ float3 GetSamplingVector(uint3 ThreadID)
 	float3 ret = float3(1.0f, 1.0f, 1.0f);
 	switch(ThreadID.z)
 	{
-	case 0: ret = float3( 1.0,   uv.y, -uv.x); break;
-	case 1: ret = float3(-1.0,   uv.y,  uv.x); break;
-	case 2: ret = float3( uv.x,  1.0,  -uv.y); break;
-	case 3: ret = float3( uv.x, -1.0,   uv.y); break;
-	case 4: ret = float3( uv.x,  uv.y,  1.0); break;
-	case 5: ret = float3(-uv.x,  uv.y, -1.0); break;
+		case 0: ret = float3( 1.0,   uv.y, -uv.x); break;
+		case 1: ret = float3(-1.0,   uv.y,  uv.x); break;
+		case 2: ret = float3( uv.x,  1.0,  -uv.y); break;
+		case 3: ret = float3( uv.x, -1.0,   uv.y); break;
+		case 4: ret = float3( uv.x,  uv.y,  1.0); break;
+		case 5: ret = float3(-uv.x,  uv.y, -1.0); break;
 	}
     return normalize(ret);
 }

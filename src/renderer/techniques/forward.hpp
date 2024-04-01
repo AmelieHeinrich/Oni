@@ -19,6 +19,7 @@ public:
     void OnUI();
 
     Texture::Ptr GetOutput() { return _outputImage; }
+    Texture::Ptr GetDepthBuffer() { return _depthBuffer; }
 private:
     RenderContext::Ptr _context;
 

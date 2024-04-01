@@ -9,8 +9,8 @@ struct FragmentIn
 	float3 LocalPosition : COLOR0;
 };
 
-TextureCube EnvironmentMap : register(t0);
-SamplerState CubeSampler : register(s0);
+TextureCube EnvironmentMap : register(t1);
+SamplerState CubeSampler : register(s2);
 
 float4 Main(FragmentIn input) : SV_Target
 {

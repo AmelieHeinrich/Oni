@@ -19,6 +19,7 @@
 #include "rhi/graphics_pipeline.hpp"
 #include "rhi/compute_pipeline.hpp"
 #include "rhi/uploader.hpp"
+#include "rhi/cube_map.hpp"
 
 struct FencePair
 {
@@ -55,6 +56,8 @@ public:
     ComputePipeline::Ptr CreateComputePipeline(ShaderBytecode& shader);
     Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage);
     Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, int anisotropyLevel);
+    CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format);
+    CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type);
     
     Uploader CreateUploader();
     void FlushUploader(Uploader& uploader);
