@@ -8,6 +8,8 @@
 #include <rhi/render_context.hpp>
 #include <renderer/scene.hpp>
 
+#include "envmap_forward.hpp"
+
 class Forward
 {
 public:
@@ -17,11 +19,13 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height);
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
+    void ConnectEnvironmentMap(EnvironmentMap& map);
 
     Texture::Ptr GetOutput() { return _outputImage; }
     Texture::Ptr GetDepthBuffer() { return _depthBuffer; }
 private:
     RenderContext::Ptr _context;
+    EnvironmentMap _map;
 
     Texture::Ptr _whiteTexture;
     Texture::Ptr _outputImage;

@@ -12,7 +12,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _envMapForward = std::make_shared<EnvMapForward>(context, _forward->GetOutput(), _forward->GetDepthBuffer());
     _tonemapping = std::make_shared<Tonemapping>(context, _forward->GetOutput());
 
-    // TODO: _forward->AddEnvironmentMapData(EnvironmentMap&);
+    _forward->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
 }
 
 Renderer::~Renderer()

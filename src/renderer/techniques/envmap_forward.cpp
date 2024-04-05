@@ -5,6 +5,8 @@
 
 #include "envmap_forward.hpp"
 
+#include <core/log.hpp>
+
 const float CubeVertices[] = {
     -1.0f,  1.0f, -1.0f,
     -1.0f, -1.0f, -1.0f,
@@ -56,6 +58,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     ShaderCompiler::CompileShader("shaders/EquiMap/EquiMapCompute.hlsl", "Main", ShaderType::Compute, cubemapBytecode);
     ShaderCompiler::CompileShader("shaders/Irradiance/IrradianceCompute.hlsl", "Main", ShaderType::Compute, irradianceBytecode);
     ShaderCompiler::CompileShader("shaders/Prefilter/PrefilterCompute.hlsl", "Main", ShaderType::Compute, prefilterBytecode);
+    ShaderCompiler::CompileShader("shaders/BRDF/BRDFCompute.hlsl", "Main", ShaderType::Compute, brdfBytecode);
 
     ShaderBytecode cubemapRendererVertex, cubemapRendererFragment;
     ShaderCompiler::CompileShader("shaders/EnvMapForward/EnvMapForwardVert.hlsl", "Main", ShaderType::Vertex, cubemapRendererVertex);
@@ -67,6 +70,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _envToCube = context->CreateComputePipeline(cubemapBytecode);
     _irradiance = context->CreateComputePipeline(irradianceBytecode);
     _prefilter = context->CreateComputePipeline(prefilterBytecode);
+    _brdf = context->CreateComputePipeline(brdfBytecode);
 
     GraphicsPipelineSpecs specs;
     specs.Bytecodes[ShaderType::Vertex] = cubemapRendererVertex;
@@ -96,6 +100,9 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA32Float);
     _map.IrradianceMap = context->CreateCubeMap(128, 128, TextureFormat::RGBA32Float);
     _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA32Float);
+    _map.BRDF = context->CreateTexture(512, 512, TextureFormat::RGBA32Float, TextureUsage::Storage);
+    _map.BRDF->BuildShaderResource();
+    _map.BRDF->BuildStorage();
 
     // Create geometry
     _cubeBuffer = context->CreateBuffer(sizeof(CubeVertices), sizeof(glm::vec3), BufferType::Vertex, false);
@@ -108,6 +115,8 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
 
     // Run everything
     context->FlushUploader(uploader);
+
+    float startTime = clock();
 
     CommandBuffer::Ptr cmdBuffer = context->CreateCommandBuffer(CommandQueueType::Compute);
 
@@ -155,6 +164,15 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Compute);
 
     // BRDF
+    cmdBuffer->Begin();
+    cmdBuffer->BindComputePipeline(_brdf);
+    cmdBuffer->BindComputeStorageTexture(_map.BRDF, 0);
+    cmdBuffer->Dispatch(512 / 32, 512 / 32, 1);
+    cmdBuffer->End();
+    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Compute);
+
+    float endTime = (clock() - startTime) / 1000.0f;
+    Logger::Info("Environment map: Texture generation took %f seconds", endTime);
 }
 
 EnvMapForward::~EnvMapForward()

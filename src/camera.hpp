@@ -18,6 +18,7 @@ public:
 
     glm::mat4 View() { return _View; }
     glm::mat4 Projection() { return _Projection; }
+    glm::vec3 GetPosition() { return _Position; }
 private:
     void UpdateVectors();
     void GetMousePosition(int& x, int& y);

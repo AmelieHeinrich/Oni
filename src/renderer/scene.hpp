@@ -30,6 +30,7 @@ struct Scene
     
     glm::mat4 View;
     glm::mat4 Projection;
+    glm::vec4 CameraPosition;
     
     LightData LightBuffer;
 };
