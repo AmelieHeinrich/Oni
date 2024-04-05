@@ -77,7 +77,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _cubeRenderer = context->CreateGraphicsPipeline(specs);
 
     // Create sampler
-    _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Nearest, 0);
+    _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, 0);
 
     // Load HDRI
     Image image;

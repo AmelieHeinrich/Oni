@@ -27,11 +27,11 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 ## Features:
 
 - Forward shading
+- Skybox
 
 ## Roadmap:
 
 ### Techniques:
-- Deferred rendering
 - Visibility buffer
 - Cascaded shadow maps (CSM)
 - Reflective shadow maps (RSM)

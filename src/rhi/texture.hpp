@@ -74,7 +74,8 @@ private:
     
     DescriptorHeap::Descriptor _rtv;
     DescriptorHeap::Descriptor _dsv;
-    DescriptorHeap::Descriptor _srvUav;
+    DescriptorHeap::Descriptor _srv;
+    DescriptorHeap::Descriptor _uav;
 
     TextureFormat _format;
     int _width;

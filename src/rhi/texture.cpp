@@ -71,8 +71,11 @@ Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
 Texture::~Texture()
 {
     if (_release) {
-        if (_srvUav.Valid) {
-            _heaps.ShaderHeap->Free(_srvUav);
+        if (_uav.Valid) {
+            _heaps.ShaderHeap->Free(_uav);
+        }
+        if (_srv.Valid) {
+            _heaps.ShaderHeap->Free(_srv);
         }
         if (_dsv.Valid) {
             _heaps.DSVHeap->Free(_dsv);
@@ -106,7 +109,7 @@ void Texture::BuildDepthTarget()
 
 void Texture::BuildShaderResource()
 {
-    _srvUav = _heaps.ShaderHeap->Allocate();
+    _srv = _heaps.ShaderHeap->Allocate();
     
     D3D12_SHADER_RESOURCE_VIEW_DESC ShaderResourceView = {};
     ShaderResourceView.Format = DXGI_FORMAT(_format);
@@ -114,15 +117,15 @@ void Texture::BuildShaderResource()
     ShaderResourceView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     ShaderResourceView.Texture2D.MipLevels = 1;
 
-    _devicePtr->GetDevice()->CreateShaderResourceView(_resource.Resource, &ShaderResourceView, _srvUav.CPU);
+    _devicePtr->GetDevice()->CreateShaderResourceView(_resource.Resource, &ShaderResourceView, _srv.CPU);
 }
 
 void Texture::BuildStorage()
 {
-    _srvUav = _heaps.ShaderHeap->Allocate();
+    _uav = _heaps.ShaderHeap->Allocate();
     
     D3D12_UNORDERED_ACCESS_VIEW_DESC UnorderedAccessView = {};
     UnorderedAccessView.Format = DXGI_FORMAT(_format);
     UnorderedAccessView.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource.Resource, nullptr, &UnorderedAccessView, _srvUav.CPU);
+    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource.Resource, nullptr, &UnorderedAccessView, _uav.CPU);
 }
