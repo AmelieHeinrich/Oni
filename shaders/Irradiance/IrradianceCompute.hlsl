@@ -11,8 +11,8 @@ static const uint NumSamples = 64 * 1024;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
 TextureCube EnvironmentMap : register(t0);
-RWTexture2DArray<float4> IrradianceMap : register(u0);
-SamplerState CubeSampler : register(s0);
+RWTexture2DArray<float4> IrradianceMap : register(u1);
+SamplerState CubeSampler : register(s2);
 
 float radicalInverse_VdC(uint bits)
 {

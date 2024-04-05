@@ -227,6 +227,11 @@ void CommandBuffer::BindComputeCubeMapStorage(CubeMap::Ptr texture, int index)
     _commandList->SetComputeRootDescriptorTable(index, texture->_uav.GPU);
 }
 
+void CommandBuffer::BindComputeConstantBuffer(Buffer::Ptr buffer, int index)
+{
+    _commandList->SetComputeRootDescriptorTable(index, buffer->_descriptor.GPU);
+}
+
 void CommandBuffer::BindComputeSampler(Sampler::Ptr sampler, int index)
 {
     _commandList->SetComputeRootDescriptorTable(index, sampler->GetDescriptor().GPU);
@@ -309,8 +314,12 @@ void CommandBuffer::CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src)
     _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);
 }
 
-void CommandBuffer::BeginImGui()
+void CommandBuffer::BeginImGui(int width, int height)
 {
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize.x = width;
+    io.DisplaySize.y = height;
+
     ImGui_ImplDX12_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
@@ -320,8 +329,8 @@ void CommandBuffer::EndImGui()
 {
     ImGuiIO& io = ImGui::GetIO();
 
-    ID3D12DescriptorHeap* pHeaps[] = { _heaps.ShaderHeap->GetHeap() };
-    _commandList->SetDescriptorHeaps(1, pHeaps);
+    ID3D12DescriptorHeap* pHeaps[] = { _heaps.ShaderHeap->GetHeap(), _heaps.SamplerHeap->GetHeap() };
+    _commandList->SetDescriptorHeaps(2, pHeaps);
 
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _commandList);

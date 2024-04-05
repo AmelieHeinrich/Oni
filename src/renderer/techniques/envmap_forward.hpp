@@ -44,4 +44,5 @@ private:
 
     Buffer::Ptr _cubeBuffer;
     Buffer::Ptr _cubeCBV;
+    Buffer::Ptr _prefilterBuffer;
 };

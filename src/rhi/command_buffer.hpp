@@ -59,6 +59,7 @@ public:
     void BindComputeStorageTexture(Texture::Ptr texture, int index);
     void BindComputeCubeMapShaderResource(CubeMap::Ptr texture, int index);
     void BindComputeCubeMapStorage(CubeMap::Ptr texture, int index);
+    void BindComputeConstantBuffer(Buffer::Ptr buffer, int index);
     void BindComputeSampler(Sampler::Ptr sampler, int index);
 
     void Draw(int vertexCount);
@@ -70,7 +71,7 @@ public:
     void CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src);
     void CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src);
 
-    void BeginImGui();
+    void BeginImGui(int width, int height);
     void EndImGui();
     void CleanupImGui();
 

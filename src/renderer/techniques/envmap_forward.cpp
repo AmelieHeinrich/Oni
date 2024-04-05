@@ -54,6 +54,8 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
 {
     ShaderBytecode cubemapBytecode, prefilterBytecode, irradianceBytecode, brdfBytecode;
     ShaderCompiler::CompileShader("shaders/EquiMap/EquiMapCompute.hlsl", "Main", ShaderType::Compute, cubemapBytecode);
+    ShaderCompiler::CompileShader("shaders/Irradiance/IrradianceCompute.hlsl", "Main", ShaderType::Compute, irradianceBytecode);
+    ShaderCompiler::CompileShader("shaders/Prefilter/PrefilterCompute.hlsl", "Main", ShaderType::Compute, prefilterBytecode);
 
     ShaderBytecode cubemapRendererVertex, cubemapRendererFragment;
     ShaderCompiler::CompileShader("shaders/EnvMapForward/EnvMapForwardVert.hlsl", "Main", ShaderType::Vertex, cubemapRendererVertex);
@@ -63,6 +65,8 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     Uploader uploader = context->CreateUploader();
 
     _envToCube = context->CreateComputePipeline(cubemapBytecode);
+    _irradiance = context->CreateComputePipeline(irradianceBytecode);
+    _prefilter = context->CreateComputePipeline(prefilterBytecode);
 
     GraphicsPipelineSpecs specs;
     specs.Bytecodes[ShaderType::Vertex] = cubemapRendererVertex;
@@ -90,29 +94,67 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
 
     // Create textures
     _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA32Float);
+    _map.IrradianceMap = context->CreateCubeMap(128, 128, TextureFormat::RGBA32Float);
+    _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA32Float);
 
     // Create geometry
     _cubeBuffer = context->CreateBuffer(sizeof(CubeVertices), sizeof(glm::vec3), BufferType::Vertex, false);
     _cubeCBV = context->CreateBuffer(256, 0, BufferType::Constant, false);
     _cubeCBV->BuildConstantBuffer();
+    _prefilterBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false);
+    _prefilterBuffer->BuildConstantBuffer();
 
     uploader.CopyHostToDeviceLocal((void*)CubeVertices, sizeof(CubeVertices), _cubeBuffer);
 
     // Run everything
     context->FlushUploader(uploader);
 
-    CommandBuffer::Ptr cmdBuffer = context->CreateCommandBuffer(CommandQueueType::Graphics);
+    CommandBuffer::Ptr cmdBuffer = context->CreateCommandBuffer(CommandQueueType::Compute);
 
+    // Equi to cubemap
     cmdBuffer->Begin();
-    cmdBuffer->CubeMapBarrier(_map.Environment, TextureLayout::Storage);
     cmdBuffer->BindComputePipeline(_envToCube);
     cmdBuffer->BindComputeShaderResource(hdrTexture, 0);
     cmdBuffer->BindComputeCubeMapStorage(_map.Environment, 1);
     cmdBuffer->BindComputeSampler(_cubeSampler, 2);
     cmdBuffer->Dispatch(512 / 32, 512 / 32, 6);
-    cmdBuffer->CubeMapBarrier(_map.Environment, TextureLayout::ShaderResource);
     cmdBuffer->End();
-    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
+    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Compute);
+
+    // Irradiance
+    cmdBuffer->Begin();
+    cmdBuffer->BindComputePipeline(_irradiance);
+    cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
+    cmdBuffer->BindComputeCubeMapStorage(_map.IrradianceMap, 1);
+    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
+    cmdBuffer->Dispatch(128 / 32, 128 / 32, 6);
+    cmdBuffer->End();
+    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Compute);
+
+    // Prefilter
+    cmdBuffer->Begin();
+    cmdBuffer->BindComputePipeline(_prefilter);
+    cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
+    cmdBuffer->BindComputeCubeMapStorage(_map.PrefilterMap, 1);
+    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
+    cmdBuffer->BindComputeConstantBuffer(_prefilterBuffer, 3);
+    for (int i = 0; i < 5; i++) {
+        int width = (int)(512.0f * pow(0.5f, i));
+        int height = (int)(512.0f * pow(0.5f, i));
+        float roughness = (float)i / (float)(4);
+
+        glm::vec4 roughnessVec(roughness, 0.0f, 0.0f, 0.0f);
+
+        void *pData;
+        _prefilterBuffer->Map(0, 0, &pData);
+        memcpy(pData, &roughnessVec, sizeof(glm::vec4));
+        _prefilterBuffer->Unmap(0, 0);
+        cmdBuffer->Dispatch(width / 32, height / 32, 6);
+    }
+    cmdBuffer->End();
+    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Compute);
+
+    // BRDF
 }
 
 EnvMapForward::~EnvMapForward()

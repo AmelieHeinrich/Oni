@@ -69,6 +69,10 @@ void App::Run()
 
         _window->Update();
 
+        if (ImGui::IsKeyPressed(ImGuiKey_F1)) {
+            _showUI = !_showUI;
+        }
+
         uint32_t width, height;
         _window->GetSize(width, height);
 
@@ -90,26 +94,38 @@ void App::Run()
         {
             commandBuffer->Begin();
             commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
-            commandBuffer->BeginImGui();
+            commandBuffer->BindRenderTargets({ texture }, nullptr);
+            commandBuffer->BeginImGui(width, height);
             RenderOverlay();
-            _renderer->OnUI();
+            if (_showUI) {
+                _renderer->OnUI();
+            }
             commandBuffer->EndImGui();
             commandBuffer->ImageBarrier(texture, TextureLayout::Present);
             commandBuffer->End();
+            _renderContext->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
         }
 
         // FLUSH
         {
-            _renderContext->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
             _renderContext->EndFrame();
             _renderContext->Present(true);
         }
 
-        _camera.Input(dt);
+        if (!_showUI) {
+            _camera.Input(dt);
+        }
     }
 }
 
 void App::RenderOverlay()
 {
-    
+    if (_showUI) {
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("Debug")) {
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
+        }
+    }
 }

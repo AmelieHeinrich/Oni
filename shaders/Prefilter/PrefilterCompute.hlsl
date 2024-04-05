@@ -10,15 +10,15 @@ static const float Epsilon = 0.00001;
 static const uint NumSamples = 1;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
-cbuffer PrefilterMapFilterSettings : register(b0)
+struct PrefilterMapSettings
 {
-	// Roughness value to pre-filter for.
-	float4 roughness; // Only the x attribute is used, but it's a float4 for the 16 byte alignment
+	float4 Roughness;
 };
 
 TextureCube EnvironmentMap : register(t0);
-RWTexture2DArray<float4> PrefilterMap : register(u0);
-SamplerState CubeSampler : register(s0);
+RWTexture2DArray<float4> PrefilterMap : register(u1);
+SamplerState CubeSampler : register(s2);
+ConstantBuffer<PrefilterMapSettings> PrefilterSettings : register(b3);
 
 float radicalInverse_VdC(uint bits)
 {
@@ -124,7 +124,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 	// Convolve environment map using GGX NDF importance sampling.
 	// Weight by cosine term since Epic claims it generally improves quality.
 	float2 u = sampleHammersley(0, NumSamples);
-	float3 Lh = tangentToWorld(sampleGGX(u.x, u.y, roughness.x), N, S, T);
+	float3 Lh = tangentToWorld(sampleGGX(u.x, u.y, PrefilterSettings.Roughness.x), N, S, T);
 
 	// Compute incident direction (Li) by reflecting viewing direction (Lo) around half-vector (Lh).
 	float3 Li = 2.0 * dot(Lo, Lh) * Lh - Lo;
@@ -138,7 +138,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 
 		// GGX normal distribution function (D term) probability density function.
 		// Scaling by 1/4 is due to change of density in terms of Lh to Li (and since N=V, rest of the scaling factor cancels out).
-		float pdf = ndfGGX(cosLh, roughness.x) * 0.25;
+		float pdf = ndfGGX(cosLh, PrefilterSettings.Roughness.x) * 0.25;
 
 		// Solid angle associated with this sample.
 		float ws = 1.0 / (NumSamples * pdf);

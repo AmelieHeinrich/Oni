@@ -37,4 +37,6 @@ private:
 
     FreeCamera _camera;
     Scene scene;
+
+    bool _showUI = false;
 };
