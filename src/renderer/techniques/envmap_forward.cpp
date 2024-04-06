@@ -85,7 +85,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _cubeRenderer = context->CreateGraphicsPipeline(specs);
 
     // Create sampler
-    _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, 0);
+    _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Nearest, 0);
 
     // Load HDRI
     Image image;
@@ -146,18 +146,19 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
     cmdBuffer->BindComputeCubeMapStorage(_map.PrefilterMap, 1);
     cmdBuffer->BindComputeSampler(_cubeSampler, 2);
-    cmdBuffer->BindComputeConstantBuffer(_prefilterBuffer, 3);
     for (int i = 0; i < 5; i++) {
         int width = (int)(512.0f * pow(0.5f, i));
         int height = (int)(512.0f * pow(0.5f, i));
-        float roughness = (float)i / (float)(4);
+        float roughness = (float)i / (float)(5 - 1);
 
         glm::vec4 roughnessVec(roughness, 0.0f, 0.0f, 0.0f);
 
         void *pData;
         _prefilterBuffer->Map(0, 0, &pData);
-        memcpy(pData, &roughnessVec, sizeof(glm::vec4));
+        memcpy(pData, glm::value_ptr(roughnessVec), sizeof(glm::vec4));
         _prefilterBuffer->Unmap(0, 0);
+
+        cmdBuffer->BindComputeConstantBuffer(_prefilterBuffer, 3);
         cmdBuffer->Dispatch(width / 32, height / 32, 6);
     }
     cmdBuffer->End();

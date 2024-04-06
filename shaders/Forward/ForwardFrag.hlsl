@@ -50,7 +50,7 @@ float DistributionGGX(float3 N, float3 H, float roughness)
 	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
 	denom = PI * denom * denom;
 
-	return num / denom;
+	return num / max(denom, 0.0000001);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness)
@@ -63,6 +63,7 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 
 	return num / denom;
 }
+
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 {
 	float NdotV = max(dot(N, V), 0.0);
@@ -75,29 +76,12 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 
 float3 FresnelSchlick(float cosTheta, float3 F0)
 {
-	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+	return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 {
-	return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
-}
-
-float3 GetNormalFromMap(FragmentIn input)
-{
-    float3 tangentNormal = NormalTexture.Sample(Sampler, input.TexCoords).rgb * 2.0 - 1.0;
-
-    float3 Q1  = ddx(input.WorldPos.xyz);
-    float3 Q2  = ddy(input.WorldPos.xyz);
-    float2 st1 = ddx(input.TexCoords);
-    float2 st2 = ddy(input.TexCoords);
-
-    float3 N   = normalize(input.Normals);
-    float3 T  = normalize(Q1*st2.y - Q2*st1.y);
-    float3 B  = -normalize(cross(N, T));
-    float3x3 TBN = float3x3(T, B, N);
-
-    return normalize(mul(TBN, tangentNormal));
+	return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 static const float MAX_REFLECTION_LOD = 4.0;
@@ -110,7 +94,6 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords);
     float metallic = metallicRoughness.b;
     float roughness = metallicRoughness.g;
-    albedo = pow(albedo, float4(2.2, 2.2, 2.2, 2.2));
     
     float3 normal = Input.Normals * NormalTexture.Sample(Sampler, Input.TexCoords).rgb;
 
@@ -129,7 +112,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
 
         float3 L = normalize(lightPos - Input.WorldPos.xyz);
         float3 H = normalize(V + L);
-        float distance = length(L);
+        float distance = length(L - Input.WorldPos.xyz);
         float attenuation = 1.0 / (distance * distance);
         float3 radiance = lightColor * attenuation;
 
@@ -139,10 +122,10 @@ float4 Main(FragmentIn Input) : SV_TARGET
         
         float3 numerator = F * G * NDF;
         float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
-        float3 specular = numerator / max(denominator, 0.001);
+        float3 specular = numerator / denominator;
 
         float3 kS = F;
-        float3 kD = 1.0 - kS;
+        float3 kD = float3(1.0, 1.0, 1.0) - kS;
         kD *= 1.0 - metallic;
 
         float NdotL = max(dot(N, L), 0.0);

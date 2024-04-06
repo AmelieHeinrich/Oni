@@ -121,33 +121,35 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 	float3 color = 0;
 	float weight = 0;
 
-	// Convolve environment map using GGX NDF importance sampling.
-	// Weight by cosine term since Epic claims it generally improves quality.
-	float2 u = sampleHammersley(0, NumSamples);
-	float3 Lh = tangentToWorld(sampleGGX(u.x, u.y, PrefilterSettings.Roughness.x), N, S, T);
+	for (int i = 0; i < 1024; i++) {
+		// Convolve environment map using GGX NDF importance sampling.
+		// Weight by cosine term since Epic claims it generally improves quality.
+		float2 u = sampleHammersley(0, NumSamples);
+		float3 Lh = tangentToWorld(sampleGGX(u.x, u.y, PrefilterSettings.Roughness.x), N, S, T);
 
-	// Compute incident direction (Li) by reflecting viewing direction (Lo) around half-vector (Lh).
-	float3 Li = 2.0 * dot(Lo, Lh) * Lh - Lo;
+		// Compute incident direction (Li) by reflecting viewing direction (Lo) around half-vector (Lh).
+		float3 Li = 2.0 * dot(Lo, Lh) * Lh - Lo;
 
-	float cosLi = dot(N, Li);
-	if(cosLi > 0.0) {
-		// Use Mipmap Filtered Importance Sampling to improve convergence.
-		// See: https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch20.html, section 20.4
+		float cosLi = dot(N, Li);
+		if(cosLi > 0.0) {
+			// Use Mipmap Filtered Importance Sampling to improve convergence.
+			// See: https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch20.html, section 20.4
 
-		float cosLh = max(dot(N, Lh), 0.0);
+			float cosLh = max(dot(N, Lh), 0.0);
 
-		// GGX normal distribution function (D term) probability density function.
-		// Scaling by 1/4 is due to change of density in terms of Lh to Li (and since N=V, rest of the scaling factor cancels out).
-		float pdf = ndfGGX(cosLh, PrefilterSettings.Roughness.x) * 0.25;
+			// GGX normal distribution function (D term) probability density function.
+			// Scaling by 1/4 is due to change of density in terms of Lh to Li (and since N=V, rest of the scaling factor cancels out).
+			float pdf = ndfGGX(cosLh, PrefilterSettings.Roughness.x) * 0.25;
 
-		// Solid angle associated with this sample.
-		float ws = 1.0 / (NumSamples * pdf);
+			// Solid angle associated with this sample.
+			float ws = 1.0 / (NumSamples * pdf);
 
-		// Mip level to sample from.
-		float mipLevel = max(0.5 * log2(ws / wt) + 1.0, 0.0);
+			// Mip level to sample from.
+			float mipLevel = max(0.5 * log2(ws / wt) + 1.0, 0.0);
 
-		color  += EnvironmentMap.SampleLevel(CubeSampler, Li, mipLevel).rgb * cosLi;
-		weight += cosLi;
+			color  += EnvironmentMap.SampleLevel(CubeSampler, Li, mipLevel).rgb * cosLi;
+			weight += cosLi;
+		}
 	}
 	color /= weight;
 
