@@ -94,6 +94,8 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords);
     float metallic = metallicRoughness.b;
     float roughness = metallicRoughness.g;
+
+    albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
     
     float3 normal = Input.Normals * NormalTexture.Sample(Sampler, Input.TexCoords).rgb;
 
@@ -147,6 +149,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
 
     float3 ambient = (kD * diffuse + specular);
     float3 color = ambient + Lo;
+    float4 final = float4(color, 1.0);
 
-    return float4(color, 1.0);
+    return final;
 }

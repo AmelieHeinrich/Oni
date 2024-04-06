@@ -39,17 +39,17 @@ App::App()
     _renderer = std::make_unique<Renderer>(_renderContext);
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
+    sponza.Load(_renderContext, "assets/models/Sponza.gltf");
 
     scene.Models.push_back(sponza);
 
-    for (int i = 0; i < 0; i++) {
+    for (int i = 0; i < 16; i++) {
         PointLight light;
         light.Position = glm::vec4(random_float(-3.0f, 3.0f), random_float(-1.0f, -5.0f), random_float(-3.0f, 3.0f), 1.0f);
         light.Color = glm::vec4(random_float(0.1f, 4.0f), random_float(0.1f, 4.0f), random_float(0.1f, 4.0f), 1.0f);
         scene.LightBuffer.PointLights[i] = light;
     }
-    scene.LightBuffer.PointLightCount = 0;
+    scene.LightBuffer.PointLightCount = 16;
 }
 
 App::~App()
