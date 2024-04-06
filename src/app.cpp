@@ -39,7 +39,7 @@ App::App()
     _renderer = std::make_unique<Renderer>(_renderContext);
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/Sponza.gltf");
+    sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
 
     scene.Models.push_back(sponza);
 

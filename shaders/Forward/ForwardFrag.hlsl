@@ -135,6 +135,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
     }
 
     float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    
     float3 kS = F;
     float3 kD = 1.0 - kS;
     kD *= 1.0 - metallic;
@@ -144,7 +145,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
 
     float prefilterLOD = roughness * MAX_REFLECTION_LOD;
     float3 prefilteredColor = Prefilter.SampleLevel(Sampler, R, prefilterLOD).rgb;
-    float2 brdf = BRDF.Sample(Sampler, float2(max(dot(N, V), 0.0), roughness)).xy;
+    float2 brdf = BRDF.Sample(Sampler, float2(max(dot(N, V), 0.0), roughness)).rg;
     float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
     float3 ambient = (kD * diffuse + specular);

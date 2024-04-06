@@ -282,7 +282,7 @@ void CommandBuffer::CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src)
     CopySource.PlacedFootprint.Footprint.Width = dst->_width;
     CopySource.PlacedFootprint.Footprint.Height = dst->_height;
     CopySource.PlacedFootprint.Footprint.Depth = 1;
-    CopySource.PlacedFootprint.Footprint.RowPitch = dst->_width * (IsHDR(dst->_format) ? 16 : 4);
+    CopySource.PlacedFootprint.Footprint.RowPitch = dst->_width * Texture::GetComponentSize(dst->GetFormat());
     CopySource.SubresourceIndex = 0;
 
     D3D12_TEXTURE_COPY_LOCATION CopyDest = {};
@@ -308,7 +308,7 @@ void CommandBuffer::CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src)
     CopyDest.PlacedFootprint.Footprint.Width = src->_width;
     CopyDest.PlacedFootprint.Footprint.Height = src->_height;
     CopyDest.PlacedFootprint.Footprint.Depth = 1;
-    CopyDest.PlacedFootprint.Footprint.RowPitch = src->_width * (IsHDR(src->_format) ? (4 * sizeof(float)) : 4);
+    CopyDest.PlacedFootprint.Footprint.RowPitch = src->_width * Texture::GetComponentSize(src->GetFormat());
     CopyDest.SubresourceIndex = 0;
 
     _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);

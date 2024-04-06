@@ -15,6 +15,7 @@ enum class TextureFormat
     RGBA32Float = DXGI_FORMAT_R32G32B32A32_FLOAT,
     RGBA16Float = DXGI_FORMAT_R16G16B16A16_FLOAT,
     RGBA16Unorm = DXGI_FORMAT_R16G16B16A16_UNORM,
+    RG16Float = DXGI_FORMAT_R16G16_FLOAT,
     R32Depth = DXGI_FORMAT_D32_FLOAT
 };
 
@@ -59,6 +60,9 @@ public:
     D3D12_RESOURCE_STATES GetState() { return _state; }
 
     GPUResource& GetResource() { return _resource; }
+
+    static uint64_t GetComponentSize(TextureFormat format);
+    TextureFormat GetFormat() { return _format; }
 private:
     friend class SwapChain;
     friend class CommandBuffer;

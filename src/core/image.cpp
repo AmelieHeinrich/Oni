@@ -42,7 +42,7 @@ void Image::LoadHDR(const std::string& path)
     int channels;
 
     stbi_set_flip_vertically_on_load(false);
-    Bytes = reinterpret_cast<char*>(stbi_loadf(path.c_str(), &Width, &Height, &channels, STBI_rgb_alpha));
+    Bytes = reinterpret_cast<char*>(stbi_load_16(path.c_str(), &Width, &Height, &channels, STBI_rgb_alpha));
     if (!Bytes) {
         Logger::Error("Failed to load image %s", path.c_str());
     } else {

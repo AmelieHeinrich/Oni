@@ -51,7 +51,7 @@ void Uploader::CopyHostToDeviceLocal(void* pData, uint64_t uiSize, Buffer::Ptr p
 
 void Uploader::CopyHostToDeviceTexture(Image& image, Texture::Ptr pDestTexture)
 {
-    int componentSize = image.HDR ? 16 : 4;
+    int componentSize = Texture::GetComponentSize(pDestTexture->GetFormat());
     Buffer::Ptr buffer = std::make_shared<Buffer>(_devicePtr, _allocator, _heaps, image.Width * image.Height * componentSize, 0, BufferType::Copy, false);
 
     {

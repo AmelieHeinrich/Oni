@@ -10,7 +10,7 @@ static const float Epsilon = 0.001; // This program needs larger eps.
 static const uint NumSamples = 1024;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
-RWTexture2D<float4> LUT : register(u0);
+RWTexture2D<half2> LUT : register(u0);
 
 float radicalInverse_VdC(uint bits)
 {
@@ -96,5 +96,5 @@ void Main(uint2 ThreadID : SV_DispatchThreadID)
 	DFG1 /= float(NumSamples);
 	DFG2 /= float(NumSamples);
 
-	LUT[ThreadID] = float4(DFG1, DFG2, 0.0, 1.0);
+	LUT[ThreadID] = float2(DFG1, DFG2);
 }

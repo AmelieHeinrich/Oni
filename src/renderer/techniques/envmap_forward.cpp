@@ -85,22 +85,22 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _cubeRenderer = context->CreateGraphicsPipeline(specs);
 
     // Create sampler
-    _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Nearest, 0);
+    _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, 0);
 
     // Load HDRI
     Image image;
     image.LoadHDR("assets/env/env_map.hdr");
 
-    Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA32Float, TextureUsage::ShaderResource);
+    Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource);
     hdrTexture->BuildShaderResource();
 
     uploader.CopyHostToDeviceTexture(image, hdrTexture);
 
     // Create textures
-    _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA32Float);
-    _map.IrradianceMap = context->CreateCubeMap(128, 128, TextureFormat::RGBA32Float);
-    _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA32Float);
-    _map.BRDF = context->CreateTexture(512, 512, TextureFormat::RGBA32Float, TextureUsage::Storage);
+    _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm);
+    _map.IrradianceMap = context->CreateCubeMap(128, 128, TextureFormat::RGBA16Unorm);
+    _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm);
+    _map.BRDF = context->CreateTexture(512, 512, TextureFormat::RG16Float, TextureUsage::Storage);
     _map.BRDF->BuildShaderResource();
     _map.BRDF->BuildStorage();
 

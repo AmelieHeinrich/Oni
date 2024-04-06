@@ -22,6 +22,30 @@ D3D12_RESOURCE_FLAGS GetResourceFlag(TextureUsage usage)
     return D3D12_RESOURCE_FLAG_NONE;
 }
 
+uint64_t Texture::GetComponentSize(TextureFormat format)
+{
+    switch (format)
+    {
+        case TextureFormat::RGBA16Unorm:
+        case TextureFormat::RGBA16Float: {
+            return 4 * sizeof(short);
+        }
+        case TextureFormat::RGBA8: {
+            return 4 * sizeof(char);
+        }
+        case TextureFormat::R32Depth: {
+            return 0;
+        }
+        case TextureFormat::RGBA32Float: {
+            return 4 * sizeof(float);
+        }
+        case TextureFormat::RG16Float: {
+            return 2 * sizeof(short);
+        }
+    }
+    return 0;
+}
+
 Texture::Texture(Device::Ptr devicePtr)
     : _release(false), _devicePtr(devicePtr)
 {

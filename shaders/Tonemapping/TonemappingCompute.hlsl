@@ -38,7 +38,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     if (ThreadID.x < Width && ThreadID.y < Height)
     {
         float4 HDRColor = HDRTexture[ThreadID.xy];
-        float3 MappedColor = RomBinDaHouse(pow(HDRColor, float4(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2)).xyz);
+        float3 MappedColor = ACESFilm(HDRColor.xyz);
         LDRTexture[ThreadID.xy] = float4(MappedColor, HDRColor.a);
     }
 }
