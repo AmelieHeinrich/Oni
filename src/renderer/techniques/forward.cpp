@@ -110,8 +110,16 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
             Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _whiteTexture;
             Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
+            struct ModelData {
+                glm::mat4 Transform;
+                glm::vec4 FlatColor;
+            };
+            ModelData temp;
+            temp.Transform = primitive.Transform;
+            temp.FlatColor = glm::vec4(material.FlatColor, 1.0f);
+
             _modelBuffer->Map(0, 0, &pData);
-            memcpy(pData, glm::value_ptr(primitive.Transform), sizeof(glm::mat4));
+            memcpy(pData, &temp, sizeof(ModelData));
             _modelBuffer->Unmap(0, 0);
 
             commandBuffer->BindVertexBuffer(primitive.VertexBuffer);

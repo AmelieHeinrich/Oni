@@ -13,6 +13,7 @@ struct FragmentIn
     float3 Normals: NORMAL;
     float4 WorldPos : COLOR0;
     float4 CameraPosition: COLOR1;
+    float4 FlatColor: COLOR2;
 };
 
 struct PointLight
@@ -107,7 +108,7 @@ static const float MAX_REFLECTION_LOD = 4.0;
 
 float4 Main(FragmentIn Input) : SV_TARGET
 {
-    float4 albedo = Texture.Sample(Sampler, Input.TexCoords);
+    float4 albedo = Texture.Sample(Sampler, Input.TexCoords) * Input.FlatColor;
     if (albedo.a < 0.25)
         discard;
     float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords);
@@ -116,7 +117,9 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float roughness = metallicRoughness.g;
     float ao = AOTexture.Sample(Sampler, Input.TexCoords).r;
 
-    albedo.xyz += emission.xyz;
+    if (emission.x != 1.0f && emission.y != 1.0f && emission.y != 1.0f) {
+        albedo.xyz += emission.xyz;
+    }
     albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
     
     float3 normal = GetNormalFromMap(Input);

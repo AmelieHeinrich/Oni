@@ -17,6 +17,7 @@ struct VertexOut
     float3 Normals: NORMAL;
     float4 WorldPos : COLOR0;
     float4 CameraPosition: COLOR1;
+    float4 FlatColor: COLOR2;
 };
 
 struct SceneData
@@ -29,6 +30,7 @@ struct SceneData
 struct ModelData
 {
     row_major float4x4 Transform;
+    float4 FlatColor;
 };
 
 ConstantBuffer<SceneData> SceneBuffer : register(b0);
@@ -44,5 +46,6 @@ VertexOut Main(VertexIn Input)
     Output.Normals = normalize(float4(mul(transpose(ModelBuffer.Transform), float4(Input.Normals, 1.0))).xyz);
     Output.WorldPos = mul(float4(Input.Position, 1.0), ModelBuffer.Transform);
     Output.CameraPosition = SceneBuffer.CameraPosition;
+    Output.FlatColor = ModelBuffer.FlatColor;
     return Output;
 }
