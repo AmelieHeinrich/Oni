@@ -94,7 +94,7 @@ float3 GetNormalFromMap(FragmentIn Input)
     float3 Q1 = normalize(ddx(Input.Position.xyz));
     float3 Q2 = normalize(ddy(Input.Position.xyz));
     float2 ST1 = normalize(ddx(Input.TexCoords.xy));
-    float2 ST2 = normalize(ddx(Input.TexCoords.xy));
+    float2 ST2 = normalize(ddy(Input.TexCoords.xy));
 
     float3 N = normalize(Input.Normals);
     float3 T = normalize(Q1 * ST2.y - Q2 * ST1.y);
