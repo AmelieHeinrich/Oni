@@ -25,7 +25,7 @@ class Buffer
 public:
     using Ptr = std::shared_ptr<Buffer>;
 
-    Buffer(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint64_t size, uint64_t stride, BufferType type, bool readback);
+    Buffer(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint64_t size, uint64_t stride, BufferType type, bool readback, const std::string& name = "Buffer");
     ~Buffer();
 
     void BuildConstantBuffer();
@@ -45,7 +45,7 @@ private:
     uint64_t _size;
 
     DescriptorHeap::Descriptor _descriptor;
-    GPUResource _resource;
+    GPUResource *_resource = nullptr;
     D3D12_RESOURCE_STATES _state;
 
     D3D12_VERTEX_BUFFER_VIEW _VBV;

@@ -72,7 +72,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     ShaderCompiler::CompileShader("shaders/MipMaps/GenerateCompute.hlsl", "Main", ShaderType::Compute, bytecode);
 
     _mipmapPipeline = CreateComputePipeline(bytecode);
-    _mipmapBuffer = CreateBuffer(256, 0, BufferType::Constant, false);
+    _mipmapBuffer = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer CBV");
     _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, 0);
 }
 
@@ -197,9 +197,9 @@ Texture::Ptr RenderContext::GetBackBuffer()
     return _swapChain->GetTexture(_frameIndex);
 }
 
-Buffer::Ptr RenderContext::CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback)
+Buffer::Ptr RenderContext::CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback, const std::string& name)
 {
-    return std::make_shared<Buffer>(_device, _allocator, _heaps, size, stride, type, readback);
+    return std::make_shared<Buffer>(_device, _allocator, _heaps, size, stride, type, readback, name);
 }
 
 GraphicsPipeline::Ptr RenderContext::CreateGraphicsPipeline(GraphicsPipelineSpecs& specs)
@@ -212,9 +212,9 @@ ComputePipeline::Ptr RenderContext::CreateComputePipeline(ShaderBytecode& shader
     return std::make_shared<ComputePipeline>(_device, shader);
 }
 
-Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage)
+Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, const std::string& name)
 {
-    return std::make_shared<Texture>(_device, _allocator, _heaps, width, height, format, usage);
+    return std::make_shared<Texture>(_device, _allocator, _heaps, width, height, format, usage, name);
 }
 
 Sampler::Ptr RenderContext::CreateSampler(SamplerAddress address, SamplerFilter filter, int anisotropyLevel)
@@ -222,9 +222,9 @@ Sampler::Ptr RenderContext::CreateSampler(SamplerAddress address, SamplerFilter 
     return std::make_shared<Sampler>(_device, _heaps, address, filter, anisotropyLevel);
 }
 
-CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format)
+CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name)
 {
-    return std::make_shared<CubeMap>(_device, _allocator, _heaps, width, height, format);
+    return std::make_shared<CubeMap>(_device, _allocator, _heaps, width, height, format, name);
 }
 
 CommandBuffer::Ptr RenderContext::CreateCommandBuffer(CommandQueueType type)
@@ -282,4 +282,9 @@ void RenderContext::FlushUploader(Uploader& uploader)
     ExecuteCommandBuffers({ uploader._commandBuffer }, CommandQueueType::Graphics);
     WaitForPreviousHostSubmit(CommandQueueType::Graphics);
     uploader._commands.clear();
+}
+
+void RenderContext::OnGUI()
+{
+    _allocator->OnGUI();
 }

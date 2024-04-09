@@ -40,8 +40,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     out.VertexCount = vertices.size();
     out.IndexCount = indices.size();
 
-    out.VertexBuffer = renderContext->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false);
-    out.IndexBuffer = renderContext->CreateBuffer(out.IndexCount * sizeof(uint32_t), 0, BufferType::Index, false);
+    out.VertexBuffer = renderContext->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
+    out.IndexBuffer = renderContext->CreateBuffer(out.IndexCount * sizeof(uint32_t), 0, BufferType::Index, false, "Index Buffer");
 
     // MATERIAL
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
@@ -111,27 +111,27 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
 
     Uploader uploader = renderContext->CreateUploader();
     if (meshMaterial.HasAlbedo) {
-        meshMaterial.AlbedoTexture = renderContext->CreateTexture(albedoImage.Width, albedoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+        meshMaterial.AlbedoTexture = renderContext->CreateTexture(albedoImage.Width, albedoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, meshMaterial.AlbedoPath);
         meshMaterial.AlbedoTexture->BuildShaderResource();
         uploader.CopyHostToDeviceTexture(albedoImage, meshMaterial.AlbedoTexture);
     }
     if (meshMaterial.HasNormal) {
-        meshMaterial.NormalTexture = renderContext->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+        meshMaterial.NormalTexture = renderContext->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, meshMaterial.NormalPath);
         meshMaterial.NormalTexture->BuildShaderResource();
         uploader.CopyHostToDeviceTexture(normalImage, meshMaterial.NormalTexture);
     }
     if (meshMaterial.HasMetallicRoughness) {
-        meshMaterial.PBRTexture = renderContext->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+        meshMaterial.PBRTexture = renderContext->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, meshMaterial.MetallicRoughnessPath);
         meshMaterial.PBRTexture->BuildShaderResource();
         uploader.CopyHostToDeviceTexture(pbrImage, meshMaterial.PBRTexture);
     }
     if (meshMaterial.HasEmissive) {
-        meshMaterial.EmissiveTexture = renderContext->CreateTexture(emissiveImage.Width, emissiveImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+        meshMaterial.EmissiveTexture = renderContext->CreateTexture(emissiveImage.Width, emissiveImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, meshMaterial.EmissivePath);
         meshMaterial.EmissiveTexture->BuildShaderResource();
         uploader.CopyHostToDeviceTexture(emissiveImage, meshMaterial.EmissiveTexture);
     }
     if (meshMaterial.HasAO) {
-        meshMaterial.AOTexture = renderContext->CreateTexture(aoImage.Width, aoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+        meshMaterial.AOTexture = renderContext->CreateTexture(aoImage.Width, aoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, meshMaterial.AOPath);
         meshMaterial.AOTexture->BuildShaderResource();
         uploader.CopyHostToDeviceTexture(aoImage, meshMaterial.AOTexture);
     }

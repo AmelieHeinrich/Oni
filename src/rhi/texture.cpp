@@ -46,12 +46,12 @@ uint64_t Texture::GetComponentSize(TextureFormat format)
     return 0;
 }
 
-Texture::Texture(Device::Ptr devicePtr)
+Texture::Texture(Device::Ptr devicePtr, const std::string& name)
     : _release(false), _devicePtr(devicePtr)
 {
 }
 
-Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage)
+Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, const std::string& name)
     : _devicePtr(devicePtr), _heaps(heaps), _format(format), _width(width), _height(height)
 {
     switch (usage)
@@ -89,7 +89,8 @@ Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
     ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     ResourceDesc.Flags = GetResourceFlag(usage);
 
-    _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _state);
+    _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _state, name);
+    _resource->AttachTexture(this);
 }
 
 Texture::~Texture()
@@ -107,7 +108,9 @@ Texture::~Texture()
         if (_rtv.Valid) {
             _heaps.RTVHeap->Free(_rtv);
         }
-        _resource.Allocation->Release();
+        _resource->Allocation->Release();
+        _resource->ClearFromAllocationList();
+        delete _resource;
     }
 }
 
@@ -118,7 +121,7 @@ void Texture::BuildRenderTarget()
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
     rtvDesc.Format = DXGI_FORMAT(_format);
     rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-    _devicePtr->GetDevice()->CreateRenderTargetView(_resource.Resource, &rtvDesc, _rtv.CPU);
+    _devicePtr->GetDevice()->CreateRenderTargetView(_resource->Resource, &rtvDesc, _rtv.CPU);
 }
 
 void Texture::BuildDepthTarget()
@@ -128,7 +131,7 @@ void Texture::BuildDepthTarget()
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
     dsvDesc.Format = DXGI_FORMAT(_format);
     dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    _devicePtr->GetDevice()->CreateDepthStencilView(_resource.Resource, &dsvDesc, _dsv.CPU);
+    _devicePtr->GetDevice()->CreateDepthStencilView(_resource->Resource, &dsvDesc, _dsv.CPU);
 }
 
 void Texture::BuildShaderResource()
@@ -141,7 +144,7 @@ void Texture::BuildShaderResource()
     ShaderResourceView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     ShaderResourceView.Texture2D.MipLevels = 1;
 
-    _devicePtr->GetDevice()->CreateShaderResourceView(_resource.Resource, &ShaderResourceView, _srv.CPU);
+    _devicePtr->GetDevice()->CreateShaderResourceView(_resource->Resource, &ShaderResourceView, _srv.CPU);
 }
 
 void Texture::BuildStorage()
@@ -151,5 +154,5 @@ void Texture::BuildStorage()
     D3D12_UNORDERED_ACCESS_VIEW_DESC UnorderedAccessView = {};
     UnorderedAccessView.Format = DXGI_FORMAT(_format);
     UnorderedAccessView.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource.Resource, nullptr, &UnorderedAccessView, _uav.CPU);
+    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource->Resource, nullptr, &UnorderedAccessView, _uav.CPU);
 }

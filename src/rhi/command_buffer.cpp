@@ -269,14 +269,14 @@ void CommandBuffer::CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src)
 
 void CommandBuffer::CopyBufferToBuffer(Buffer::Ptr dst, Buffer::Ptr src)
 {
-    _commandList->CopyResource(dst->_resource.Resource, src->_resource.Resource);
+    _commandList->CopyResource(dst->_resource->Resource, src->_resource->Resource);
 }
 
 void CommandBuffer::CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src)
 {
     D3D12_TEXTURE_COPY_LOCATION CopySource = {};
     CopySource.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    CopySource.pResource = src->_resource.Resource;
+    CopySource.pResource = src->_resource->Resource;
     CopySource.PlacedFootprint.Offset = 0;
     CopySource.PlacedFootprint.Footprint.Format = DXGI_FORMAT(dst->_format);
     CopySource.PlacedFootprint.Footprint.Width = dst->_width;
@@ -287,7 +287,7 @@ void CommandBuffer::CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src)
 
     D3D12_TEXTURE_COPY_LOCATION CopyDest = {};
     CopyDest.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    CopyDest.pResource = dst->_resource.Resource;
+    CopyDest.pResource = dst->_resource->Resource;
     CopyDest.SubresourceIndex = 0;
 
     _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);
@@ -297,12 +297,12 @@ void CommandBuffer::CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src)
 {
     D3D12_TEXTURE_COPY_LOCATION CopySource = {};
     CopySource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    CopySource.pResource = src->_resource.Resource;
+    CopySource.pResource = src->_resource->Resource;
     CopySource.SubresourceIndex = 0;
 
     D3D12_TEXTURE_COPY_LOCATION CopyDest = {};
     CopyDest.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    CopyDest.pResource = dst->_resource.Resource;
+    CopyDest.pResource = dst->_resource->Resource;
     CopyDest.PlacedFootprint.Offset = 0;
     CopyDest.PlacedFootprint.Footprint.Format = DXGI_FORMAT(src->_format);
     CopyDest.PlacedFootprint.Footprint.Width = src->_width;

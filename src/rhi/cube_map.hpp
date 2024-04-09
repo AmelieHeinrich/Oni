@@ -12,13 +12,13 @@ class CubeMap
 public:
     using Ptr = std::shared_ptr<CubeMap>;
 
-    CubeMap(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format);
+    CubeMap(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, const std::string& name = "Cube Map");
     ~CubeMap();
 
     void SetState(D3D12_RESOURCE_STATES state) { _state = state; }
     D3D12_RESOURCE_STATES GetState() { return _state; }
 
-    GPUResource& GetResource() { return _resource; }
+    GPUResource& GetResource() { return *_resource; }
 
 private:
     friend class CommandBuffer;
@@ -26,7 +26,7 @@ private:
     Device::Ptr _devicePtr;
     DescriptorHeap::Heaps _heaps;
 
-    GPUResource _resource;
+    GPUResource *_resource;
 
     D3D12_RESOURCE_STATES _state;
 

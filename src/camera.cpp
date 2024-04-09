@@ -22,7 +22,7 @@ FreeCamera::FreeCamera(int width, int height)
       _Friction(10.0f),
       _Acceleration(20.0f),
       _MaxVelocity(15.0f),
-      _FOV(90.0f),
+      _FOV(75.0f),
       _Width(width),
       _Height(height)
 {
@@ -34,7 +34,7 @@ void FreeCamera::Update(double dt)
     GetMousePosition(_MousePos[0], _MousePos[1]);
 
     _View = glm::lookAt(_Position, _Position + _Front, _WorldUp);
-    _Projection = glm::perspective(_FOV, float(_Width) / float(_Height), 0.05f, 10000.0f);
+    _Projection = glm::perspective(glm::radians(_FOV), float(_Width) / float(_Height), 0.05f, 10000.0f);
 
     UpdateVectors();
 }

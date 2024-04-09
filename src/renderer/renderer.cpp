@@ -34,6 +34,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height)
     cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::CopySource);
     cmdBuf->CopyTextureToTexture(backbuffer, _tonemapping->GetOutput());
     cmdBuf->ImageBarrier(backbuffer, TextureLayout::Present);
+    cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::ShaderResource);
     cmdBuf->End();
     _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
 }

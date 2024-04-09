@@ -124,9 +124,16 @@ void App::RenderOverlay()
     if (_showUI) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Debug")) {
+                if (ImGui::MenuItem("Resource Inspector")) {
+                    _showMemoryUI = !_showMemoryUI;
+                }
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
+        }
+
+        if (_showMemoryUI) {
+            _renderContext->OnGUI();
         }
     }
 }

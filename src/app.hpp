@@ -39,4 +39,5 @@ private:
     Scene scene;
 
     bool _showUI = false;
+    bool _showMemoryUI = false;
 };

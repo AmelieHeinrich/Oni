@@ -11,7 +11,7 @@ Forward::Forward(RenderContext::Ptr context)
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
 
-    _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+    _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, "White Texture");
     _whiteTexture->BuildShaderResource();
 
     uint32_t color = 0xFFFFFFFF;
@@ -25,11 +25,11 @@ Forward::Forward(RenderContext::Ptr context)
     uploader.CopyHostToDeviceTexture(image, _whiteTexture);
     _context->FlushUploader(uploader);
 
-    _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget);
+    _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, "Forward RTV");
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
 
-    _depthBuffer = context->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget);
+    _depthBuffer = context->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget, "Forward DSV");
     _depthBuffer->BuildDepthTarget();
 
     GraphicsPipelineSpecs specs;
@@ -45,13 +45,13 @@ Forward::Forward(RenderContext::Ptr context)
 
     _forwardPipeline = context->CreateGraphicsPipeline(specs);
 
-    _sceneBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false);
+    _sceneBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Scene Buffer CBV");
     _sceneBuffer->BuildConstantBuffer();
     
-    _modelBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false);
+    _modelBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer CBV");
     _modelBuffer->BuildConstantBuffer();
 
-    _lightBuffer = context->CreateBuffer(16384 + 256, 0, BufferType::Constant, false);
+    _lightBuffer = context->CreateBuffer(16384 + 256, 0, BufferType::Constant, false, "Light Buffer CBV");
     _lightBuffer->BuildConstantBuffer();
 
     _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, 0);
@@ -143,11 +143,11 @@ void Forward::Resize(uint32_t width, uint32_t height)
     _outputImage.reset();
     _depthBuffer.reset();
 
-    _outputImage = _context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget);
+    _outputImage = _context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, "Forward RTV");
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
 
-    _depthBuffer = _context->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget);
+    _depthBuffer = _context->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget, "Forward DSV");
     _depthBuffer->BuildDepthTarget();
 }
 

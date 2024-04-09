@@ -5,7 +5,7 @@
 
 #include "cube_map.hpp"
 
-CubeMap::CubeMap(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format)
+CubeMap::CubeMap(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, const std::string& name)
     : _devicePtr(devicePtr), _heaps(heaps), _format(format), _width(width), _height(height)
 {
     D3D12MA::ALLOCATION_DESC AllocationDesc = {};
@@ -26,7 +26,7 @@ CubeMap::CubeMap(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
 
     _state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 
-    _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _state);
+    _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _state, name);
 
     _srv = _heaps.ShaderHeap->Allocate();
     _uav = _heaps.ShaderHeap->Allocate();
@@ -44,13 +44,13 @@ CubeMap::CubeMap(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
     UAV.Texture2DArray.FirstArraySlice = 0;
     UAV.Texture2DArray.MipSlice = 0;
 
-    _devicePtr->GetDevice()->CreateShaderResourceView(_resource.Resource, &ShaderResourceView, _srv.CPU);
-    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource.Resource, nullptr, &UAV, _uav.CPU);
+    _devicePtr->GetDevice()->CreateShaderResourceView(_resource->Resource, &ShaderResourceView, _srv.CPU);
+    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource->Resource, nullptr, &UAV, _uav.CPU);
 }
 
 CubeMap::~CubeMap()
 {
     _heaps.ShaderHeap->Free(_srv);
     _heaps.ShaderHeap->Free(_uav);
-    _resource.Allocation->Release();
+    _resource->Allocation->Release();
 }

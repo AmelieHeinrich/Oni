@@ -47,8 +47,8 @@ class Texture
 public:
     using Ptr = std::shared_ptr<Texture>;
 
-    Texture(Device::Ptr devicePtr);
-    Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage);
+    Texture(Device::Ptr devicePtr, const std::string& name = "Texture");
+    Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, const std::string& name = "Texture");
     ~Texture();
 
     void BuildRenderTarget();
@@ -59,20 +59,24 @@ public:
     void SetState(D3D12_RESOURCE_STATES state) { _state = state; }
     D3D12_RESOURCE_STATES GetState() { return _state; }
 
-    GPUResource& GetResource() { return _resource; }
+    GPUResource& GetResource() { return *_resource; }
 
     static uint64_t GetComponentSize(TextureFormat format);
     TextureFormat GetFormat() { return _format; }
+
+    int GetWidth() { return _width; }
+    int GetHeight() { return _height; }
 private:
     friend class SwapChain;
     friend class CommandBuffer;
+    friend class Allocator;
 
     Device::Ptr _devicePtr;
     DescriptorHeap::Heaps _heaps;
 
     bool _release = true;
 
-    GPUResource _resource;
+    GPUResource *_resource;
 
     D3D12_RESOURCE_STATES _state;
     
