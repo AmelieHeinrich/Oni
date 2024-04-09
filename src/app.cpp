@@ -167,6 +167,6 @@ void App::RenderHelper()
     ImGui::SetNextWindowBgAlpha(0.35f);
     ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
     ImGui::Text("WASD + Mouse for Camera");
-    ImGui::Text("Debug Menu: F11");
+    ImGui::Text("Debug Menu: F1");
     ImGui::End();
 }
