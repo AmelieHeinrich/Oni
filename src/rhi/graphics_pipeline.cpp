@@ -47,13 +47,13 @@ GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs&
     std::vector<D3D12_INPUT_ELEMENT_DESC> InputElementDescs;
     std::vector<std::string> InputElementSemanticNames;
 
-    std::array<D3D12_ROOT_PARAMETER, 64> Parameters;
+    std::array<D3D12_ROOT_PARAMETER, 64> Parameters = {};
     int ParameterCount = 0;
 
-    std::array<D3D12_DESCRIPTOR_RANGE, 64> Ranges;
+    std::array<D3D12_DESCRIPTOR_RANGE, 64> Ranges = {};
     int RangeCount = 0;
 
-    std::array<D3D12_SHADER_INPUT_BIND_DESC, 64> ShaderBinds;
+    std::array<D3D12_SHADER_INPUT_BIND_DESC, 64> ShaderBinds = {};
     int BindCount = 0;
 
     ID3D12ShaderReflection* pVertexReflection = GetReflection(vertexBytecode, &VertexDesc);

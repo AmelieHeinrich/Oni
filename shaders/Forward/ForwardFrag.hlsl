@@ -31,13 +31,15 @@ struct LightData
 Texture2D Texture : register(t2);
 Texture2D NormalTexture : register(t3);
 Texture2D PBRTexture : register(t4);
+Texture2D EmissiveTexture : register(t5);
+Texture2D AOTexture : register(t6);
 
-TextureCube Irradiance : register(t5);
-TextureCube Prefilter : register(t6);
-Texture2D BRDF : register(t7);
+TextureCube Irradiance : register(t7);
+TextureCube Prefilter : register(t8);
+Texture2D BRDF : register(t9);
 
-SamplerState Sampler : register(s8);
-ConstantBuffer<LightData> LightBuffer : register(b9);
+SamplerState Sampler : register(s10);
+ConstantBuffer<LightData> LightBuffer : register(b11);
 
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
@@ -46,11 +48,11 @@ float DistributionGGX(float3 N, float3 H, float roughness)
 	float NdotH = max(dot(N, H), 0.0);
 	float NdotH2 = NdotH * NdotH;
 
-	float num = a2;
+	float nom = a2;
 	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
 	denom = PI * denom * denom;
 
-	return num / max(denom, 0.0000001);
+	return nom / max(denom, 0.0000001);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness)
@@ -58,10 +60,10 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 	float r = (roughness + 1.0);
 	float k = (r * r) / 8.0;
 
-	float num = NdotV;
+	float nom = NdotV;
 	float denom = NdotV * (1.0 - k) + k;
 
-	return num / denom;
+	return nom / denom;
 }
 
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
@@ -84,6 +86,23 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 	return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+float3 GetNormalFromMap(FragmentIn Input)
+{
+    float3 tangentNormal = NormalTexture.Sample(Sampler, Input.TexCoords).rgb * 2.0 - 1.0;
+
+    float3 Q1 = normalize(ddx(Input.Position.xyz));
+    float3 Q2 = normalize(ddy(Input.Position.xyz));
+    float2 ST1 = normalize(ddx(Input.TexCoords.xy));
+    float2 ST2 = normalize(ddx(Input.TexCoords.xy));
+
+    float3 N = normalize(Input.Normals);
+    float3 T = normalize(Q1 * ST2.y - Q2 * ST1.y);
+    float3 B = -normalize(cross(N, T));
+    float3x3 TBN = float3x3(T, B, N);
+
+    return normalize(mul(tangentNormal, TBN));
+}
+
 static const float MAX_REFLECTION_LOD = 4.0;
 
 float4 Main(FragmentIn Input) : SV_TARGET
@@ -91,13 +110,16 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float4 albedo = Texture.Sample(Sampler, Input.TexCoords);
     if (albedo.a < 0.25)
         discard;
+    float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords);
     float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords);
     float metallic = metallicRoughness.b;
     float roughness = metallicRoughness.g;
+    float ao = AOTexture.Sample(Sampler, Input.TexCoords).r;
 
+    albedo.xyz += emission.xyz;
     albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
     
-    float3 normal = Input.Normals * NormalTexture.Sample(Sampler, Input.TexCoords).rgb;
+    float3 normal = GetNormalFromMap(Input);
 
     float3 N = normalize(normal);
     float3 V = normalize(Input.CameraPosition - Input.WorldPos).xyz;
@@ -114,7 +136,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
 
         float3 L = normalize(lightPos - Input.WorldPos.xyz);
         float3 H = normalize(V + L);
-        float distance = length(L - Input.WorldPos.xyz);
+        float distance = length(lightPos - Input.WorldPos.xyz);
         float attenuation = 1.0 / (distance * distance);
         float3 radiance = lightColor * attenuation;
 
@@ -131,6 +153,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
         kD *= 1.0 - metallic;
 
         float NdotL = max(dot(N, L), 0.0);
+
         Lo += (kD * albedo.xyz / PI + specular) * radiance * NdotL;
     }
 
@@ -143,12 +166,11 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float3 irradiance = Irradiance.Sample(Sampler, N).rgb;
     float3 diffuse = irradiance * albedo.xyz;
 
-    float prefilterLOD = roughness * MAX_REFLECTION_LOD;
-    float3 prefilteredColor = Prefilter.SampleLevel(Sampler, R, prefilterLOD).rgb;
+    float3 prefilteredColor = Prefilter.SampleLevel(Sampler, R, roughness * MAX_REFLECTION_LOD).rgb;
     float2 brdf = BRDF.Sample(Sampler, float2(max(dot(N, V), 0.0), roughness)).rg;
     float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
-    float3 ambient = (kD * diffuse + specular);
+    float3 ambient = (kD * diffuse + specular) * ao;
     float3 color = ambient + Lo;
     float4 final = float4(color, 1.0);
 

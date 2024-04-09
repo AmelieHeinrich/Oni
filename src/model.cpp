@@ -51,6 +51,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     Image albedoImage;
     Image normalImage;
     Image pbrImage;
+    Image emissiveImage;
+    Image aoImage;
 
     aiColor3D flatColor(1.0f, 1.0f, 1.0f);
     material->Get(AI_MATKEY_COLOR_DIFFUSE, flatColor);
@@ -86,6 +88,26 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
             pbrImage.LoadFromFile(texturePath);
         }
     }
+    {
+        aiString str;
+        material->GetTexture(aiTextureType_EMISSIVE, 0, &str);
+        if (str.length) {
+            std::string texturePath = Directory + '/' + str.C_Str();
+            meshMaterial.EmissivePath = texturePath;
+            meshMaterial.HasEmissive = true;
+            emissiveImage.LoadFromFile(texturePath);
+        }
+    }
+    {
+        aiString str;
+        material->GetTexture(aiTextureType_LIGHTMAP, 0, &str);
+        if (str.length) {
+            std::string texturePath = Directory + '/' + str.C_Str();
+            meshMaterial.AOPath = texturePath;
+            meshMaterial.HasAO = true;
+            aoImage.LoadFromFile(texturePath);
+        }
+    }
 
     Uploader uploader = renderContext->CreateUploader();
     if (meshMaterial.HasAlbedo) {
@@ -102,6 +124,16 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
         meshMaterial.PBRTexture = renderContext->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
         meshMaterial.PBRTexture->BuildShaderResource();
         uploader.CopyHostToDeviceTexture(pbrImage, meshMaterial.PBRTexture);
+    }
+    if (meshMaterial.HasEmissive) {
+        meshMaterial.EmissiveTexture = renderContext->CreateTexture(emissiveImage.Width, emissiveImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+        meshMaterial.EmissiveTexture->BuildShaderResource();
+        uploader.CopyHostToDeviceTexture(emissiveImage, meshMaterial.EmissiveTexture);
+    }
+    if (meshMaterial.HasAO) {
+        meshMaterial.AOTexture = renderContext->CreateTexture(aoImage.Width, aoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource);
+        meshMaterial.AOTexture->BuildShaderResource();
+        uploader.CopyHostToDeviceTexture(aoImage, meshMaterial.AOTexture);
     }
     uploader.CopyHostToDeviceLocal(vertices.data(), vertices.size() * sizeof(Vertex), out.VertexBuffer);
     uploader.CopyHostToDeviceLocal(indices.data(), indices.size() * sizeof(uint32_t), out.IndexBuffer);

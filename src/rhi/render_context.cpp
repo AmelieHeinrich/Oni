@@ -11,6 +11,8 @@
 #include <ImGui/imgui_impl_win32.h>
 #include <ImGui/imgui_impl_dx12.h>
 
+#include <shader/bytecode.hpp>
+
 RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     : _window(hwnd)
 {
@@ -65,6 +67,13 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     ImGui_ImplWin32_EnableDpiAwareness();
     ImGui_ImplDX12_Init(_device->GetDevice(), FRAMES_IN_FLIGHT, DXGI_FORMAT_R8G8B8A8_UNORM, _heaps.ShaderHeap->GetHeap(), _fontDescriptor.CPU, _fontDescriptor.GPU);
     ImGui_ImplWin32_Init(hwnd->GetHandle());
+
+    ShaderBytecode bytecode;
+    ShaderCompiler::CompileShader("shaders/MipMaps/GenerateCompute.hlsl", "Main", ShaderType::Compute, bytecode);
+
+    _mipmapPipeline = CreateComputePipeline(bytecode);
+    _mipmapBuffer = CreateBuffer(256, 0, BufferType::Constant, false);
+    _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, 0);
 }
 
 RenderContext::~RenderContext()

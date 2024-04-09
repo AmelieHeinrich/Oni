@@ -25,7 +25,7 @@ Forward::Forward(RenderContext::Ptr context)
     uploader.CopyHostToDeviceTexture(image, _whiteTexture);
     _context->FlushUploader(uploader);
 
-    _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA32Float, TextureUsage::RenderTarget);
+    _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget);
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
 
@@ -34,7 +34,7 @@ Forward::Forward(RenderContext::Ptr context)
 
     GraphicsPipelineSpecs specs;
     specs.FormatCount = 1;
-    specs.Formats[0] = TextureFormat::RGBA32Float;
+    specs.Formats[0] = TextureFormat::RGBA16Unorm;
     specs.DepthFormat = TextureFormat::R32Depth;
     specs.Depth = DepthOperation::Less;
     specs.DepthEnabled = true;
@@ -94,11 +94,11 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->ClearDepthTarget(_depthBuffer);
     commandBuffer->BindGraphicsPipeline(_forwardPipeline);
     commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer, 0);
-    commandBuffer->BindGraphicsCubeMap(_map.IrradianceMap, 5);
-    commandBuffer->BindGraphicsCubeMap(_map.PrefilterMap, 6);
-    commandBuffer->BindGraphicsShaderResource(_map.BRDF, 7);
-    commandBuffer->BindGraphicsSampler(_sampler, 8);
-    commandBuffer->BindGraphicsConstantBuffer(_lightBuffer, 9);
+    commandBuffer->BindGraphicsCubeMap(_map.IrradianceMap, 7);
+    commandBuffer->BindGraphicsCubeMap(_map.PrefilterMap, 8);
+    commandBuffer->BindGraphicsShaderResource(_map.BRDF, 9);
+    commandBuffer->BindGraphicsSampler(_sampler, 10);
+    commandBuffer->BindGraphicsConstantBuffer(_lightBuffer, 11);
 
     for (auto& model : scene.Models) {
         for (auto& primitive : model.Primitives) {
@@ -107,6 +107,8 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
             Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
             Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
             Texture::Ptr pbr = material.HasMetallicRoughness ? material.PBRTexture : _whiteTexture;
+            Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _whiteTexture;
+            Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
             _modelBuffer->Map(0, 0, &pData);
             memcpy(pData, glm::value_ptr(primitive.Transform), sizeof(glm::mat4));
@@ -118,6 +120,8 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
             commandBuffer->BindGraphicsShaderResource(albedo, 2);
             commandBuffer->BindGraphicsShaderResource(normal, 3);
             commandBuffer->BindGraphicsShaderResource(pbr, 4);
+            commandBuffer->BindGraphicsShaderResource(emissive, 5);
+            commandBuffer->BindGraphicsShaderResource(ao, 6);
             commandBuffer->DrawIndexed(primitive.IndexCount);
         }
     }
@@ -131,7 +135,7 @@ void Forward::Resize(uint32_t width, uint32_t height)
     _outputImage.reset();
     _depthBuffer.reset();
 
-    _outputImage = _context->CreateTexture(width, height, TextureFormat::RGBA32Float, TextureUsage::RenderTarget);
+    _outputImage = _context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget);
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
 

@@ -27,14 +27,20 @@ struct Material
     bool HasAlbedo = false;
     bool HasNormal = false;
     bool HasMetallicRoughness = false;
+    bool HasEmissive = false;
+    bool HasAO = false;
 
     std::string AlbedoPath;
     std::string NormalPath;
     std::string MetallicRoughnessPath;
+    std::string EmissivePath;
+    std::string AOPath;
 
     Texture::Ptr AlbedoTexture;
     Texture::Ptr NormalTexture;
     Texture::Ptr PBRTexture;
+    Texture::Ptr EmissiveTexture;
+    Texture::Ptr AOTexture;
 
     glm::vec3 FlatColor;
 };

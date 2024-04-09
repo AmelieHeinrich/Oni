@@ -88,4 +88,8 @@ private:
     CommandBuffer::Ptr _commandBuffers[FRAMES_IN_FLIGHT];
 
     DescriptorHeap::Descriptor _fontDescriptor;
+
+    ComputePipeline::Ptr _mipmapPipeline;
+    Buffer::Ptr _mipmapBuffer;
+    Sampler::Ptr _mipmapSampler;
 };

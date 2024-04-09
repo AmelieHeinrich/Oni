@@ -26,7 +26,7 @@ float3 RomBinDaHouse(float3 X)
 	return X;
 }
 
-Texture2D<float4> HDRTexture : register(t0);
+Texture2D HDRTexture : register(t0);
 RWTexture2D<float4> LDRTexture : register(u1);
 
 [numthreads(32, 32, 1)]

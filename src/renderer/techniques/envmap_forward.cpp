@@ -80,7 +80,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     specs.DepthEnabled = true;
     specs.Depth = DepthOperation::LEqual;
     specs.DepthFormat = TextureFormat::R32Depth;
-    specs.Formats[0] = TextureFormat::RGBA32Float;
+    specs.Formats[0] = TextureFormat::RGBA16Unorm;
     specs.FormatCount = 1;
     _cubeRenderer = context->CreateGraphicsPipeline(specs);
 
@@ -89,7 +89,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
 
     // Load HDRI
     Image image;
-    image.LoadHDR("assets/env/env_map.hdr");
+    image.LoadHDR("assets/env/Street_High.hdr");
 
     Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource);
     hdrTexture->BuildShaderResource();
