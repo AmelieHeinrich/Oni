@@ -63,6 +63,7 @@ public:
     void FlushUploader(Uploader& uploader);
 
     void OnGUI();
+    void OnOverlay();
 private:
     void FlushQueues();
     void WaitForPreviousFrame();

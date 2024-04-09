@@ -103,8 +103,7 @@ Device::Device()
     InfoQueue->Release();
     
     // Get hardware support
-    DeviceFeatures features;
-    features.CheckSupport(_device);
+    _features.CheckSupport(_device);
 
     DXGI_ADAPTER_DESC Desc;
     _adapter->GetDesc(&Desc);
@@ -112,12 +111,14 @@ Device::Device()
     std::string DeviceName = std::string(WideName.begin(), WideName.end());
     Logger::Info("D3D12: Using GPU %s:", DeviceName.c_str());
 
-    Logger::Info("\t- Device Raytracing Support: %d", features.Raytracing);
-    Logger::Info("\t- Device Mesh Shading Support: %d", features.MeshShaders);
-    Logger::Info("\t- Device Work Graphs Support: %d", features.WorkGraphs);
+    Logger::Info("\t- Device Raytracing Support: %d", _features.Raytracing);
+    Logger::Info("\t- Device Mesh Shading Support: %d", _features.MeshShaders);
+    Logger::Info("\t- Device Work Graphs Support: %d", _features.WorkGraphs);
     Logger::Info("\t- Available Video memory: %fgb", float(Desc.DedicatedVideoMemory / 1024.0f / 1024.0f / 1024.0f));
     Logger::Info("\t- Available System memory: %fgb", float(Desc.DedicatedSystemMemory / 1024.0f / 1024.0f / 1024.0f));
     Logger::Info("\t- Available Shared memory: %fgb", float(Desc.SharedSystemMemory / 1024.0f / 1024.0f / 1024.0f));
+
+    _name = DeviceName;
 }
 
 Device::~Device()
@@ -130,7 +131,7 @@ Device::~Device()
     _debug->Release();
 }
 
-void Device::DeviceFeatures::CheckSupport(ID3D12Device *device)
+void DeviceFeatures::CheckSupport(ID3D12Device *device)
 {
     D3D12_FEATURE_DATA_D3D12_OPTIONS5 raytracingData = {};
     D3D12_FEATURE_DATA_D3D12_OPTIONS7 meshShaderData = {};

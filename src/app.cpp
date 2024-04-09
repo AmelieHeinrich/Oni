@@ -135,5 +135,7 @@ void App::RenderOverlay()
         if (_showMemoryUI) {
             _renderContext->OnGUI();
         }
+
+        _renderContext->OnOverlay();
     }
 }

@@ -5,6 +5,13 @@
 
 #include "renderer.hpp"
 
+#include <sstream>
+#include <algorithm>
+#include <ctime>
+
+#include <ImGui/imgui.h>
+#include <stb/stb_image_write.h>
+
 Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
 {
@@ -37,6 +44,10 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height)
     cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::ShaderResource);
     cmdBuf->End();
     _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
+
+    if (ImGui::IsKeyPressed(ImGuiKey_F12, false)) {
+        Screenshot();
+    }
 }
 
 void Renderer::Resize(uint32_t width, uint32_t height)
@@ -49,4 +60,40 @@ void Renderer::Resize(uint32_t width, uint32_t height)
 void Renderer::OnUI()
 {
 
+}
+
+void Renderer::Screenshot()
+{
+    _renderContext->WaitForPreviousHostSubmit(CommandQueueType::Graphics);
+
+    Texture::Ptr toScreenshot = _tonemapping->GetOutput();
+    Buffer::Ptr textureBuffer = _renderContext->CreateBuffer(toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4, 0, BufferType::Copy, true, "Screenshot Buffer");
+
+    std::stringstream Stream;
+    time_t RawTime;
+    time(&RawTime);
+    tm *TimeInfo = localtime(&RawTime);
+    Stream << "screenshots/engine/" << "Screenshot " << asctime(TimeInfo);
+    std::string String = Stream.str();
+    std::replace(String.begin(), String.end(), ':', '_');
+    String.replace(String.size() - 1, 4, ".png");
+
+    uint8_t *Result = new uint8_t[toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4];
+    memset(Result, 0xffffffff, toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4);
+
+    CommandBuffer::Ptr cmdBuffer = _renderContext->CreateCommandBuffer(CommandQueueType::Graphics);
+    cmdBuffer->Begin();
+    cmdBuffer->ImageBarrier(toScreenshot, TextureLayout::CopySource);
+    cmdBuffer->CopyTextureToBuffer(textureBuffer, toScreenshot);
+    cmdBuffer->ImageBarrier(toScreenshot, TextureLayout::ShaderResource);
+    cmdBuffer->End();
+    _renderContext->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
+
+    void *pData;
+    textureBuffer->Map(0, 0, &pData);
+    memcpy(Result, pData, toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4);
+    textureBuffer->Unmap(0, 0);
+
+    stbi_write_png(String.c_str(), toScreenshot->GetWidth(), toScreenshot->GetHeight(), 4, Result, toScreenshot->GetWidth() * 4);
+    delete Result;
 }

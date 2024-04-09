@@ -12,6 +12,10 @@
 #include <ImGui/imgui_impl_win32.h>
 #include <ImGui/imgui_impl_dx12.h>
 
+#include <sstream>
+#include <ctime>
+#include <algorithm>
+
 bool IsHDR(TextureFormat format)
 {
     if (format == TextureFormat::RGBA32Float)

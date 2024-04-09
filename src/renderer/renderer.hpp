@@ -20,8 +20,9 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height);
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
-
 private:
+    void Screenshot();
+
     RenderContext::Ptr _renderContext;
 
     std::shared_ptr<EnvMapForward> _envMapForward;
