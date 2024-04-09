@@ -152,19 +152,18 @@ void Model::ProcessNode(RenderContext::Ptr renderContext, aiNode *node, const ai
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
         // Compute transform
         glm::mat4 transform(1.0f);
-        for (int x = 0; x < 4; x++) {
-            for (int y = 0; y < 4; y++) {
-                transform[y][x] = node->mTransformation[x][y];
-            }
-        }
         ProcessPrimitive(renderContext, mesh, scene, transform);
+    }
+
+    for (int i = 0; i < node->mNumChildren; i++) {
+        ProcessNode(renderContext, node->mChildren[i], scene);
     }
 }
 
 void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
 {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_FlipWindingOrder | aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_FlipWindingOrder | aiProcess_CalcTangentSpace | aiProcess_PreTransformVertices);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         Logger::Error("Failed to load model at path %s", path.c_str());
     }

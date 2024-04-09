@@ -26,6 +26,7 @@ public:
     void Run();
 
     void RenderOverlay();
+    void RenderHelper();
 private:
     std::shared_ptr<Window> _window;
 
@@ -39,5 +40,6 @@ private:
     Scene scene;
 
     bool _showUI = false;
-    bool _showMemoryUI = false;
+    bool _showResourceInspector = false;
+    bool _showRendererSettings = false;
 };

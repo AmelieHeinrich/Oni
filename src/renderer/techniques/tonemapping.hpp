@@ -23,7 +23,10 @@ private:
     RenderContext::Ptr _renderContext;
 
     ComputePipeline::Ptr _computePipeline;
+    Buffer::Ptr _tonemapperSettings;
 
     Texture::Ptr _inputHDR;
     Texture::Ptr _outputLDR;
+
+    int _tonemapper = 1;
 };

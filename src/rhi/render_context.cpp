@@ -309,7 +309,8 @@ void RenderContext::OnOverlay()
 
     ImGui::SetNextWindowBgAlpha(0.35f);
     ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
-    ImGui::Text("ONI VERSION 0.0.1");
+    ImGui::Text("Oni: An experimental renderer written by Amélie Heinrich");
+    ImGui::Text("Version 0.0.1");
     ImGui::Text("Renderer: D3D12");
     ImGui::Text("%s", _device->GetName().c_str());
     ImGui::End();

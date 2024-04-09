@@ -38,10 +38,10 @@ App::App()
     _renderContext = std::make_shared<RenderContext>(_window);
     _renderer = std::make_unique<Renderer>(_renderContext);
 
-    Model sponza;
-    sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
+    Model model;
+    model.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
 
-    scene.Models.push_back(sponza);
+    scene.Models.push_back(model);
 
     for (int i = 0; i < 0; i++) {
         PointLight light;
@@ -98,8 +98,8 @@ void App::Run()
             commandBuffer->BindRenderTargets({ texture }, nullptr);
             commandBuffer->BeginImGui(width, height);
             RenderOverlay();
-            if (_showUI) {
-                _renderer->OnUI();
+            if (!_showUI) {
+                RenderHelper();
             }
             commandBuffer->EndImGui();
             commandBuffer->ImageBarrier(texture, TextureLayout::Present);
@@ -125,17 +125,48 @@ void App::RenderOverlay()
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Debug")) {
                 if (ImGui::MenuItem("Resource Inspector")) {
-                    _showMemoryUI = !_showMemoryUI;
+                    _showResourceInspector = !_showResourceInspector;
+                }
+                if (ImGui::MenuItem("Renderer Settings")) {
+                    _showRendererSettings = !_showRendererSettings;
                 }
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
         }
 
-        if (_showMemoryUI) {
+        if (_showResourceInspector) {
             _renderContext->OnGUI();
+        }
+        if (_showRendererSettings) {
+            _renderer->OnUI();
         }
 
         _renderContext->OnOverlay();
     }
+}
+
+void App::RenderHelper()
+{
+    static bool p_open = true;
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+    const float PAD = 10.0f;
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+    ImVec2 work_size = viewport->WorkSize;
+    ImVec2 window_pos, window_pos_pivot;
+    window_pos.x = (work_pos.x + PAD);
+    window_pos.y = (work_pos.y + PAD);
+    window_pos_pivot.x = 0.0f;
+    window_pos_pivot.y = 0.0f;
+    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+    window_flags |= ImGuiWindowFlags_NoMove;
+
+    ImGui::SetNextWindowBgAlpha(0.35f);
+    ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
+    ImGui::Text("WASD + Mouse for Camera");
+    ImGui::Text("Debug Menu: F11");
+    ImGui::End();
 }

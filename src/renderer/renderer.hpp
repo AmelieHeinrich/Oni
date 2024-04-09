@@ -7,8 +7,9 @@
 
 #include "scene.hpp"
 
-#include "techniques/envmap_forward.hpp"
 #include "techniques/forward.hpp"
+#include "techniques/envmap_forward.hpp"
+#include "techniques/color_correction.hpp"
 #include "techniques/tonemapping.hpp"
 
 class Renderer
@@ -25,7 +26,8 @@ private:
 
     RenderContext::Ptr _renderContext;
 
-    std::shared_ptr<EnvMapForward> _envMapForward;
     std::shared_ptr<Forward> _forward;
+    std::shared_ptr<EnvMapForward> _envMapForward;
+    std::shared_ptr<ColorCorrection> _colorCorrection;
     std::shared_ptr<Tonemapping> _tonemapping;
 };

@@ -17,6 +17,7 @@ Renderer::Renderer(RenderContext::Ptr context)
 {
     _forward = std::make_shared<Forward>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _forward->GetOutput(), _forward->GetDepthBuffer());
+    _colorCorrection = std::make_shared<ColorCorrection>(context, _forward->GetOutput());
     _tonemapping = std::make_shared<Tonemapping>(context, _forward->GetOutput());
 
     _forward->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
@@ -31,6 +32,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height)
 {
     _forward->Render(scene, width, height);
     _envMapForward->Render(scene, width, height);
+    _colorCorrection->Render(scene, width, height);
     _tonemapping->Render(scene, width, height);
 
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
@@ -54,12 +56,20 @@ void Renderer::Resize(uint32_t width, uint32_t height)
 {
     _forward->Resize(width, height);
     _envMapForward->Resize(width, height, _forward->GetOutput(), _forward->GetDepthBuffer());
+    _colorCorrection->Resize(width, height, _forward->GetOutput());
     _tonemapping->Resize(width, height, _forward->GetOutput());
 }
 
 void Renderer::OnUI()
 {
+    ImGui::Begin("Renderer Settings");
 
+    _forward->OnUI();
+    _envMapForward->OnUI();
+    _colorCorrection->OnUI();
+    _tonemapping->OnUI();
+
+    ImGui::End();
 }
 
 void Renderer::Screenshot()

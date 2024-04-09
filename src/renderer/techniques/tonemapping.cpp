@@ -5,6 +5,8 @@
 
 #include "tonemapping.hpp"
 
+#include <ImGui/imgui.h>
+
 Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
     : _renderContext(context), _inputHDR(inputHDR)
 {
@@ -18,6 +20,9 @@ Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
     ShaderBytecode bytecode;
     ShaderCompiler::CompileShader("shaders/Tonemapping/TonemappingCompute.hlsl", "Main", ShaderType::Compute, bytecode);
     _computePipeline = _renderContext->CreateComputePipeline(bytecode);
+
+    _tonemapperSettings = _renderContext->CreateBuffer(256, 0, BufferType::Constant, false, "Tonemapper Settings CBV");
+    _tonemapperSettings->BuildConstantBuffer();
 }
 
 Tonemapping::~Tonemapping()
@@ -28,16 +33,19 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
 
-    cmdBuf->Begin();
+    void *pData;
+    _tonemapperSettings->Map(0, 0, &pData);
+    memcpy(pData, glm::value_ptr(glm::ivec4(_tonemapper, 0, 0, 0)), sizeof(glm::ivec4));
+    _tonemapperSettings->Unmap(0, 0);
 
+    cmdBuf->Begin();
     cmdBuf->ImageBarrier(_inputHDR, TextureLayout::ShaderResource);
     cmdBuf->ImageBarrier(_outputLDR, TextureLayout::Storage);
-    
     cmdBuf->BindComputePipeline(_computePipeline);
     cmdBuf->BindComputeShaderResource(_inputHDR, 0);
     cmdBuf->BindComputeStorageTexture(_outputLDR, 1);
-    cmdBuf->Dispatch(width / 30, height / 30, 1);
-    
+    cmdBuf->BindComputeConstantBuffer(_tonemapperSettings, 2);
+    cmdBuf->Dispatch(width / 30, height / 30, 1);    
     cmdBuf->End();
     _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);   
 }
@@ -54,5 +62,11 @@ void Tonemapping::Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR)
 
 void Tonemapping::OnUI()
 {
+    if (ImGui::TreeNodeEx("Tonemapping", ImGuiTreeNodeFlags_Framed))
+    {
+        static const char* Tonemappers[] = { "ACES", "Filmic", "Rom Bin Da House" };
+        ImGui::Combo("Tonemapper", (int*)&_tonemapper, Tonemappers, 3);
 
+        ImGui::TreePop();
+    }
 }
