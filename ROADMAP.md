@@ -33,7 +33,7 @@
 - Depth of field (DOF)
 
 ## Other
-- Mipmap generation & BC7-BC6H compression
+- BC7-BC6H compression
 - Profiler
 - Render graph
 - Multithreading
