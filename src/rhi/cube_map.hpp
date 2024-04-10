@@ -7,6 +7,8 @@
 
 #include "texture.hpp"
 
+#include <array>
+
 class CubeMap
 {
 public:
@@ -31,7 +33,7 @@ private:
     D3D12_RESOURCE_STATES _state;
 
     DescriptorHeap::Descriptor _srv;
-    DescriptorHeap::Descriptor _uav;
+    std::array<DescriptorHeap::Descriptor, 5> _uavs;
 
     TextureFormat _format;
     int _width;

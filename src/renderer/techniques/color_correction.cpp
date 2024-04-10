@@ -35,7 +35,7 @@ void ColorCorrection::Render(Scene& scene, uint32_t width, uint32_t height)
         cmdBuf->Begin();
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
         cmdBuf->BindComputePipeline(_computePipeline);
-        cmdBuf->BindComputeShaderResource(_inputHDR, 0);
+        cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
         cmdBuf->BindComputeConstantBuffer(_correctionParameters, 1);
         cmdBuf->Dispatch(width / 30, height / 30, 1);
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::ShaderResource);

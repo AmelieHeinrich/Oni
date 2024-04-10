@@ -79,35 +79,31 @@ void Buffer::BuildStorage()
 
 void Buffer::Map(int start, int end, void **data)
 {
-    if (_resource) {
-        D3D12_RANGE range;
-        range.Begin = start;
-        range.End = end;
+    D3D12_RANGE range;
+    range.Begin = start;
+    range.End = end;
 
-        HRESULT result = 0;
-        if (range.End > range.Begin) {
-            result = _resource->Resource->Map(0, &range, data);
-        } else {
-            result = _resource->Resource->Map(0, nullptr, data);
-        }
-    
-        if (FAILED(result)) {
-            Logger::Error("Failed to map buffer from range [%d-%d]", start, end);
-        }
+    HRESULT result = 0;
+    if (range.End > range.Begin) {
+        result = _resource->Resource->Map(0, &range, data);
+    } else {
+        result = _resource->Resource->Map(0, nullptr, data);
+    }
+
+    if (FAILED(result)) {
+        Logger::Error("Failed to map buffer from range [%d-%d]", start, end);
     }
 }
 
 void Buffer::Unmap(int start, int end)
 {
-    if (_resource) {
-        D3D12_RANGE range;
-        range.Begin = start;
-        range.End = end;
-    
-        if (range.End > range.Begin) {
-            _resource->Resource->Unmap(0, &range);
-        } else {
-            _resource->Resource->Unmap(0, nullptr);
-        }
+    D3D12_RANGE range;
+    range.Begin = start;
+    range.End = end;
+
+    if (range.End > range.Begin) {
+        _resource->Resource->Unmap(0, &range);
+    } else {
+        _resource->Resource->Unmap(0, nullptr);
     }
 }

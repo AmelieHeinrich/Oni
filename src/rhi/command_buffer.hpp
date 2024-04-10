@@ -55,10 +55,10 @@ public:
     void BindGraphicsCubeMap(CubeMap::Ptr cubemap, int index);
 
     void BindComputePipeline(ComputePipeline::Ptr pipeline);
-    void BindComputeShaderResource(Texture::Ptr texture, int index);
-    void BindComputeStorageTexture(Texture::Ptr texture, int index);
+    void BindComputeShaderResource(Texture::Ptr texture, int index, int mip);
+    void BindComputeStorageTexture(Texture::Ptr texture, int index, int mip);
     void BindComputeCubeMapShaderResource(CubeMap::Ptr texture, int index);
-    void BindComputeCubeMapStorage(CubeMap::Ptr texture, int index);
+    void BindComputeCubeMapStorage(CubeMap::Ptr texture, int index, int mip);
     void BindComputeConstantBuffer(Buffer::Ptr buffer, int index);
     void BindComputeSampler(Sampler::Ptr sampler, int index);
 

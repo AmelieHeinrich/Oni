@@ -5,7 +5,7 @@
 
 #include "sampler.hpp"
 
-Sampler::Sampler(Device::Ptr device, DescriptorHeap::Heaps& heaps, SamplerAddress address, SamplerFilter filter, int anisotropyLevel)
+Sampler::Sampler(Device::Ptr device, DescriptorHeap::Heaps& heaps, SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel)
     : _heaps(heaps)
 {
     D3D12_SAMPLER_DESC SamplerDesc = {};
@@ -15,6 +15,15 @@ Sampler::Sampler(Device::Ptr device, DescriptorHeap::Heaps& heaps, SamplerAddres
     SamplerDesc.Filter = D3D12_FILTER(filter);
     SamplerDesc.MaxAnisotropy = anisotropyLevel;
     SamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+    SamplerDesc.MinLOD = 0.0f;
+    if (mips) {
+        SamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+    }
+    SamplerDesc.MipLODBias = 0.0f;
+    SamplerDesc.BorderColor[0] = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+    SamplerDesc.BorderColor[1] = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+    SamplerDesc.BorderColor[2] = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+    SamplerDesc.BorderColor[3] = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
 
     _descriptor = heaps.SamplerHeap->Allocate();
     device->GetDevice()->CreateSampler(&SamplerDesc, _descriptor.CPU);

@@ -28,7 +28,7 @@ class Sampler
 public:
     using Ptr = std::shared_ptr<Sampler>;
 
-    Sampler(Device::Ptr device, DescriptorHeap::Heaps& heaps, SamplerAddress address, SamplerFilter filter, int anisotropyLevel);
+    Sampler(Device::Ptr device, DescriptorHeap::Heaps& heaps, SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
     ~Sampler();
 
     DescriptorHeap::Descriptor GetDescriptor() { return _descriptor; }

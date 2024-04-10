@@ -192,7 +192,7 @@ void CommandBuffer::BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index)
 
 void CommandBuffer::BindGraphicsShaderResource(Texture::Ptr texture, int index)
 {
-    _commandList->SetGraphicsRootDescriptorTable(index, texture->_srv.GPU);
+    _commandList->SetGraphicsRootDescriptorTable(index, texture->_srvs[0].GPU);
 }
 
 void CommandBuffer::BindGraphicsSampler(Sampler::Ptr sampler, int index)
@@ -211,14 +211,14 @@ void CommandBuffer::BindComputePipeline(ComputePipeline::Ptr pipeline)
     _commandList->SetComputeRootSignature(pipeline->GetRootSignature());
 }
 
-void CommandBuffer::BindComputeShaderResource(Texture::Ptr texture, int index)
+void CommandBuffer::BindComputeShaderResource(Texture::Ptr texture, int index, int mip)
 {
-    _commandList->SetComputeRootDescriptorTable(index, texture->_srv.GPU);
+    _commandList->SetComputeRootDescriptorTable(index, texture->_srvs[mip].GPU);
 }
 
-void CommandBuffer::BindComputeStorageTexture(Texture::Ptr texture, int index)
+void CommandBuffer::BindComputeStorageTexture(Texture::Ptr texture, int index, int mip)
 {
-    _commandList->SetComputeRootDescriptorTable(index, texture->_uav.GPU);
+    _commandList->SetComputeRootDescriptorTable(index, texture->_uavs[mip].GPU);
 }
 
 void CommandBuffer::BindComputeCubeMapShaderResource(CubeMap::Ptr texture, int index)
@@ -226,9 +226,9 @@ void CommandBuffer::BindComputeCubeMapShaderResource(CubeMap::Ptr texture, int i
     _commandList->SetComputeRootDescriptorTable(index, texture->_srv.GPU);
 }
 
-void CommandBuffer::BindComputeCubeMapStorage(CubeMap::Ptr texture, int index)
+void CommandBuffer::BindComputeCubeMapStorage(CubeMap::Ptr texture, int index, int mip)
 {
-    _commandList->SetComputeRootDescriptorTable(index, texture->_uav.GPU);
+    _commandList->SetComputeRootDescriptorTable(index, texture->_uavs[mip].GPU);
 }
 
 void CommandBuffer::BindComputeConstantBuffer(Buffer::Ptr buffer, int index)

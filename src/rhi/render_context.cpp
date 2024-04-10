@@ -13,6 +13,9 @@
 
 #include <shader/bytecode.hpp>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     : _window(hwnd)
 {
@@ -72,8 +75,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     ShaderCompiler::CompileShader("shaders/MipMaps/GenerateCompute.hlsl", "Main", ShaderType::Compute, bytecode);
 
     _mipmapPipeline = CreateComputePipeline(bytecode);
-    _mipmapBuffer = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer CBV");
-    _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, 0);
+    _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, true, 0);
 }
 
 RenderContext::~RenderContext()
@@ -212,14 +214,14 @@ ComputePipeline::Ptr RenderContext::CreateComputePipeline(ShaderBytecode& shader
     return std::make_shared<ComputePipeline>(_device, shader);
 }
 
-Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, const std::string& name)
+Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name)
 {
-    return std::make_shared<Texture>(_device, _allocator, _heaps, width, height, format, usage, name);
+    return std::make_shared<Texture>(_device, _allocator, _heaps, width, height, format, usage, mips, name);
 }
 
-Sampler::Ptr RenderContext::CreateSampler(SamplerAddress address, SamplerFilter filter, int anisotropyLevel)
+Sampler::Ptr RenderContext::CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel)
 {
-    return std::make_shared<Sampler>(_device, _heaps, address, filter, anisotropyLevel);
+    return std::make_shared<Sampler>(_device, _heaps, address, filter, mips, anisotropyLevel);
 }
 
 CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name)
@@ -282,6 +284,44 @@ void RenderContext::FlushUploader(Uploader& uploader)
     ExecuteCommandBuffers({ uploader._commandBuffer }, CommandQueueType::Graphics);
     WaitForPreviousHostSubmit(CommandQueueType::Graphics);
     uploader._commands.clear();
+}
+
+void RenderContext::GenerateMips(Texture::Ptr texture)
+{
+    texture->BuildStorage();
+
+    std::vector<Buffer::Ptr> buffers;
+    buffers.resize(texture->GetMips() - 1);
+    CommandBuffer::Ptr cmdBuf = CreateCommandBuffer(CommandQueueType::Graphics);
+
+    for (int i = 0; i < texture->GetMips() - 1; i++) {
+        Buffer::Ptr mipParameter = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer");
+        mipParameter->BuildConstantBuffer();
+        buffers[i] = mipParameter;
+    }
+
+    cmdBuf->Begin();
+    cmdBuf->ImageBarrier(texture, TextureLayout::Storage);
+    cmdBuf->BindComputePipeline(_mipmapPipeline);
+    for (int i = 0; i < texture->GetMips() - 1; i++) {
+        float mipWidth = (texture->GetWidth() * std::pow(0.5f, i + 1));
+        float mipHeight = (texture->GetHeight() * std::pow(0.5f, i + 1));
+        glm::vec4 data(mipWidth, mipHeight, 0, 0);
+
+        void *pData;
+        buffers[i]->Map(0, 0, &pData);
+        memcpy(pData, glm::value_ptr(data), sizeof(data));
+        buffers[i]->Unmap(0, 0);
+
+        cmdBuf->BindComputeShaderResource(texture, 0, i);
+        cmdBuf->BindComputeStorageTexture(texture, 1, i + 1);
+        cmdBuf->BindComputeSampler(_mipmapSampler, 2);
+        cmdBuf->BindComputeConstantBuffer(buffers[i], 3);
+        cmdBuf->Dispatch(mipWidth / 8, mipHeight / 8, 1);
+    }
+    cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource);
+    cmdBuf->End();
+    ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
 }
 
 void RenderContext::OnGUI()

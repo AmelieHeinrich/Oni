@@ -85,13 +85,13 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _cubeRenderer = context->CreateGraphicsPipeline(specs);
 
     // Create sampler
-    _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, 0);
+    _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, false, 0);
 
     // Load HDRI
     Image image;
     image.LoadHDR("assets/env/symmetrical_garden_02_4k.hdr");
 
-    Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, "HDR Texture");
+    Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, false, "HDR Texture");
     hdrTexture->BuildShaderResource();
 
     uploader.CopyHostToDeviceTexture(image, hdrTexture);
@@ -100,7 +100,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "Environment Map");
     _map.IrradianceMap = context->CreateCubeMap(128, 128, TextureFormat::RGBA16Unorm, "Irradiance Map");
     _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "Prefilter Map");
-    _map.BRDF = context->CreateTexture(512, 512, TextureFormat::RG16Float, TextureUsage::Storage, "BRDF");
+    _map.BRDF = context->CreateTexture(512, 512, TextureFormat::RG16Float, TextureUsage::Storage, false, "BRDF");
     _map.BRDF->BuildShaderResource();
     _map.BRDF->BuildStorage();
 
@@ -123,8 +123,8 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     // Equi to cubemap
     cmdBuffer->Begin();
     cmdBuffer->BindComputePipeline(_envToCube);
-    cmdBuffer->BindComputeShaderResource(hdrTexture, 0);
-    cmdBuffer->BindComputeCubeMapStorage(_map.Environment, 1);
+    cmdBuffer->BindComputeShaderResource(hdrTexture, 0, 0);
+    cmdBuffer->BindComputeCubeMapStorage(_map.Environment, 1, 0);
     cmdBuffer->BindComputeSampler(_cubeSampler, 2);
     cmdBuffer->Dispatch(512 / 32, 512 / 32, 6);
     cmdBuffer->End();
@@ -134,7 +134,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     cmdBuffer->Begin();
     cmdBuffer->BindComputePipeline(_irradiance);
     cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
-    cmdBuffer->BindComputeCubeMapStorage(_map.IrradianceMap, 1);
+    cmdBuffer->BindComputeCubeMapStorage(_map.IrradianceMap, 1, 0);
     cmdBuffer->BindComputeSampler(_cubeSampler, 2);
     cmdBuffer->Dispatch(128 / 32, 128 / 32, 6);
     cmdBuffer->End();
@@ -144,7 +144,6 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     cmdBuffer->Begin();
     cmdBuffer->BindComputePipeline(_prefilter);
     cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
-    cmdBuffer->BindComputeCubeMapStorage(_map.PrefilterMap, 1);
     cmdBuffer->BindComputeSampler(_cubeSampler, 2);
     for (int i = 0; i < 5; i++) {
         int width = (int)(512.0f * pow(0.5f, i));
@@ -158,6 +157,8 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
         memcpy(pData, glm::value_ptr(roughnessVec), sizeof(glm::vec4));
         _prefilterBuffer->Unmap(0, 0);
 
+
+        cmdBuffer->BindComputeCubeMapStorage(_map.PrefilterMap, 1, i);
         cmdBuffer->BindComputeConstantBuffer(_prefilterBuffer, 3);
         cmdBuffer->Dispatch(width / 32, height / 32, 6);
     }
@@ -167,7 +168,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     // BRDF
     cmdBuffer->Begin();
     cmdBuffer->BindComputePipeline(_brdf);
-    cmdBuffer->BindComputeStorageTexture(_map.BRDF, 0);
+    cmdBuffer->BindComputeStorageTexture(_map.BRDF, 0, 0);
     cmdBuffer->Dispatch(512 / 32, 512 / 32, 1);
     cmdBuffer->ImageBarrier(_map.BRDF, TextureLayout::ShaderResource);
     cmdBuffer->End();

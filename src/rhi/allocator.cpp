@@ -110,8 +110,15 @@ void Allocator::OnGUI()
         // Textures
         if (_uiSelected->Type == GPUResourceType::Texture) {
             ImGui::Text("Texture Size: (%d, %d)", _uiSelected->AttachedTexture->GetWidth(), _uiSelected->AttachedTexture->GetHeight());
-            if (_uiSelected->AttachedTexture->_srv.Valid) {
-                ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srv.GPU.ptr, ImVec2(256, 256));
+            for (int i = 0; i < _uiSelected->AttachedTexture->GetMips(); i++) {
+                char buf[16];
+                sprintf(buf, "Mip %d", i);
+                if (ImGui::TreeNodeEx(buf, ImGuiTreeNodeFlags_Framed)) {
+                    if (_uiSelected->AttachedTexture->_srvs[i].Valid) {
+                        ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
+                    }
+                    ImGui::TreePop();
+                }
             }
         }
     }

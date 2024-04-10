@@ -551,7 +551,7 @@ bool    ImGui_ImplDX12_CreateDeviceObjects()
 
         // Bilinear sampling is required by default. Set 'io.Fonts->Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling.
         D3D12_STATIC_SAMPLER_DESC staticSampler = {};
-        staticSampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        staticSampler.Filter = D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
         staticSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         staticSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         staticSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;

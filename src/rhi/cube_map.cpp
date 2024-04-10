@@ -17,7 +17,7 @@ CubeMap::CubeMap(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
     ResourceDesc.Width = width;
     ResourceDesc.Height = height;
     ResourceDesc.DepthOrArraySize = 6;
-    ResourceDesc.MipLevels = 1;
+    ResourceDesc.MipLevels = 5;
     ResourceDesc.Format = DXGI_FORMAT(format);
     ResourceDesc.SampleDesc.Count = 1;
     ResourceDesc.SampleDesc.Quality = 0;
@@ -29,28 +29,33 @@ CubeMap::CubeMap(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
     _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _state, name);
 
     _srv = _heaps.ShaderHeap->Allocate();
-    _uav = _heaps.ShaderHeap->Allocate();
+    for (int i = 0; i < 5; i++) {
+        _uavs[i] = _heaps.ShaderHeap->Allocate();
+    
+        D3D12_UNORDERED_ACCESS_VIEW_DESC UAV = {};
+        UAV.Format = DXGI_FORMAT(_format);
+        UAV.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+        UAV.Texture2DArray.ArraySize = 6;
+        UAV.Texture2DArray.FirstArraySlice = 0;
+        UAV.Texture2DArray.MipSlice = i;
+
+        _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource->Resource, nullptr, &UAV, _uavs[i].CPU);
+    }
     
     D3D12_SHADER_RESOURCE_VIEW_DESC ShaderResourceView = {};
     ShaderResourceView.Format = DXGI_FORMAT(_format);
     ShaderResourceView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
     ShaderResourceView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    ShaderResourceView.TextureCube.MipLevels = 1;
-
-    D3D12_UNORDERED_ACCESS_VIEW_DESC UAV = {};
-    UAV.Format = DXGI_FORMAT(_format);
-    UAV.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-    UAV.Texture2DArray.ArraySize = 6;
-    UAV.Texture2DArray.FirstArraySlice = 0;
-    UAV.Texture2DArray.MipSlice = 0;
+    ShaderResourceView.TextureCube.MipLevels = 5;
 
     _devicePtr->GetDevice()->CreateShaderResourceView(_resource->Resource, &ShaderResourceView, _srv.CPU);
-    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource->Resource, nullptr, &UAV, _uav.CPU);
 }
 
 CubeMap::~CubeMap()
 {
     _heaps.ShaderHeap->Free(_srv);
-    _heaps.ShaderHeap->Free(_uav);
+    for (int i = 0; i < 5; i++) {
+        _heaps.ShaderHeap->Free(_uavs[i]);
+    }
     _resource->Allocation->Release();
 }

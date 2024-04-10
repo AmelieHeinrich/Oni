@@ -13,7 +13,7 @@ Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
 
-    _outputLDR = _renderContext->CreateTexture(width, height, TextureFormat::RGBA8, TextureUsage::Storage, "Tonemapping LDR Output");
+    _outputLDR = _renderContext->CreateTexture(width, height, TextureFormat::RGBA8, TextureUsage::Storage, false, "Tonemapping LDR Output");
     _outputLDR->BuildShaderResource();
     _outputLDR->BuildStorage();
 
@@ -42,8 +42,8 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
     cmdBuf->ImageBarrier(_inputHDR, TextureLayout::ShaderResource);
     cmdBuf->ImageBarrier(_outputLDR, TextureLayout::Storage);
     cmdBuf->BindComputePipeline(_computePipeline);
-    cmdBuf->BindComputeShaderResource(_inputHDR, 0);
-    cmdBuf->BindComputeStorageTexture(_outputLDR, 1);
+    cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
+    cmdBuf->BindComputeStorageTexture(_outputLDR, 1, 0);
     cmdBuf->BindComputeConstantBuffer(_tonemapperSettings, 2);
     cmdBuf->Dispatch(width / 30, height / 30, 1);    
     cmdBuf->End();
@@ -55,7 +55,7 @@ void Tonemapping::Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR)
     _inputHDR = inputHDR;
 
     _outputLDR.reset();
-    _outputLDR = _renderContext->CreateTexture(width, height, TextureFormat::RGBA8, TextureUsage::Storage, "Tonemapping LDR Output");
+    _outputLDR = _renderContext->CreateTexture(width, height, TextureFormat::RGBA8, TextureUsage::Storage, false,"Tonemapping LDR Output");
     _outputLDR->BuildStorage();
     _outputLDR->BuildShaderResource();
 }

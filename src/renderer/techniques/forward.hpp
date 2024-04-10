@@ -10,6 +10,15 @@
 
 #include "envmap_forward.hpp"
 
+#define FORWARD_MODE_DEFAULT 0
+#define FORWARD_MODE_ALBEDO 1
+#define FORWARD_MODE_NORMAL 2
+#define FORWARD_MODE_MR 3
+#define FORWARD_MODE_AO 4
+#define FORWARD_MODE_EMISSIVE 5
+#define FORWARD_MODE_SPECULAR 6
+#define FORWARD_MODE_AMBIENT 7
+
 class Forward
 {
 public:
@@ -36,5 +45,8 @@ private:
     Buffer::Ptr _sceneBuffer;
     Buffer::Ptr _modelBuffer;
     Buffer::Ptr _lightBuffer;
+    Buffer::Ptr _modeBuffer;
     Sampler::Ptr _sampler;
+
+    int _mode = 0;
 };

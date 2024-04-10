@@ -6,6 +6,15 @@
 #define MAX_LIGHTS 512
 #define PI 3.14159265359
 
+#define MODE_DEFAULT 0
+#define MODE_ALBEDO 1
+#define MODE_NORMAL 2
+#define MODE_MR 3
+#define MODE_AO 4
+#define MODE_EMISSIVE 5
+#define MODE_SPECULAR 6
+#define MODE_AMBIENT 7
+
 struct FragmentIn
 {
     float4 Position : SV_POSITION;
@@ -29,6 +38,14 @@ struct LightData
     float3 Pad;
 };
 
+struct OutputBuffer
+{
+    int Mode;
+    uint _Padding0;
+    uint _Padding1;
+    uint _Padding2;
+};
+
 Texture2D Texture : register(t2);
 Texture2D NormalTexture : register(t3);
 Texture2D PBRTexture : register(t4);
@@ -41,6 +58,7 @@ Texture2D BRDF : register(t9);
 
 SamplerState Sampler : register(s10);
 ConstantBuffer<LightData> LightBuffer : register(b11);
+ConstantBuffer<OutputBuffer> OutputData : register(b12);
 
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
@@ -115,7 +133,8 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords);
     float metallic = metallicRoughness.b;
     float roughness = metallicRoughness.g;
-    float ao = AOTexture.Sample(Sampler, Input.TexCoords).r;
+    float4 aot = AOTexture.Sample(Sampler, Input.TexCoords);
+    float ao = aot.r;
 
     if (emission.x != 1.0f && emission.y != 1.0f && emission.y != 1.0f) {
         albedo.xyz += emission.xyz;
@@ -175,7 +194,34 @@ float4 Main(FragmentIn Input) : SV_TARGET
 
     float3 ambient = (kD * diffuse + specular) * ao;
     float3 color = ambient + Lo;
-    float4 final = float4(color, 1.0);
+    float4 final = float4(0.0, 0.0, 0.0, 0.0);
+
+    switch (OutputData.Mode) {
+        case MODE_DEFAULT:
+            final = float4(color, 1.0);
+            break;
+        case MODE_ALBEDO:
+            final = albedo;
+            break;
+        case MODE_NORMAL:
+            final = float4(normal, 1.0);
+            break;
+        case MODE_MR:
+            final = metallicRoughness;
+            break;
+        case MODE_AO:
+            final = aot;
+            break;
+        case MODE_EMISSIVE:
+            final = emission;
+            break;
+        case MODE_SPECULAR:
+            final = float4(Lo, 1.0);
+            break;
+        case MODE_AMBIENT:
+            final = float4(ambient, 1.0);
+            break;
+    }
 
     return final;
 }

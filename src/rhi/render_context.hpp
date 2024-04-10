@@ -54,13 +54,15 @@ public:
     Buffer::Ptr CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback, const std::string& name = "Buffer");
     GraphicsPipeline::Ptr CreateGraphicsPipeline(GraphicsPipelineSpecs& specs);
     ComputePipeline::Ptr CreateComputePipeline(ShaderBytecode& shader);
-    Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, const std::string& name = "Texture");
-    Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, int anisotropyLevel);
+    Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
+    Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
     CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name = "Cube Map");
     CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type);
     
     Uploader CreateUploader();
     void FlushUploader(Uploader& uploader);
+
+    void GenerateMips(Texture::Ptr texture);
 
     void OnGUI();
     void OnOverlay();

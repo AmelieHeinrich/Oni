@@ -5,13 +5,15 @@
 
 #include "forward.hpp"
 
+#include <ImGui/imgui.h>
+
 Forward::Forward(RenderContext::Ptr context)
     : _context(context)
 {
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
 
-    _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, "White Texture");
+    _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "White Texture");
     _whiteTexture->BuildShaderResource();
 
     uint32_t color = 0xFFFFFFFF;
@@ -25,11 +27,11 @@ Forward::Forward(RenderContext::Ptr context)
     uploader.CopyHostToDeviceTexture(image, _whiteTexture);
     _context->FlushUploader(uploader);
 
-    _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, "Forward RTV");
+    _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, false, "Forward RTV");
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
 
-    _depthBuffer = context->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget, "Forward DSV");
+    _depthBuffer = context->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget, false, "Forward DSV");
     _depthBuffer->BuildDepthTarget();
 
     GraphicsPipelineSpecs specs;
@@ -54,7 +56,10 @@ Forward::Forward(RenderContext::Ptr context)
     _lightBuffer = context->CreateBuffer(16384 + 256, 0, BufferType::Constant, false, "Light Buffer CBV");
     _lightBuffer->BuildConstantBuffer();
 
-    _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, 0);
+    _modeBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Mode Buffer CBV");
+    _modeBuffer->BuildConstantBuffer();
+
+    _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, true, 0);
 }
 
 Forward::~Forward()
@@ -85,6 +90,11 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
     memcpy(pData, &scene.LightBuffer, sizeof(LightData));
     _lightBuffer->Unmap(0, 0);
 
+    glm::ivec4 mode(_mode, 0, 0, 0);
+    _modeBuffer->Map(0, 0, &pData);
+    memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
+    _modeBuffer->Unmap(0, 0);
+
     commandBuffer->Begin();
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
     commandBuffer->SetViewport(0, 0, width, height);
@@ -99,6 +109,7 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->BindGraphicsShaderResource(_map.BRDF, 9);
     commandBuffer->BindGraphicsSampler(_sampler, 10);
     commandBuffer->BindGraphicsConstantBuffer(_lightBuffer, 11);
+    commandBuffer->BindGraphicsConstantBuffer(_modeBuffer, 12);
 
     for (auto& model : scene.Models) {
         for (auto& primitive : model.Primitives) {
@@ -143,17 +154,23 @@ void Forward::Resize(uint32_t width, uint32_t height)
     _outputImage.reset();
     _depthBuffer.reset();
 
-    _outputImage = _context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, "Forward RTV");
+    _outputImage = _context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, false, "Forward RTV");
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
 
-    _depthBuffer = _context->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget, "Forward DSV");
+    _depthBuffer = _context->CreateTexture(width, height, TextureFormat::R32Depth, TextureUsage::DepthTarget, false, "Forward DSV");
     _depthBuffer->BuildDepthTarget();
 }
 
 void Forward::OnUI()
 {
+    if (ImGui::TreeNodeEx("Forward", ImGuiTreeNodeFlags_Framed))
+    {
+        static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Specular", "Ambient" };
+        ImGui::Combo("Mode", (int*)&_mode, Modes, 8);
 
+        ImGui::TreePop();
+    }
 }
 
 void Forward::ConnectEnvironmentMap(EnvironmentMap& map)

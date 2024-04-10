@@ -48,7 +48,7 @@ public:
     using Ptr = std::shared_ptr<Texture>;
 
     Texture(Device::Ptr devicePtr, const std::string& name = "Texture");
-    Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, const std::string& name = "Texture");
+    Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
     ~Texture();
 
     void BuildRenderTarget();
@@ -66,6 +66,7 @@ public:
 
     int GetWidth() { return _width; }
     int GetHeight() { return _height; }
+    int GetMips() { return _mipLevels; }
 private:
     friend class SwapChain;
     friend class CommandBuffer;
@@ -82,10 +83,11 @@ private:
     
     DescriptorHeap::Descriptor _rtv;
     DescriptorHeap::Descriptor _dsv;
-    DescriptorHeap::Descriptor _srv;
-    DescriptorHeap::Descriptor _uav;
+    std::vector<DescriptorHeap::Descriptor> _srvs;
+    std::vector<DescriptorHeap::Descriptor> _uavs;
 
     TextureFormat _format;
     int _width;
     int _height;
+    int _mipLevels;
 };
