@@ -185,7 +185,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float3 kD = 1.0 - kS;
     kD *= 1.0 - metallic;
 
-    float3 irradiance = Irradiance.Sample(Sampler, N).rgb;
+    float3 irradiance = Irradiance.SampleLevel(Sampler, N, 0).rgb;
     float3 diffuse = irradiance * albedo.xyz;
 
     float3 prefilteredColor = Prefilter.SampleLevel(Sampler, R, roughness * MAX_REFLECTION_LOD).rgb;

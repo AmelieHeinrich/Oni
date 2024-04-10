@@ -108,8 +108,6 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _cubeBuffer = context->CreateBuffer(sizeof(CubeVertices), sizeof(glm::vec3), BufferType::Vertex, false, "Cube Buffer");
     _cubeCBV = context->CreateBuffer(256, 0, BufferType::Constant, false, "Cube Map CBV");
     _cubeCBV->BuildConstantBuffer();
-    _prefilterBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Prefilter Buffer CBV");
-    _prefilterBuffer->BuildConstantBuffer();
 
     uploader.CopyHostToDeviceLocal((void*)CubeVertices, sizeof(CubeVertices), _cubeBuffer);
 
@@ -141,6 +139,12 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
 
     // Prefilter
+    std::array<Buffer::Ptr, 5> prefilterBuffers;
+    for (auto& buffer : prefilterBuffers) {
+        buffer = _context->CreateBuffer(256, 0, BufferType::Constant, false, "Prefilter Buffer");
+        buffer->BuildConstantBuffer();
+    }
+
     cmdBuffer->Begin();
     cmdBuffer->BindComputePipeline(_prefilter);
     cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
@@ -153,13 +157,12 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
         glm::vec4 roughnessVec(roughness, 0.0f, 0.0f, 0.0f);
 
         void *pData;
-        _prefilterBuffer->Map(0, 0, &pData);
+        prefilterBuffers[i]->Map(0, 0, &pData);
         memcpy(pData, glm::value_ptr(roughnessVec), sizeof(glm::vec4));
-        _prefilterBuffer->Unmap(0, 0);
-
+        prefilterBuffers[i]->Unmap(0, 0);
 
         cmdBuffer->BindComputeCubeMapStorage(_map.PrefilterMap, 1, i);
-        cmdBuffer->BindComputeConstantBuffer(_prefilterBuffer, 3);
+        cmdBuffer->BindComputeConstantBuffer(prefilterBuffers[i], 3);
         cmdBuffer->Dispatch(width / 32, height / 32, 6);
     }
     cmdBuffer->End();

@@ -39,7 +39,7 @@ App::App()
     _renderer = std::make_unique<Renderer>(_renderContext);
 
     Model model;
-    model.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
+    model.Load(_renderContext, "assets/models/SciFiHelmet.gltf");
 
     scene.Models.push_back(model);
 
