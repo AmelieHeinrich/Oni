@@ -89,7 +89,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
 
     // Load HDRI
     Image image;
-    image.LoadHDR("assets/env/lonely_road_afternoon_puresky_4k.hdr");
+    image.LoadHDR("assets/env/symmetrical_garden_02_4k.hdr");
 
     Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, "HDR Texture");
     hdrTexture->BuildShaderResource();
