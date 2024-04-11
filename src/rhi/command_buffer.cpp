@@ -187,7 +187,7 @@ void CommandBuffer::BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline)
 
 void CommandBuffer::BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index)
 {
-    _commandList->SetGraphicsRootDescriptorTable(index, buffer->_descriptor.GPU);
+    _commandList->SetGraphicsRootDescriptorTable(index, buffer->_cbv.GPU);
 }
 
 void CommandBuffer::BindGraphicsShaderResource(Texture::Ptr texture, int index)
@@ -233,7 +233,12 @@ void CommandBuffer::BindComputeCubeMapStorage(CubeMap::Ptr texture, int index, i
 
 void CommandBuffer::BindComputeConstantBuffer(Buffer::Ptr buffer, int index)
 {
-    _commandList->SetComputeRootDescriptorTable(index, buffer->_descriptor.GPU);
+    _commandList->SetComputeRootDescriptorTable(index, buffer->_cbv.GPU);
+}
+
+void CommandBuffer::BindComputeStorageBuffer(Buffer::Ptr buffer, int index)
+{
+    _commandList->SetComputeRootDescriptorTable(index, buffer->_uav.GPU);
 }
 
 void CommandBuffer::BindComputeSampler(Sampler::Ptr sampler, int index)

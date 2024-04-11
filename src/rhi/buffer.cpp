@@ -25,6 +25,9 @@ Buffer::Buffer(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::
     ResourceDesc.SampleDesc.Quality = 0;
     ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     ResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    if (type == BufferType::Storage) {
+        ResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    }
 
     _state = type == BufferType::Constant ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_COMMON;
 
@@ -51,8 +54,11 @@ Buffer::Buffer(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::
 
 Buffer::~Buffer()
 {
-    if (_descriptor.Valid) {
-        _heaps.ShaderHeap->Free(_descriptor);
+    if (_cbv.Valid) {
+        _heaps.ShaderHeap->Free(_cbv);
+    }
+    if (_cbv.Valid) {
+        _heaps.ShaderHeap->Free(_uav);
     }
     _resource->Allocation->Release();
     _resource->ClearFromAllocationList();
@@ -63,18 +69,23 @@ void Buffer::BuildConstantBuffer()
 {
     _CBVD.BufferLocation = _resource->Resource->GetGPUVirtualAddress();
     _CBVD.SizeInBytes = _size;
-    if (_descriptor.Valid == false)
-        _descriptor = _heaps.ShaderHeap->Allocate();
-    _devicePtr->GetDevice()->CreateConstantBufferView(&_CBVD, _descriptor.CPU);
+    if (_cbv.Valid == false)
+        _cbv = _heaps.ShaderHeap->Allocate();
+    _devicePtr->GetDevice()->CreateConstantBufferView(&_CBVD, _cbv.CPU);
 }
 
 void Buffer::BuildStorage()
 {
     _UAVD.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
     _UAVD.Format = DXGI_FORMAT_UNKNOWN;
-    if (_descriptor.Valid == false)
-        _descriptor = _heaps.ShaderHeap->Allocate();
-    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource->Resource, nullptr, &_UAVD, _descriptor.CPU);
+    _UAVD.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+    _UAVD.Buffer.FirstElement = 0;
+    _UAVD.Buffer.NumElements = _size / 4;
+    _UAVD.Buffer.StructureByteStride = 4;
+    _UAVD.Buffer.CounterOffsetInBytes = 0;
+    if (_uav.Valid == false)
+        _uav = _heaps.ShaderHeap->Allocate();
+    _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource->Resource, nullptr, &_UAVD, _uav.CPU);
 }
 
 void Buffer::Map(int start, int end, void **data)

@@ -2,7 +2,6 @@
 
 ## Techniques:
 - Visibility buffer
-- Cascaded shadow maps (CSM)
 - Reflective shadow maps (RSM)
 - Volumetrics (clouds, fog, god rays)
 - Raytraced shadows

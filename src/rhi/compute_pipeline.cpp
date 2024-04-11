@@ -76,6 +76,9 @@ ComputePipeline::ComputePipeline(Device::Ptr device, ShaderBytecode& bytecode)
             case D3D_SIT_CBUFFER:
                 Range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
                 break;
+            case D3D_SIT_UAV_RWBYTEADDRESS:
+                Range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+                break;
         }
 
         Ranges[RangeCount] = Range;

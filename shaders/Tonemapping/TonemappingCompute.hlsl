@@ -51,7 +51,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     if (ThreadID.x <= Width && ThreadID.y <= Height)
     {
         float4 HDRColor = HDRTexture[ThreadID.xy];
-        float3 MappedColor = HDRColor.xyz;
+        float3 MappedColor = pow(HDRColor.xyz, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
         switch (Settings.Tonemapper)
         {
             case TONEMAPPER_ACES: {

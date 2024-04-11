@@ -42,6 +42,9 @@ uint64_t Texture::GetComponentSize(TextureFormat format)
         case TextureFormat::RG16Float: {
             return 2 * sizeof(short);
         }
+        case TextureFormat::R32Float: {
+            return sizeof(float);
+        }
     }
     return 0;
 }

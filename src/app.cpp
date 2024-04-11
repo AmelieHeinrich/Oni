@@ -28,7 +28,7 @@ App::App()
     Logger::Init();
     srand(time(NULL));
 
-    _window = std::make_shared<Window>(1280, 720, "Oni | <D3D12> | <WINDOWS>");
+    _window = std::make_shared<Window>(1280 + 16, 720 + 39, "Oni | <D3D12> | <WINDOWS>");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
         _renderer->Resize(width, height);
@@ -88,7 +88,7 @@ void App::Run()
 
         // RENDER
         {
-            _renderer->Render(scene, width, height);
+            _renderer->Render(scene, width, height, dt);
         }  
 
         // UI

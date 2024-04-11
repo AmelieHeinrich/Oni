@@ -44,7 +44,9 @@ private:
     BufferType _type;
     uint64_t _size;
 
-    DescriptorHeap::Descriptor _descriptor;
+    DescriptorHeap::Descriptor _cbv;
+    DescriptorHeap::Descriptor _uav;
+
     GPUResource *_resource = nullptr;
     D3D12_RESOURCE_STATES _state;
 

@@ -114,7 +114,7 @@ void Allocator::OnGUI()
                 char buf[16];
                 sprintf(buf, "Mip %d", i);
                 if (ImGui::TreeNodeEx(buf, ImGuiTreeNodeFlags_Framed)) {
-                    if (_uiSelected->AttachedTexture->_srvs[i].Valid) {
+                    if (_uiSelected->AttachedTexture->_srvs[i].Valid && _uiSelected->AttachedTexture->_dsv.Valid != true) {
                         ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
                     }
                     ImGui::TreePop();

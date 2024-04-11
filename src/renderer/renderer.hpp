@@ -10,6 +10,7 @@
 #include "techniques/forward.hpp"
 #include "techniques/envmap_forward.hpp"
 #include "techniques/color_correction.hpp"
+#include "techniques/auto_exposure.hpp"
 #include "techniques/tonemapping.hpp"
 
 class Renderer
@@ -18,7 +19,7 @@ public:
     Renderer(RenderContext::Ptr context);
     ~Renderer();
     
-    void Render(Scene& scene, uint32_t width, uint32_t height);
+    void Render(Scene& scene, uint32_t width, uint32_t height, float dt);
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
 private:
@@ -29,5 +30,6 @@ private:
     std::shared_ptr<Forward> _forward;
     std::shared_ptr<EnvMapForward> _envMapForward;
     std::shared_ptr<ColorCorrection> _colorCorrection;
+    std::shared_ptr<AutoExposure> _autoExposure;
     std::shared_ptr<Tonemapping> _tonemapping;
 };
