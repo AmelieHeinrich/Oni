@@ -65,11 +65,13 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             _luminanceHistogramParameters->Unmap(0, 0);
 
             cmdBuf->Begin();
+            cmdBuf->BeginEvent("AE Histogram Compute Pass");
             cmdBuf->BindComputePipeline(_computePipeline);
             cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
             cmdBuf->BindComputeStorageBuffer(_luminanceHistogram, 1);
             cmdBuf->BindComputeConstantBuffer(_luminanceHistogramParameters, 2);
             cmdBuf->Dispatch(round(width / 16), round(height / 16), 1);
+            cmdBuf->EndEvent();
             cmdBuf->End();
             _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
         }
@@ -96,6 +98,7 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             _averageParameters->Unmap(0, 0);
 
             cmdBuf->Begin();
+            cmdBuf->BeginEvent("AE Histogram Average Compute Pass");
             cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::Storage);
             cmdBuf->BindComputePipeline(_averagePipeline);
             cmdBuf->BindComputeStorageBuffer(_luminanceHistogram, 0);
@@ -103,6 +106,7 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             cmdBuf->BindComputeConstantBuffer(_averageParameters, 2);
             cmdBuf->Dispatch(round(width / 16), round(height / 16), 1);
             cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::ShaderResource);
+            cmdBuf->EndEvent();
             cmdBuf->End();
             _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
         }

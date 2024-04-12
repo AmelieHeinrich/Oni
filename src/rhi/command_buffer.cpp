@@ -16,6 +16,8 @@
 #include <ctime>
 #include <algorithm>
 
+#include <pix3.h>
+
 bool IsHDR(TextureFormat format)
 {
     if (format == TextureFormat::RGBA32Float)
@@ -65,6 +67,21 @@ void CommandBuffer::Begin()
 void CommandBuffer::End()
 {
     _commandList->Close();
+}
+
+void CommandBuffer::BeginEvent(const std::string& name, int r, int g, int b)
+{
+    PIXBeginEvent(_commandList, PIX_COLOR(r, g, b), name.c_str());
+}
+
+void CommandBuffer::InsertMarker(const std::string& name, int r, int g, int b)
+{
+    PIXSetMarker(_commandList, PIX_COLOR(r, g, b), name.c_str());
+}
+
+void CommandBuffer::EndEvent()
+{
+    PIXEndEvent(_commandList);
 }
 
 void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout)

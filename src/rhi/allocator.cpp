@@ -58,6 +58,9 @@ GPUResource *Allocator::Allocate(D3D12MA::ALLOCATION_DESC *allocDesc, D3D12_RESO
     }
     _allocations.push_back(resource);
 
+    std::wstring resourceName = std::wstring(name.begin(), name.end());
+    resource->Resource->SetName(resourceName.c_str());
+
     return resource;
 }
 

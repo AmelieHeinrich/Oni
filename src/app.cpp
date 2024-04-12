@@ -39,7 +39,7 @@ App::App()
     _renderer = std::make_unique<Renderer>(_renderContext);
 
     Model model;
-    model.Load(_renderContext, "assets/models/Sponza.gltf");
+    model.Load(_renderContext, "assets/models/Suzanne.gltf");
 
     scene.Models.push_back(model);
 
@@ -68,6 +68,16 @@ App::~App()
 void App::Run()
 {
     while (_window->IsOpen()) {
+        static float framesPerSecond = 0.0f;
+        static float lastTime = 0.0f;
+        float currentTime = GetTickCount() * 0.001f;
+        ++framesPerSecond;
+        if (currentTime - lastTime > 1.0f) {
+            lastTime = currentTime;
+            _fps = (int)framesPerSecond;
+            framesPerSecond = 0;
+        }
+
         float time = _dtTimer.GetElapsed();
         float dt = (time - _lastFrame) / 1000.0f;
         _lastFrame = time;
@@ -121,6 +131,11 @@ void App::Run()
         if (!_showUI) {
             _camera.Input(dt);
         }
+
+        if ((_updateTimer.GetElapsed() / 1000.0f) > 1.0f) {
+            _frameTime = clock() - time;
+            _updateTimer.Restart();
+        } 
     }
 }
 
@@ -173,5 +188,6 @@ void App::RenderHelper()
     ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
     ImGui::Text("WASD + Mouse for Camera");
     ImGui::Text("Debug Menu: F1");
+    ImGui::Text("%d FPS (%fms)", _fps, _frameTime);
     ImGui::End();
 }

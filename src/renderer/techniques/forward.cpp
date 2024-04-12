@@ -96,6 +96,7 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
     _modeBuffer->Unmap(0, 0);
 
     commandBuffer->Begin();
+    commandBuffer->BeginEvent("Forward Pass");
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
     commandBuffer->SetViewport(0, 0, width, height);
     commandBuffer->SetTopology(Topology::TriangleList);
@@ -145,6 +146,7 @@ void Forward::Render(Scene& scene, uint32_t width, uint32_t height)
         }
     }
 
+    commandBuffer->EndEvent();
     commandBuffer->End();
     _context->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
 }

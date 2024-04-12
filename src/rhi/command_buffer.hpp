@@ -35,6 +35,10 @@ public:
     void Begin();
     void End();
 
+    void BeginEvent(const std::string& name, int r = 255, int g = 255, int b = 255);
+    void InsertMarker(const std::string& name, int r = 255, int g = 255, int b = 255);
+    void EndEvent();
+
     void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout);
     void CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout);
     

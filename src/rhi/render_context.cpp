@@ -292,11 +292,11 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
     texture->BuildStorage();
 
     std::vector<Buffer::Ptr> buffers;
-    buffers.resize(texture->GetMips() - 1);
+    buffers.resize(texture->GetMips());
     CommandBuffer::Ptr cmdBuf = CreateCommandBuffer(CommandQueueType::Graphics);
 
-    for (int i = 0; i < texture->GetMips() - 1; i++) {
-        Buffer::Ptr mipParameter = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer");
+    for (int i = 0; i < texture->GetMips(); i++) {
+        Buffer::Ptr mipParameter = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer " + i);
         mipParameter->BuildConstantBuffer();
         buffers[i] = mipParameter;
     }

@@ -11,12 +11,13 @@ target("Oni")
     set_rundir(".")
     set_languages("c++17")
     add_files("src/**.cpp")
-    add_includedirs("src", "ext")
+    add_includedirs("src", "ext", "ext/PIX/include")
     add_deps("D3D12MA", "ImGui", "stb")
     add_linkdirs("ext/assimp/bin")
+    add_linkdirs("ext/PIX/lib")
 
     if is_plat("windows") then
-        add_syslinks("user32", "kernel32", "gdi32", "dxgi", "d3d12", "dxcompiler")
+        add_syslinks("user32", "kernel32", "gdi32", "dxgi", "d3d12", "dxcompiler", "WinPixEventRuntime.lib")
     end
 
     if is_mode("debug") then

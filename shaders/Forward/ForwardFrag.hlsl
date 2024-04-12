@@ -118,6 +118,11 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 
 float3 GetNormalFromMap(FragmentIn Input)
 {
+    float3 hasNormalTexture = NormalTexture.Sample(Sampler, float2(0.0, 0.0)).rgb;
+    if (hasNormalTexture.r == 1.0 && hasNormalTexture.g == 1.0 && hasNormalTexture.b == 1.0) {
+        return normalize(Input.Normals);
+    }
+
     float3 tangentNormal = NormalTexture.Sample(Sampler, Input.TexCoords).rgb * 2.0 - 1.0;
 
     float3 Q1 = normalize(ddx(Input.Position.xyz));

@@ -34,6 +34,7 @@ private:
     std::unique_ptr<Renderer> _renderer;
 
     Timer _dtTimer;
+    Timer _updateTimer;
     float _lastFrame;
 
     FreeCamera _camera;
@@ -42,4 +43,6 @@ private:
     bool _showUI = false;
     bool _showResourceInspector = false;
     bool _showRendererSettings = false;
+    int _fps;
+    float _frameTime = 0.0f;
 };
