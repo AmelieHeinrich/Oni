@@ -39,17 +39,22 @@ App::App()
     _renderer = std::make_unique<Renderer>(_renderContext);
 
     Model model;
-    model.Load(_renderContext, "assets/models/SciFiHelmet.gltf");
+    model.Load(_renderContext, "assets/models/Sponza.gltf");
 
     scene.Models.push_back(model);
 
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 0; i++) {
         PointLight light;
         light.Position = glm::vec4(random_float(-4.0f, 4.0f), random_float(1.0f, 5.0f), random_float(-4.0f, 4.0f), 1.0f);
         light.Color = glm::vec4(random_float(1.0f, 5.0f), random_float(1.0f, 5.0f), random_float(1.0f, 5.0f), 1.0f);
         scene.LightBuffer.PointLights[i] = light;
     }
-    scene.LightBuffer.PointLightCount = 16;
+    scene.LightBuffer.PointLightCount = 0;
+
+    scene.LightBuffer.Sun.Position = glm::vec4(0.0f, 10.0f, 0.0f, 0.0f);
+    scene.LightBuffer.Sun.Direction = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+    scene.LightBuffer.Sun.Color = glm::vec4(5.0f);
+    scene.LightBuffer.HasSun = 1;
 }
 
 App::~App()

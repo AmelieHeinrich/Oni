@@ -17,17 +17,28 @@ struct PointLight
     glm::vec4 Color;
 };
 
+struct DirectionalLight
+{
+    glm::vec4 Position;
+    glm::vec4 Direction;
+    glm::vec4 Color;
+};
+
 struct LightData
 {
     PointLight PointLights[MAX_POINT_LIGHTS];
     int PointLightCount;
-    glm::vec3 Pad;
+    glm::vec3 _Pad0;
+
+    DirectionalLight Sun;
+    int HasSun;
+    glm::vec3 _Pad1;
 };
 
 struct Scene
 {
     std::vector<Model> Models;
-    
+
     glm::mat4 View;
     glm::mat4 Projection;
     glm::vec4 CameraPosition;

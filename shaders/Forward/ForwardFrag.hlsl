@@ -31,11 +31,22 @@ struct PointLight
     float4 Color;
 };
 
+struct DirectionalLight
+{
+    float4 Position;
+    float4 Direction;
+    float4 Color;
+};
+
 struct LightData
 {
     PointLight PointLights[MAX_LIGHTS];
     int PointLightCount;
-    float3 Pad;
+    float3 _Pad0;
+
+    DirectionalLight Sun;
+    int HasSun;
+    float3 _Pad1;
 };
 
 struct OutputBuffer
@@ -122,6 +133,63 @@ float3 GetNormalFromMap(FragmentIn Input)
     return normalize(mul(tangentNormal, TBN));
 }
 
+float3 CalcPointLight(FragmentIn Input, PointLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
+{
+    float3 lightPos = light.Position.xyz;
+    float3 lightColor = light.Color.xyz;
+
+    float3 L = normalize(lightPos - Input.WorldPos.xyz);
+    float3 H = normalize(V + L);
+    float distance = length(lightPos - Input.WorldPos.xyz);
+    float attenuation = 1.0 / (distance * distance);
+    float3 radiance = lightColor * attenuation;
+
+    float NDF = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+    float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    
+    float3 numerator = F * G * NDF;
+    float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
+    float3 specular = numerator / denominator;
+
+    float3 kS = F;
+    float3 kD = float3(1.0, 1.0, 1.0) - kS;
+    kD *= 1.0 - metallic;
+
+    float NdotL = max(dot(N, L), 0.0);
+
+    return (kD * albedo.xyz / PI + specular) * radiance * NdotL;
+}
+
+float3 CalcDirectionalLight(FragmentIn Input, DirectionalLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
+{
+    float3 lightPos = light.Position.xyz;
+    float3 lightColor = light.Color.xyz;
+    float3 lightDir = light.Direction.xyz;
+    
+    float cutOff = 100.0 * PI / 180.0;
+    float outerCutOff = 120.0 * PI / 180.0;
+
+    float3 L = normalize(lightPos - Input.WorldPos.xyz);
+    float3 H = normalize(V + L);
+
+    float theta = dot(L, -normalize(light.Direction.xyz));
+    float attenuation = smoothstep(outerCutOff, cutOff, theta);
+
+    float NDF = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+    float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    float3 kD = (float3(1.0, 1.0, 1.0) - F) * (1.0 - metallic);
+    float NdotL = max(dot(N, L), 0.0);
+
+    float3 numerator = NDF * G * F;
+    float denom = max(4.0 * max(dot(N, V), 0.0) * NdotL, 0.001);
+    float3 specular = numerator / denom;
+
+    return (kD * albedo.xyz / float3(PI, PI, PI) + specular) * (lightColor * attenuation) * NdotL;
+}
+
 static const float MAX_REFLECTION_LOD = 4.0;
 
 float4 Main(FragmentIn Input) : SV_TARGET
@@ -153,30 +221,10 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float3 Lo = float3(0.0, 0.0, 0.0);
 
     for (int i = 0; i < LightBuffer.PointLightCount; i++) {
-        float3 lightPos = LightBuffer.PointLights[i].Position.xyz;
-        float3 lightColor = LightBuffer.PointLights[i].Color.xyz;
-
-        float3 L = normalize(lightPos - Input.WorldPos.xyz);
-        float3 H = normalize(V + L);
-        float distance = length(lightPos - Input.WorldPos.xyz);
-        float attenuation = 1.0 / (distance * distance);
-        float3 radiance = lightColor * attenuation;
-
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
-        
-        float3 numerator = F * G * NDF;
-        float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
-        float3 specular = numerator / denominator;
-
-        float3 kS = F;
-        float3 kD = float3(1.0, 1.0, 1.0) - kS;
-        kD *= 1.0 - metallic;
-
-        float NdotL = max(dot(N, L), 0.0);
-
-        Lo += (kD * albedo.xyz / PI + specular) * radiance * NdotL;
+        Lo += CalcPointLight(Input, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
+    }
+    if (LightBuffer.HasSun) {
+        Lo += CalcDirectionalLight(Input, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo);
     }
 
     float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
@@ -189,7 +237,8 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float3 diffuse = irradiance * albedo.xyz;
 
     float3 prefilteredColor = Prefilter.SampleLevel(Sampler, R, roughness * MAX_REFLECTION_LOD).rgb;
-    float2 brdf = BRDF.Sample(Sampler, float2(max(dot(N, V), 0.0), roughness)).rg;
+    float2 brdvUV = float2(max(dot(N, V), 0.0), roughness);
+    float2 brdf = BRDF.Sample(Sampler, brdvUV).rg;
     float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
     float3 ambient = (kD * diffuse + specular) * ao;

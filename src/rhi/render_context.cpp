@@ -12,6 +12,7 @@
 #include <ImGui/imgui_impl_dx12.h>
 
 #include <shader/bytecode.hpp>
+#include <cmath>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -304,8 +305,8 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
     cmdBuf->ImageBarrier(texture, TextureLayout::Storage);
     cmdBuf->BindComputePipeline(_mipmapPipeline);
     for (int i = 0; i < texture->GetMips() - 1; i++) {
-        float mipWidth = (texture->GetWidth() * std::pow(0.5f, i + 1));
-        float mipHeight = (texture->GetHeight() * std::pow(0.5f, i + 1));
+        uint32_t mipWidth = (texture->GetWidth() * std::pow(0.5f, i + 1));
+        uint32_t mipHeight = (texture->GetHeight() * std::pow(0.5f, i + 1));
         glm::vec4 data(mipWidth, mipHeight, 0, 0);
 
         void *pData;
@@ -317,7 +318,7 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
         cmdBuf->BindComputeStorageTexture(texture, 1, i + 1);
         cmdBuf->BindComputeSampler(_mipmapSampler, 2);
         cmdBuf->BindComputeConstantBuffer(buffers[i], 3);
-        cmdBuf->Dispatch(mipWidth / 8, mipHeight / 8, 1);
+        cmdBuf->Dispatch(std::max(mipWidth / 8, 1u), std::max(mipHeight / 8, 1u), 1);
     }
     cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource);
     cmdBuf->End();

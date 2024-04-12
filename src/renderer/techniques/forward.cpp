@@ -53,7 +53,7 @@ Forward::Forward(RenderContext::Ptr context)
     _modelBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer CBV");
     _modelBuffer->BuildConstantBuffer();
 
-    _lightBuffer = context->CreateBuffer(16384 + 256, 0, BufferType::Constant, false, "Light Buffer CBV");
+    _lightBuffer = context->CreateBuffer(16640, 0, BufferType::Constant, false, "Light Buffer CBV");
     _lightBuffer->BuildConstantBuffer();
 
     _modeBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Mode Buffer CBV");
