@@ -168,31 +168,36 @@ float3 CalcPointLight(FragmentIn Input, PointLight light, float3 V, float3 N, fl
 
 float3 CalcDirectionalLight(FragmentIn Input, DirectionalLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
 {
-    float3 lightPos = light.Position.xyz;
-    float3 lightColor = light.Color.xyz;
-    float3 lightDir = light.Direction.xyz;
-    
-    float cutOff = 100.0 * PI / 180.0;
-    float outerCutOff = 120.0 * PI / 180.0;
+    float3 color = light.Color.xyz;
+    float3 dir = normalize(light.Direction.xyz);
 
-    float3 L = normalize(lightPos - Input.WorldPos.xyz);
+    float3 L = normalize(light.Position.xyz - Input.WorldPos.xyz);
     float3 H = normalize(V + L);
+    
+    // spotlight (soft edges)
+    // 👉 Here I compute the light attenuation, however am not sure
+    // where exactly to plug it in
 
-    float theta = dot(L, -normalize(light.Direction.xyz));
-    float attenuation = smoothstep(outerCutOff, cutOff, theta);
+    float theta = dot(L, -dir); 
+    float attenuation = smoothstep(10.0 * PI / 180.0, 5.0 * PI / 180.0, theta);
 
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
+    // cook-torrance brdf
+    float3 NDF = DistributionGGX(N, H, roughness);
+    float3 G = GeometrySmith(N, V, L, roughness);
     float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
 
     float3 kD = (float3(1.0, 1.0, 1.0) - F) * (1.0 - metallic);
+
     float NdotL = max(dot(N, L), 0.0);
 
     float3 numerator = NDF * G * F;
-    float denom = max(4.0 * max(dot(N, V), 0.0) * NdotL, 0.001);
-    float3 specular = numerator / denom;
+    float3 denominator = max(4.0 * max(dot(N, V), 0.0) * NdotL, 0.001);
+    float3 specular = numerator / denominator;
 
-    return (kD * albedo.xyz / float3(PI, PI, PI) + specular) * (lightColor * attenuation) * NdotL;
+    // add to outgoing radiance Lo
+    float3 radiance = color;
+    
+    return (kD * albedo.rgb / float3(PI, PI, PI) + specular) * radiance * NdotL;
 }
 
 static const float MAX_REFLECTION_LOD = 4.0;

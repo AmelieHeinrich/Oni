@@ -34,7 +34,7 @@ private:
         uint32_t _Padding7;
         glm::vec3 ColorFilter = glm::vec3(1.0f);
         uint32_t _Padding8;
-        float ColorFilterIntensity = 1.0f;
+        float ColorFilterIntensity = 0.4f;
         glm::vec3 Saturation = glm::vec3(1.0f);
     };
 
