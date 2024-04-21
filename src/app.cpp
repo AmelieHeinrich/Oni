@@ -38,26 +38,22 @@ App::App()
     _renderContext = std::make_shared<RenderContext>(_window);
     _renderer = std::make_unique<Renderer>(_renderContext);
 
-    Model model;
-    model.Load(_renderContext, "assets/models/Eva01.gltf");
-
     Model sponza;
     sponza.Load(_renderContext, "assets/models/Sponza.gltf");
 
     scene.Models.push_back(sponza);
-    scene.Models.push_back(model);
 
     for (int i = 0; i < 8; i++) {
         PointLight light;
         light.Position = glm::vec4(random_float(-4.0f, 4.0f), random_float(1.0f, 5.0f), random_float(-4.0f, 4.0f), 1.0f);
-        light.Color = glm::vec4(random_float(1.0f, 4.0f), random_float(1.0f, 4.0f), random_float(1.0f, 4.0f), 1.0f);
+        light.Color = glm::vec4(random_float(0.1f, 1.0f), random_float(0.1f, 1.0f), random_float(0.0f, 1.0f), 1.0f);
         scene.LightBuffer.PointLights[i] = light;
     }
     scene.LightBuffer.PointLightCount = 8;
 
     scene.LightBuffer.Sun.Position = glm::vec4(0.0f, 10.0f, 0.0f, 0.0f);
     scene.LightBuffer.Sun.Direction = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-    scene.LightBuffer.Sun.Color = glm::vec4(1.0f);
+    scene.LightBuffer.Sun.Color = glm::vec4(0.1f);
     scene.LightBuffer.HasSun = 1;
 }
 

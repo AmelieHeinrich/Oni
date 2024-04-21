@@ -33,6 +33,9 @@ public:
     Texture::Ptr GetOutput() { return _outputImage; }
     Texture::Ptr GetDepthBuffer() { return _depthBuffer; }
 private:
+    void RenderPBR(Scene& scene, uint32_t width, uint32_t height);
+    void RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height);
+
     RenderContext::Ptr _context;
     EnvironmentMap _map;
 
@@ -40,7 +43,8 @@ private:
     Texture::Ptr _outputImage;
     Texture::Ptr _depthBuffer;
 
-    GraphicsPipeline::Ptr _forwardPipeline;
+    GraphicsPipeline::Ptr _pbrPipeline;
+    GraphicsPipeline::Ptr _blinnPhongPipeline;
 
     Buffer::Ptr _sceneBuffer;
     Buffer::Ptr _modelBuffer;
@@ -49,4 +53,5 @@ private:
     Sampler::Ptr _sampler;
 
     int _mode = 0;
+    bool _pbr = false;
 };

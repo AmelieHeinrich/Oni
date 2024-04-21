@@ -34,14 +34,14 @@ private:
         uint32_t _Padding7;
         glm::vec3 ColorFilter = glm::vec3(1.0f);
         uint32_t _Padding8;
-        float ColorFilterIntensity = 0.4f;
+        float ColorFilterIntensity = 1.0f;
         glm::vec3 Saturation = glm::vec3(1.0f);
     };
 
     RenderContext::Ptr _renderContext;
 
     ComputePipeline::Ptr _computePipeline;
-    bool _enable = true;
+    bool _enable = false;
 
     Texture::Ptr _inputHDR;
     Buffer::Ptr _correctionParameters;

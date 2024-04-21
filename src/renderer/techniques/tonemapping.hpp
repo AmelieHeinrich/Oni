@@ -28,5 +28,5 @@ private:
     Texture::Ptr _inputHDR;
     Texture::Ptr _outputLDR;
 
-    int _tonemapper = 1;
+    int _tonemapper = 0;
 };

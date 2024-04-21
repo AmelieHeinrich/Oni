@@ -24,4 +24,4 @@ private:
     Texture::Ptr _depthBuffer;
 
     GraphicsPipeline::Ptr _shadowPipeline;
-}
+};
