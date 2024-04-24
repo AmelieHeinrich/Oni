@@ -70,7 +70,7 @@ Forward::Forward(RenderContext::Ptr context)
     _modelBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer CBV");
     _modelBuffer->BuildConstantBuffer();
 
-    _lightBuffer = context->CreateBuffer(16640, 0, BufferType::Constant, false, "Light Buffer CBV");
+    _lightBuffer = context->CreateBuffer(24832, 0, BufferType::Constant, false, "Light Buffer CBV");
     _lightBuffer->BuildConstantBuffer();
 
     _modeBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Mode Buffer CBV");
@@ -111,6 +111,7 @@ void Forward::OnUI()
     if (ImGui::TreeNodeEx("Forward", ImGuiTreeNodeFlags_Framed))
     {
         ImGui::Checkbox("Enable PBR", &_pbr);
+        ImGui::Checkbox("Enable IBL", &_ibl);
 
         static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Specular", "Ambient" };
         ImGui::Combo("Mode", (int*)&_mode, Modes, 8);
@@ -147,7 +148,7 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     memcpy(pData, &scene.LightBuffer, sizeof(LightData));
     _lightBuffer->Unmap(0, 0);
 
-    glm::ivec4 mode(_mode, 0, 0, 0);
+    glm::ivec4 mode(_mode, _ibl, 0, 0);
     _modeBuffer->Map(0, 0, &pData);
     memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
     _modeBuffer->Unmap(0, 0);
@@ -231,7 +232,7 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
     memcpy(pData, &scene.LightBuffer, sizeof(LightData));
     _lightBuffer->Unmap(0, 0);
 
-    glm::ivec4 mode(_mode, 0, 0, 0);
+    glm::ivec4 mode(_mode, _ibl, 0, 0);
     _modeBuffer->Map(0, 0, &pData);
     memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
     _modeBuffer->Unmap(0, 0);

@@ -53,5 +53,6 @@ private:
     Sampler::Ptr _sampler;
 
     int _mode = 0;
-    bool _pbr = false;
+    bool _pbr = true;
+    bool _ibl = true;
 };

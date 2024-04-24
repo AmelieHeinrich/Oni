@@ -29,6 +29,10 @@ struct PointLight
 {
     float4 Position;
     float4 Color;
+    float Brightness;
+    uint _pad0;
+    uint _pad1;
+    uint _pad2;
 };
 
 struct DirectionalLight
@@ -52,7 +56,7 @@ struct LightData
 struct OutputBuffer
 {
     int Mode;
-    uint _Padding0;
+    bool IBL;
     uint _Padding1;
     uint _Padding2;
 };
@@ -141,7 +145,7 @@ float3 GetNormalFromMap(FragmentIn Input)
 float3 CalcPointLight(FragmentIn Input, PointLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
 {
     float3 lightPos = light.Position.xyz;
-    float3 lightColor = light.Color.xyz;
+    float3 lightColor = light.Color.xyz * float3(light.Brightness, light.Brightness, light.Brightness);
 
     float3 L = normalize(lightPos - Input.WorldPos.xyz);
     float3 H = normalize(V + L);
@@ -168,7 +172,7 @@ float3 CalcPointLight(FragmentIn Input, PointLight light, float3 V, float3 N, fl
 
 float3 CalcDirectionalLight(FragmentIn Input, DirectionalLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
 {
-    float3 color = light.Color.xyz;
+    float3 color = pow(light.Color.xyz, 2.2);
     float3 dir = normalize(light.Direction.xyz);
 
     float3 L = normalize(light.Position.xyz - Input.WorldPos.xyz);
@@ -243,15 +247,21 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float3 kD = 1.0 - kS;
     kD *= 1.0 - metallic;
 
-    float3 irradiance = Irradiance.SampleLevel(Sampler, N, 0).rgb;
-    float3 diffuse = irradiance * albedo.xyz;
+    float3 ambient = float3(0.0, 0.0, 0.0);
 
-    float3 prefilteredColor = Prefilter.SampleLevel(Sampler, R, roughness * MAX_REFLECTION_LOD).rgb;
-    float2 brdvUV = float2(max(dot(N, V), 0.0), roughness);
-    float2 brdf = BRDF.Sample(Sampler, brdvUV).rg;
-    float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+    if (OutputData.IBL == true) {
+        float3 irradiance = Irradiance.SampleLevel(Sampler, N, 0).rgb;
+        float3 diffuse = irradiance * albedo.xyz;
 
-    float3 ambient = (kD * diffuse + specular) * ao;
+        float3 prefilteredColor = Prefilter.SampleLevel(Sampler, R, roughness * MAX_REFLECTION_LOD).rgb;
+        float2 brdvUV = float2(max(dot(N, V), 0.0), roughness);
+        float2 brdf = BRDF.Sample(Sampler, brdvUV).rg;
+        float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+        ambient = (kD * diffuse + specular) * ao;
+    } else {
+        ambient = kD * albedo.xyz * ao;
+    }
+
     float3 color = ambient + Lo;
     float4 final = float4(0.0, 0.0, 0.0, 0.0);
 

@@ -28,6 +28,8 @@ public:
     void RenderOverlay();
     void RenderHelper();
 private:
+    void ShowLightEditor();
+
     std::shared_ptr<Window> _window;
 
     RenderContext::Ptr _renderContext;
@@ -43,6 +45,7 @@ private:
     bool _showUI = false;
     bool _showResourceInspector = false;
     bool _showRendererSettings = false;
+    bool _showLightEditor = false;
     int _fps;
     float _frameTime = 0.0f;
 };

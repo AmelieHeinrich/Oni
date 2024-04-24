@@ -29,6 +29,10 @@ struct PointLight
 {
     float4 Position;
     float4 Color;
+    float Brightness;
+    uint _pad0;
+    uint _pad1;
+    uint _pad2;
 };
 
 struct DirectionalLight

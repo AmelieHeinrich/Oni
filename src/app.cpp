@@ -38,8 +38,10 @@ App::App()
     _renderContext = std::make_shared<RenderContext>(_window);
     _renderer = std::make_unique<Renderer>(_renderContext);
 
+    scene = {};
+
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/Sponza.gltf");
+    sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
 
     scene.Models.push_back(sponza);
 
@@ -47,6 +49,7 @@ App::App()
         PointLight light;
         light.Position = glm::vec4(random_float(-4.0f, 4.0f), random_float(1.0f, 5.0f), random_float(-4.0f, 4.0f), 1.0f);
         light.Color = glm::vec4(random_float(0.1f, 1.0f), random_float(0.1f, 1.0f), random_float(0.0f, 1.0f), 1.0f);
+        light.Brightness = 5.0f;
         scene.LightBuffer.PointLights[i] = light;
     }
     scene.LightBuffer.PointLightCount = 8;
@@ -150,6 +153,9 @@ void App::RenderOverlay()
                 if (ImGui::MenuItem("Renderer Settings")) {
                     _showRendererSettings = !_showRendererSettings;
                 }
+                if (ImGui::MenuItem("Light Editor")) {
+                    _showLightEditor = !_showLightEditor;
+                }
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
@@ -160,6 +166,9 @@ void App::RenderOverlay()
         }
         if (_showRendererSettings) {
             _renderer->OnUI();
+        }
+        if (_showLightEditor) {
+            ShowLightEditor();
         }
 
         _renderContext->OnOverlay();
@@ -189,5 +198,26 @@ void App::RenderHelper()
     ImGui::Text("WASD + Mouse for Camera");
     ImGui::Text("Debug Menu: F1");
     ImGui::Text("%d FPS (%fms)", _fps, _frameTime);
+    ImGui::End();
+}
+
+void App::ShowLightEditor()
+{
+    ImGui::Begin("Light Editor");
+
+    for (int i = 0; i < scene.LightBuffer.PointLightCount; i++) {
+        PointLight& light = scene.LightBuffer.PointLights[i];
+        if (ImGui::TreeNode(("Light " + std::to_string(i)).c_str())) {
+            ImGui::DragFloat4("Position", glm::value_ptr(light.Position));
+            ImGui::ColorPicker4("Color", glm::value_ptr(light.Color));
+            ImGui::DragFloat("Brightness", &light.Brightness);
+            ImGui::TreePop();
+        }
+    }
+
+    if (ImGui::Button("Add Light")) {
+        scene.LightBuffer.PointLightCount++;
+    }
+
     ImGui::End();
 }

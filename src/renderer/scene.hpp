@@ -15,6 +15,10 @@ struct PointLight
 {
     glm::vec4 Position;
     glm::vec4 Color;
+    float Brightness;
+    uint32_t _pad0;
+    uint32_t _pad1;
+    uint32_t _pad2;
 };
 
 struct DirectionalLight

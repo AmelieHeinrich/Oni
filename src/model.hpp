@@ -15,6 +15,12 @@
 #include <assimp/postprocess.h>
 #include <assimp/pbrmaterial.h>
 
+struct AABB
+{
+    glm::vec3 Min;
+    glm::vec3 Max;
+};
+
 struct Vertex
 {
     glm::vec3 Position;
@@ -55,6 +61,7 @@ struct Primitive
     uint32_t MaterialIndex;
 
     glm::mat4 Transform;
+    AABB BoundingBox;
 };
 
 class Model
