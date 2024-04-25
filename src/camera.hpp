@@ -7,19 +7,55 @@
 
 #include <glm/glm.hpp>
 
+#include "model.hpp"
+
+struct Plane
+{
+    glm::vec3 Normal = glm::vec3(0.f, 1.f, 0.f);
+    float Distance = 0.f;
+
+    Plane() = default;
+
+    Plane(const glm::vec3& p1, const glm::vec3& norm)
+		: Normal(glm::normalize(norm)),
+		Distance(glm::dot(Normal, p1))
+	{}
+
+    float GetSignedDistanceToPlane(const glm::vec3& point) const
+	{
+		return glm::dot(Normal, point) - Distance;
+	}
+};
+
+struct Frustum
+{
+    Plane Top;
+    Plane Bottom;
+    Plane Right;
+    Plane Left;
+    Plane Far;
+    Plane Near;
+};
+
 class FreeCamera
 {
 public:
+    FreeCamera() = default;
     FreeCamera(int width, int height);
 
-    void Update(double dt);
+    void Update(double dt, bool updateFrustum);
     void Input(double dt);
     void Resize(int width, int height);
 
     glm::mat4 View() { return _View; }
     glm::mat4 Projection() { return _Projection; }
     glm::vec3 GetPosition() { return _Position; }
+
+    bool InFrustum(AABB aabb);
 private:
+    bool IsOnOrForwardPlane(const Plane& plane, AABB aabb);
+    Frustum _Frustum;
+
     void UpdateVectors();
     void GetMousePosition(int& x, int& y);
 

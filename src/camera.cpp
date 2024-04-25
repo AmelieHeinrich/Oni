@@ -29,7 +29,7 @@ FreeCamera::FreeCamera(int width, int height)
     UpdateVectors();
 }
 
-void FreeCamera::Update(double dt)
+void FreeCamera::Update(double dt, bool updateFrustum)
 {
     GetMousePosition(_MousePos[0], _MousePos[1]);
 
@@ -37,6 +37,19 @@ void FreeCamera::Update(double dt)
     _Projection = glm::perspective(glm::radians(_FOV), float(_Width) / float(_Height), 0.05f, 10000.0f);
 
     UpdateVectors();
+
+    if (updateFrustum) {
+        const float halfVSide = 10000.0f * tanf(glm::radians(_FOV) * .5f);
+        const float halfHSide = halfVSide * (float(_Width) / float(_Height));
+        const glm::vec3 frontMultFar = 10000.0f * _Front;
+    
+        _Frustum.Near = { _Position + 0.05f * _Front, _Front };
+        _Frustum.Far = { _Position + frontMultFar, -_Front };
+        _Frustum.Right = { _Position, glm::cross(frontMultFar - _Right * halfHSide, _Up) };
+        _Frustum.Left = { _Position, glm::cross(_Up, frontMultFar + _Right * halfHSide) };
+        _Frustum.Top = { _Position, glm::cross(_Right, frontMultFar - _Up * halfVSide) };
+        _Frustum.Bottom = { _Position, glm::cross(frontMultFar + _Up * halfVSide, _Right) };
+    }
 }
 
 void FreeCamera::Input(double dt)
@@ -97,4 +110,20 @@ void FreeCamera::GetMousePosition(int& x, int& y)
     GetCursorPos(&point);
     x = point.x;
     y = point.y;
+}
+
+bool FreeCamera::InFrustum(AABB aabb)
+{
+    return (IsOnOrForwardPlane(_Frustum.Left, aabb) &&
+			IsOnOrForwardPlane(_Frustum.Right, aabb) &&
+			IsOnOrForwardPlane(_Frustum.Top, aabb) &&
+			IsOnOrForwardPlane(_Frustum.Bottom, aabb) &&
+			IsOnOrForwardPlane(_Frustum.Near, aabb) &&
+			IsOnOrForwardPlane(_Frustum.Far, aabb));
+}
+
+bool FreeCamera::IsOnOrForwardPlane(const Plane& plane, AABB aabb)
+{
+    const float r = aabb.Extent * (std::abs(plane.Normal.x) + std::abs(plane.Normal.y) + std::abs(plane.Normal.z));
+	return -r <= plane.GetSignedDistanceToPlane(aabb.Center);
 }

@@ -48,7 +48,8 @@ SwapChain::SwapChain(Device::Ptr device, CommandQueue::Ptr graphicsQueue, Descri
         _textures[i]->_resource->Resource = _buffers[i];
         _textures[i]->_rtv = _descriptors[i];
         _textures[i]->_format = TextureFormat::RGBA8;
-        _textures[i]->_state = D3D12_RESOURCE_STATE_COMMON;
+        _textures[i]->_mipLevels = 1;
+        _textures[i]->_states.push_back(D3D12_RESOURCE_STATE_COMMON);
     }
 }
 
@@ -107,7 +108,8 @@ void SwapChain::Resize(uint32_t width, uint32_t height)
             _textures[i]->_resource->Resource = _buffers[i];
             _textures[i]->_rtv = _descriptors[i];
             _textures[i]->_format = TextureFormat::RGBA8;
-            _textures[i]->_state = D3D12_RESOURCE_STATE_COMMON;
+            _textures[i]->_mipLevels = 1;
+            _textures[i]->_states.push_back(D3D12_RESOURCE_STATE_COMMON);
         }
     }
 }

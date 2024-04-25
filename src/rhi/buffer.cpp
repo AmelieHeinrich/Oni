@@ -60,6 +60,7 @@ Buffer::~Buffer()
     if (_cbv.Valid) {
         _heaps.ShaderHeap->Free(_uav);
     }
+    _resource->Resource->Release();
     _resource->Allocation->Release();
     _resource->ClearFromAllocationList();
     delete _resource;

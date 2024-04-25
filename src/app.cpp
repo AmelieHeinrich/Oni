@@ -45,19 +45,19 @@ App::App()
 
     scene.Models.push_back(sponza);
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 1; i++) {
         PointLight light;
         light.Position = glm::vec4(random_float(-4.0f, 4.0f), random_float(1.0f, 5.0f), random_float(-4.0f, 4.0f), 1.0f);
         light.Color = glm::vec4(random_float(0.1f, 1.0f), random_float(0.1f, 1.0f), random_float(0.0f, 1.0f), 1.0f);
         light.Brightness = 5.0f;
         scene.LightBuffer.PointLights[i] = light;
     }
-    scene.LightBuffer.PointLightCount = 8;
+    scene.LightBuffer.PointLightCount = 1;
 
     scene.LightBuffer.Sun.Position = glm::vec4(0.0f, 10.0f, 0.0f, 0.0f);
     scene.LightBuffer.Sun.Direction = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
     scene.LightBuffer.Sun.Color = glm::vec4(0.1f);
-    scene.LightBuffer.HasSun = 1;
+    scene.LightBuffer.HasSun = 0;
 }
 
 App::~App()
@@ -94,12 +94,10 @@ void App::Run()
         uint32_t width, height;
         _window->GetSize(width, height);
 
-        _camera.Update(dt);
+        _camera.Update(dt, _updateFrustum);
         _renderContext->BeginFrame();
 
-        scene.View = _camera.View();
-        scene.Projection = _camera.Projection();
-        scene.CameraPosition = glm::vec4(_camera.GetPosition(), 1.0f);
+        scene.Camera = _camera;
 
         CommandBuffer::Ptr commandBuffer = _renderContext->GetCurrentCommandBuffer();
         Texture::Ptr texture = _renderContext->GetBackBuffer();
@@ -153,7 +151,7 @@ void App::RenderOverlay()
                 if (ImGui::MenuItem("Renderer Settings")) {
                     _showRendererSettings = !_showRendererSettings;
                 }
-                if (ImGui::MenuItem("Light Editor")) {
+                if (ImGui::MenuItem("Scene Editor")) {
                     _showLightEditor = !_showLightEditor;
                 }
                 ImGui::EndMenu();
@@ -203,11 +201,13 @@ void App::RenderHelper()
 
 void App::ShowLightEditor()
 {
-    ImGui::Begin("Light Editor");
+    ImGui::Begin("Scene Editor");
+
+    ImGui::Checkbox("Update Frustum", &_updateFrustum);
 
     for (int i = 0; i < scene.LightBuffer.PointLightCount; i++) {
         PointLight& light = scene.LightBuffer.PointLights[i];
-        if (ImGui::TreeNode(("Light " + std::to_string(i)).c_str())) {
+        if (ImGui::TreeNodeEx(("Light " + std::to_string(i)).c_str())) {
             ImGui::DragFloat4("Position", glm::value_ptr(light.Position));
             ImGui::ColorPicker4("Color", glm::value_ptr(light.Color));
             ImGui::DragFloat("Brightness", &light.Brightness);

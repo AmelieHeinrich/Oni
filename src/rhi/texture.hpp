@@ -57,8 +57,8 @@ public:
     void BuildShaderResource();
     void BuildStorage();
 
-    void SetState(D3D12_RESOURCE_STATES state) { _state = state; }
-    D3D12_RESOURCE_STATES GetState() { return _state; }
+    void SetState(D3D12_RESOURCE_STATES state, int mip) { _states[mip] = state; }
+    D3D12_RESOURCE_STATES GetState(int mip) { return _states[mip]; }
 
     GPUResource& GetResource() { return *_resource; }
 
@@ -79,13 +79,13 @@ private:
     bool _release = true;
 
     GPUResource *_resource;
-
-    D3D12_RESOURCE_STATES _state;
     
     DescriptorHeap::Descriptor _rtv;
     DescriptorHeap::Descriptor _dsv;
+
     std::vector<DescriptorHeap::Descriptor> _srvs;
     std::vector<DescriptorHeap::Descriptor> _uavs;
+    std::vector<D3D12_RESOURCE_STATES> _states;
 
     TextureFormat _format;
     int _width;

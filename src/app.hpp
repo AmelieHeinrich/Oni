@@ -46,6 +46,8 @@ private:
     bool _showResourceInspector = false;
     bool _showRendererSettings = false;
     bool _showLightEditor = false;
+    bool _updateFrustum = true;
+
     int _fps;
     float _frameTime = 0.0f;
 };

@@ -135,9 +135,9 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
         glm::vec4 CameraPosition;
     };
     Data data;
-    data.View = scene.View;
-    data.Projection = scene.Projection;
-    data.CameraPosition = scene.CameraPosition;
+    data.View = scene.Camera.View();
+    data.Projection = scene.Camera.Projection();
+    data.CameraPosition = glm::vec4(scene.Camera.GetPosition(), 1.0f);
 
     void *pData;
     _sceneBuffer->Map(0, 0, &pData);
@@ -172,6 +172,10 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
 
     for (auto& model : scene.Models) {
         for (auto& primitive : model.Primitives) {
+            //if (!scene.Camera.InFrustum(primitive.BoundingBox)) {
+            //    continue;
+            //}
+
             auto& material = model.Materials[primitive.MaterialIndex];
 
             Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
@@ -219,9 +223,9 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
         glm::vec4 CameraPosition;
     };
     Data data;
-    data.View = scene.View;
-    data.Projection = scene.Projection;
-    data.CameraPosition = scene.CameraPosition;
+    data.View = scene.Camera.View();
+    data.Projection = scene.Camera.Projection();
+    data.CameraPosition = glm::vec4(scene.Camera.GetPosition(), 1.0f);
 
     void *pData;
     _sceneBuffer->Map(0, 0, &pData);
@@ -254,6 +258,10 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
 
     for (auto& model : scene.Models) {
         for (auto& primitive : model.Primitives) {
+            //if (!scene.Camera.InFrustum(primitive.BoundingBox)) {
+            //    continue;
+            //}
+
             auto& material = model.Materials[primitive.MaterialIndex];
 
             Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;

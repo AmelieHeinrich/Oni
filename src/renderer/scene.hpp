@@ -6,6 +6,7 @@
 #pragma once
 
 #include "model.hpp"
+#include "camera.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -43,9 +44,7 @@ struct Scene
 {
     std::vector<Model> Models;
 
-    glm::mat4 View;
-    glm::mat4 Projection;
-    glm::vec4 CameraPosition;
+    FreeCamera Camera;
     
     LightData LightBuffer;
 };

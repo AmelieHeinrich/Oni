@@ -89,7 +89,7 @@ void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout)
     D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition.pResource = texture->GetResource().Resource;
-    barrier.Transition.StateBefore = texture->GetState();
+    barrier.Transition.StateBefore = texture->GetState(0);
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATES(newLayout);
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
@@ -98,12 +98,31 @@ void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout)
 
     _commandList->ResourceBarrier(1, &barrier);
 
-    texture->SetState(D3D12_RESOURCE_STATES(newLayout));
+    for (int i = 0; i < texture->GetMips(); i++) {
+        texture->SetState(D3D12_RESOURCE_STATES(newLayout), i);
+    }
+}
+
+void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout, int subresource)
+{
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = texture->GetResource().Resource;
+    barrier.Transition.StateBefore = texture->GetState(subresource);
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATES(newLayout);
+    barrier.Transition.Subresource = subresource;
+
+    if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
+        return;
+
+    _commandList->ResourceBarrier(1, &barrier);
+
+    texture->SetState(D3D12_RESOURCE_STATES(newLayout), subresource);
 }
 
 void CommandBuffer::CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout)
 {
-     D3D12_RESOURCE_BARRIER barrier = {};
+    D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition.pResource = cubemap->GetResource().Resource;
     barrier.Transition.StateBefore = cubemap->GetState();
@@ -123,7 +142,7 @@ void CommandBuffer::ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES sta
     D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition.pResource = texture->GetResource().Resource;
-    barrier.Transition.StateBefore = texture->GetState();
+    barrier.Transition.StateBefore = texture->GetState(0);
     barrier.Transition.StateAfter = state;
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
@@ -132,7 +151,26 @@ void CommandBuffer::ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES sta
 
     _commandList->ResourceBarrier(1, &barrier);
 
-    texture->SetState(state);
+    for (int i = 0; i < texture->GetMips(); i++) {
+        texture->SetState(state, i);
+    }
+}
+
+void CommandBuffer::ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state, int subresource)
+{
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = texture->GetResource().Resource;
+    barrier.Transition.StateBefore = texture->GetState(subresource);
+    barrier.Transition.StateAfter = state;
+    barrier.Transition.Subresource = subresource;
+
+    if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
+        return;
+
+    _commandList->ResourceBarrier(1, &barrier);
+
+    texture->SetState(state, subresource);
 }
 
 void CommandBuffer::SetViewport(float x, float y, float width, float height)

@@ -9,6 +9,8 @@
 #include <core/log.hpp>
 #include <ImGui/imgui.h>
 
+#undef max
+
 void GPUResource::ClearFromAllocationList()
 {
     if (ParentAllocator) {
@@ -42,7 +44,7 @@ GPUResource *Allocator::Allocate(D3D12MA::ALLOCATION_DESC *allocDesc, D3D12_RESO
 {
     GPUResource* resource = new GPUResource;
     resource->Name = name;
-    resource->Size = resourceDesc->Width * resourceDesc->Height * resourceDesc->DepthOrArraySize;
+    resource->Size = resourceDesc->Width * std::max(resourceDesc->Height, UINT32(1)) * std::max(resourceDesc->DepthOrArraySize, UINT16(1));
     resource->ParentAllocator = this;
     if (resourceDesc->Dimension == D3D12_RESOURCE_DIMENSION_BUFFER) {
         resource->Type = GPUResourceType::Buffer;

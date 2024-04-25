@@ -5,6 +5,8 @@
 
 #include "texture.hpp"
 
+#include <algorithm>
+
 D3D12_RESOURCE_FLAGS GetResourceFlag(TextureUsage usage)
 {
     switch (usage)
@@ -57,29 +59,31 @@ Texture::Texture(Device::Ptr devicePtr, const std::string& name)
 Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name)
     : _devicePtr(devicePtr), _heaps(heaps), _format(format), _width(width), _height(height)
 {
-    switch (usage)
-    {
-        case TextureUsage::RenderTarget:
-            _state = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            break;
-        case TextureUsage::DepthTarget:
-            _state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-            break;
-        case TextureUsage::Storage:
-            _state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-            break;
-        case TextureUsage::ShaderResource:
-            _state = D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
-            break;
-        case TextureUsage::Copy:
-            _state = D3D12_RESOURCE_STATE_COPY_DEST;
-            break;
-    }
-
     if (mips) {
         _mipLevels = floor(log2(max(width, height))) + 1;
     } else {
         _mipLevels = 1;
+    }
+
+    _states.resize(_mipLevels);
+
+    switch (usage)
+    {
+        case TextureUsage::RenderTarget:
+            std::fill(_states.begin(), _states.end(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+            break;
+        case TextureUsage::DepthTarget:
+            std::fill(_states.begin(), _states.end(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+            break;
+        case TextureUsage::Storage:
+            std::fill(_states.begin(), _states.end(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            break;
+        case TextureUsage::ShaderResource:
+            std::fill(_states.begin(), _states.end(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+            break;
+        case TextureUsage::Copy:
+            std::fill(_states.begin(), _states.end(), D3D12_RESOURCE_STATE_COPY_DEST);
+            break;
     }
 
     D3D12MA::ALLOCATION_DESC AllocationDesc = {};
@@ -98,7 +102,7 @@ Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
     ResourceDesc.Flags = GetResourceFlag(usage);
     ResourceDesc.MipLevels = _mipLevels;
 
-    _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _state, name);
+    _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _states[0], name);
     _resource->AttachTexture(this);
 }
 

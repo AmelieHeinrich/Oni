@@ -52,8 +52,11 @@ void GetHardwareAdapter(IDXGIFactory3 *Factory, IDXGIAdapter1 **RetAdapter, bool
 
 Device::Device()
 {
+    HRESULT Result = 0;
+
+#ifdef ONI_DEBUG
     ID3D12Debug* debug;
-    HRESULT Result = D3D12GetDebugInterface(IID_PPV_ARGS(&debug));
+    Result = D3D12GetDebugInterface(IID_PPV_ARGS(&debug));
     if (FAILED(Result))
         Logger::Error("D3D12: Failed to get debug interface!");
 
@@ -62,6 +65,7 @@ Device::Device()
 
     _debug->EnableDebugLayer();
     _debug->SetEnableGPUBasedValidation(true);
+#endif
 
     Result = CreateDXGIFactory(IID_PPV_ARGS(&_factory));
     if (FAILED(Result))
@@ -72,6 +76,7 @@ Device::Device()
     if (FAILED(Result))
         Logger::Error("D3D12: Failed to create device!");
 
+#ifdef ONI_DEBUG
     Result = _device->QueryInterface(IID_PPV_ARGS(&_debugDevice));
     if (FAILED(Result))
         Logger::Error("D3D12: Failed to query debug device!");
@@ -101,6 +106,7 @@ Device::Device()
 
     InfoQueue->PushStorageFilter(&filter);
     InfoQueue->Release();
+#endif
     
     // Get hardware support
     _features.CheckSupport(_device);
@@ -126,9 +132,11 @@ Device::~Device()
     _device->Release();
     _factory->Release();
     _adapter->Release();
+#if defined(ONI_DEBUG)
     _debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_IGNORE_INTERNAL | D3D12_RLDO_DETAIL);
     _debugDevice->Release();
     _debug->Release();
+#endif
 }
 
 void DeviceFeatures::CheckSupport(ID3D12Device *device)

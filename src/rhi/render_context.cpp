@@ -269,7 +269,7 @@ void RenderContext::FlushUploader(Uploader& uploader)
                 break;
             }
             case Uploader::UploadCommandType::BufferToTexture: {
-                auto state = command.destTexture->GetState();
+                auto state = command.destTexture->GetState(0);
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest);
                 cmdBuf->CopyBufferToTexture(command.destTexture, command.sourceBuffer);
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout(state));
@@ -296,13 +296,11 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
     CommandBuffer::Ptr cmdBuf = CreateCommandBuffer(CommandQueueType::Graphics);
 
     for (int i = 0; i < texture->GetMips(); i++) {
-        Buffer::Ptr mipParameter = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer " + i);
-        mipParameter->BuildConstantBuffer();
-        buffers[i] = mipParameter;
+        buffers[i] = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer " + std::to_string(i));
+        buffers[i]->BuildConstantBuffer();
     }
 
     cmdBuf->Begin();
-    cmdBuf->ImageBarrier(texture, TextureLayout::Storage);
     cmdBuf->BindComputePipeline(_mipmapPipeline);
     for (int i = 0; i < texture->GetMips() - 1; i++) {
         uint32_t mipWidth = (texture->GetWidth() * std::pow(0.5f, i + 1));
@@ -314,6 +312,8 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
         memcpy(pData, glm::value_ptr(data), sizeof(data));
         buffers[i]->Unmap(0, 0);
 
+        cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource, i);
+        cmdBuf->ImageBarrier(texture, TextureLayout::Storage, i + 1);
         cmdBuf->BindComputeShaderResource(texture, 0, i);
         cmdBuf->BindComputeStorageTexture(texture, 1, i + 1);
         cmdBuf->BindComputeSampler(_mipmapSampler, 2);

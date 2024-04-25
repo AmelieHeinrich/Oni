@@ -40,6 +40,7 @@ public:
     void EndEvent();
 
     void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout);
+    void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout, int subresource);
     void CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout);
     
     void SetViewport(float x, float y, float width, float height);
@@ -83,6 +84,7 @@ public:
     ID3D12GraphicsCommandList* GetCommandList() { return _commandList; }
 private:
     void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state);
+    void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state, int subresource);
 
     DescriptorHeap::Heaps _heaps;
     D3D12_COMMAND_LIST_TYPE _type;

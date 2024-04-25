@@ -17,8 +17,8 @@
 
 struct AABB
 {
-    glm::vec3 Min;
-    glm::vec3 Max;
+    glm::vec3 Center;
+    float Extent;
 };
 
 struct Vertex
@@ -69,6 +69,7 @@ class Model
 public:
     std::vector<Primitive> Primitives;
     std::vector<Material> Materials;
+    std::unordered_map<std::string, Texture::Ptr> TextureCache;
 
     uint32_t VertexCount;
     uint32_t IndexCount;

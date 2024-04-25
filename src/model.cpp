@@ -159,8 +159,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
         renderContext->GenerateMips(meshMaterial.EmissiveTexture);
     }
 
-    out.BoundingBox.Min = glm::vec3(mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z);
-    out.BoundingBox.Max = glm::vec3(mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z);
+    glm::vec3 Min = glm::vec3(mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z);
+    glm::vec3 Max = glm::vec3(mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z);
+
+    out.BoundingBox.Extent = ((Max - Min) * 0.5f).x;
+    out.BoundingBox.Center = Min + out.BoundingBox.Extent;
 
     Primitives.push_back(out);
 }
@@ -169,7 +172,6 @@ void Model::ProcessNode(RenderContext::Ptr renderContext, aiNode *node, const ai
 {
     for (int i = 0; i < node->mNumMeshes; i++) {
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        // Compute transform
         glm::mat4 transform(1.0f);
         ProcessPrimitive(renderContext, mesh, scene, transform);
     }
@@ -182,7 +184,7 @@ void Model::ProcessNode(RenderContext::Ptr renderContext, aiNode *node, const ai
 void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
 {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_FlipWindingOrder | aiProcess_CalcTangentSpace | aiProcess_PreTransformVertices | aiProcess_GenBoundingBoxes);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_FlipWindingOrder | aiProcess_CalcTangentSpace | aiProcess_PreTransformVertices | aiProcess_GenBoundingBoxes | aiProcess_GenSmoothNormals | aiProcess_OptimizeMeshes);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         Logger::Error("Failed to load model at path %s", path.c_str());
     }

@@ -12,12 +12,13 @@
 - Shell texturing for foliage
 - Ocean rendering
 - Terrain generation
+- Animation
 
 ## GPU driven rendering
 - Mesh shaders
 - Work graphs
 - Bindless
-- Frustum/Occlusion culling
+- Compute based frustum/Occlusion culling
 - (Multi) Draw indirect
 - GPU instancing
 
@@ -30,6 +31,12 @@
 - Bloom
 - Kuwahara filter
 - Depth of field (DOF)
+- Palette Swapper
+- Pixel Sorter
+- Difference of Gaussians
+- Screen Space Fog
+- Chromatic Abberation
+- Film grain
 
 ## Other
 - BC7-BC6H compression
@@ -37,5 +44,6 @@
 - Render graph
 - Multithreading
 - Developer console
+- Asset streaming
 - Custom shader post processing system
 - Shader graph

@@ -12,7 +12,7 @@ target("Oni")
     set_languages("c++17")
     add_files("src/**.cpp")
     add_includedirs("src", "ext", "ext/PIX/include")
-    add_deps("D3D12MA", "ImGui", "stb")
+    add_deps("D3D12MA", "ImGui", "stb", "optick")
     add_linkdirs("ext/assimp/bin")
     add_linkdirs("ext/PIX/lib")
 
@@ -24,6 +24,7 @@ target("Oni")
         set_symbols("debug")
         set_optimize("none")
         add_links("assimp-vc143-mtd.lib")
+        add_defines("ONI_DEBUG")
     end
 
     if is_mode("release") then
