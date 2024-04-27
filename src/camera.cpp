@@ -55,12 +55,12 @@ void FreeCamera::Update(double dt, bool updateFrustum)
 void FreeCamera::Input(double dt)
 {
     float speedMultiplier = _Acceleration * dt;
-    if (ImGui::IsKeyDown(ImGuiKey_Z)) {
+    if (ImGui::IsKeyDown(ImGuiKey_Z) || ImGui::IsKeyDown(ImGuiKey_W)) {
         _Velocity += _Front * speedMultiplier;
     } else if (ImGui::IsKeyDown(ImGuiKey_S)) {
         _Velocity -= _Front * speedMultiplier;
     }
-    if (ImGui::IsKeyDown(ImGuiKey_Q)) {
+    if (ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_A)) {
         _Velocity -= _Right * speedMultiplier;
     } else if (ImGui::IsKeyDown(ImGuiKey_D)) {
         _Velocity += _Right * speedMultiplier;

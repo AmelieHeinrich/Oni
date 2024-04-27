@@ -42,6 +42,9 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
 
     out.VertexBuffer = renderContext->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
     out.IndexBuffer = renderContext->CreateBuffer(out.IndexCount * sizeof(uint32_t), 0, BufferType::Index, false, "Index Buffer");
+    
+    out.ModelBuffer = renderContext->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer");
+    out.ModelBuffer->BuildConstantBuffer();
 
     // MATERIAL
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
@@ -139,9 +142,22 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     uploader.CopyHostToDeviceLocal(indices.data(), indices.size() * sizeof(uint32_t), out.IndexBuffer);
     renderContext->FlushUploader(uploader);
 
+    struct ModelData {
+        glm::mat4 Transform;
+        glm::vec4 FlatColor;
+    };
+    ModelData temp;
+    temp.Transform = out.Transform;
+    temp.FlatColor = glm::vec4(meshMaterial.FlatColor, 1.0f);
+
     VertexCount += out.VertexCount;
     IndexCount += out.IndexCount;
     Materials.push_back(meshMaterial);
+
+    void *pData;
+    out.ModelBuffer->Map(0, 0, &pData);
+    memcpy(pData, &temp, sizeof(ModelData));
+    out.ModelBuffer->Unmap(0, 0);
 
     if (meshMaterial.HasAlbedo) {
         renderContext->GenerateMips(meshMaterial.AlbedoTexture);

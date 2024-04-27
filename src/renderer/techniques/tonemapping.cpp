@@ -6,6 +6,7 @@
 #include "tonemapping.hpp"
 
 #include <ImGui/imgui.h>
+#include <optick.h>
 
 Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
     : _renderContext(context), _inputHDR(inputHDR)
@@ -33,12 +34,14 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
 
+    OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
+    OPTICK_GPU_EVENT("Tonemapping PostFX");
+
     void *pData;
     _tonemapperSettings->Map(0, 0, &pData);
     memcpy(pData, glm::value_ptr(glm::ivec4(_tonemapper, 0, 0, 0)), sizeof(glm::ivec4));
     _tonemapperSettings->Unmap(0, 0);
 
-    cmdBuf->Begin();
     cmdBuf->BeginEvent("Tonemapping Pass");
     cmdBuf->ImageBarrier(_inputHDR, TextureLayout::ShaderResource);
     cmdBuf->ImageBarrier(_outputLDR, TextureLayout::Storage);
@@ -48,8 +51,6 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
     cmdBuf->BindComputeConstantBuffer(_tonemapperSettings, 2);
     cmdBuf->Dispatch(width / 30, height / 30, 1);    
     cmdBuf->EndEvent();
-    cmdBuf->End();
-    _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);   
 }
 
 void Tonemapping::Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR)

@@ -6,6 +6,7 @@
 #include "auto_exposure.hpp"
 
 #include <ImGui/imgui.h>
+#include <optick.h>
 
 AutoExposure::AutoExposure(RenderContext::Ptr context, Texture::Ptr inputHDR)
     : _inputHDR(inputHDR), _renderContext(context)
@@ -47,6 +48,9 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
 
         // Compute the histogram
         {
+            OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
+            OPTICK_GPU_EVENT("Compute Auto Exposure Histogram");
+
             struct {
                 uint32_t width;
                 uint32_t height;
@@ -64,7 +68,6 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             memcpy(pData, &data, sizeof(data));
             _luminanceHistogramParameters->Unmap(0, 0);
 
-            cmdBuf->Begin();
             cmdBuf->BeginEvent("AE Histogram Compute Pass");
             cmdBuf->BindComputePipeline(_computePipeline);
             cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
@@ -72,12 +75,13 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             cmdBuf->BindComputeConstantBuffer(_luminanceHistogramParameters, 2);
             cmdBuf->Dispatch(round(width / 16), round(height / 16), 1);
             cmdBuf->EndEvent();
-            cmdBuf->End();
-            _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
         }
 
         // Average the histogram
         {
+            OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
+            OPTICK_GPU_EVENT("Average Auto Exposure Histogram");
+
             struct {
                 uint32_t pixelCount;
                 float minLogLuminance;
@@ -97,7 +101,6 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             memcpy(pData, &data, sizeof(data));
             _averageParameters->Unmap(0, 0);
 
-            cmdBuf->Begin();
             cmdBuf->BeginEvent("AE Histogram Average Compute Pass");
             cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::Storage);
             cmdBuf->BindComputePipeline(_averagePipeline);
@@ -107,8 +110,6 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             cmdBuf->Dispatch(round(width / 16), round(height / 16), 1);
             cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::ShaderResource);
             cmdBuf->EndEvent();
-            cmdBuf->End();
-            _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
         }
     }
 }

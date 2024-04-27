@@ -6,6 +6,7 @@
 #include "swap_chain.hpp"
 
 #include <core/log.hpp>
+#include <optick.h>
 
 SwapChain::SwapChain(Device::Ptr device, CommandQueue::Ptr graphicsQueue, DescriptorHeap::Ptr rtvHeap, HWND window)
     : _devicePtr(device), _rtvHeap(rtvHeap), _hwnd(window)
@@ -65,6 +66,8 @@ SwapChain::~SwapChain()
 
 void SwapChain::Present(bool vsync)
 {
+    OPTICK_EVENT("Present");
+
     HRESULT result = _swapchain->Present(vsync, 0);
     if (FAILED(result))
         Logger::Error("D3D12: Failed to present swapchain!");
@@ -72,11 +75,15 @@ void SwapChain::Present(bool vsync)
 
 int SwapChain::AcquireImage()
 {
+    OPTICK_EVENT("Acquire Image");
+
     return _swapchain->GetCurrentBackBufferIndex();
 }
 
 void SwapChain::Resize(uint32_t width, uint32_t height)
 {
+    OPTICK_EVENT("Resize");
+
     _width = width;
     _height = height;
 

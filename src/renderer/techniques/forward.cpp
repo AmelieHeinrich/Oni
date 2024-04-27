@@ -6,6 +6,7 @@
 #include "forward.hpp"
 
 #include <ImGui/imgui.h>
+#include <optick.h>
 
 Forward::Forward(RenderContext::Ptr context)
     : _context(context)
@@ -66,9 +67,6 @@ Forward::Forward(RenderContext::Ptr context)
 
     _sceneBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Scene Buffer CBV");
     _sceneBuffer->BuildConstantBuffer();
-    
-    _modelBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer CBV");
-    _modelBuffer->BuildConstantBuffer();
 
     _lightBuffer = context->CreateBuffer(24832, 0, BufferType::Constant, false, "Light Buffer CBV");
     _lightBuffer->BuildConstantBuffer();
@@ -129,6 +127,9 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
 
+    OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
+    OPTICK_GPU_EVENT("PBR Forward");
+
     struct Data {
         glm::mat4 View;
         glm::mat4 Projection;
@@ -153,7 +154,6 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
     _modeBuffer->Unmap(0, 0);
 
-    commandBuffer->Begin();
     commandBuffer->BeginEvent("Forward Pass");
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
     commandBuffer->SetViewport(0, 0, width, height);
@@ -170,13 +170,13 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->BindGraphicsConstantBuffer(_lightBuffer, 11);
     commandBuffer->BindGraphicsConstantBuffer(_modeBuffer, 12);
 
-    for (auto& model : scene.Models) {
-        for (auto& primitive : model.Primitives) {
+    for (auto model : scene.Models) {
+        for (auto primitive : model.Primitives) {
             //if (!scene.Camera.InFrustum(primitive.BoundingBox)) {
             //    continue;
             //}
 
-            auto& material = model.Materials[primitive.MaterialIndex];
+            auto material = model.Materials[primitive.MaterialIndex];
 
             Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
             Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
@@ -184,21 +184,9 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
             Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _whiteTexture;
             Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
-            struct ModelData {
-                glm::mat4 Transform;
-                glm::vec4 FlatColor;
-            };
-            ModelData temp;
-            temp.Transform = primitive.Transform;
-            temp.FlatColor = glm::vec4(material.FlatColor, 1.0f);
-
-            _modelBuffer->Map(0, 0, &pData);
-            memcpy(pData, &temp, sizeof(ModelData));
-            _modelBuffer->Unmap(0, 0);
-
             commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
             commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
-            commandBuffer->BindGraphicsConstantBuffer(_modelBuffer, 1);
+            commandBuffer->BindGraphicsConstantBuffer(primitive.ModelBuffer, 1);
             commandBuffer->BindGraphicsShaderResource(albedo, 2);
             commandBuffer->BindGraphicsShaderResource(normal, 3);
             commandBuffer->BindGraphicsShaderResource(pbr, 4);
@@ -209,13 +197,14 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     }
 
     commandBuffer->EndEvent();
-    commandBuffer->End();
-    _context->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
 }
 
 void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
+
+    OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
+    OPTICK_GPU_EVENT("Blinn Phong Forward");
 
     struct Data {
         glm::mat4 View;
@@ -241,7 +230,6 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
     memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
     _modeBuffer->Unmap(0, 0);
 
-    commandBuffer->Begin();
     commandBuffer->BeginEvent("Forward Pass");
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
     commandBuffer->SetViewport(0, 0, width, height);
@@ -268,21 +256,9 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
             Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
             Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
-            struct ModelData {
-                glm::mat4 Transform;
-                glm::vec4 FlatColor;
-            };
-            ModelData temp;
-            temp.Transform = primitive.Transform;
-            temp.FlatColor = glm::vec4(material.FlatColor, 1.0f);
-
-            _modelBuffer->Map(0, 0, &pData);
-            memcpy(pData, &temp, sizeof(ModelData));
-            _modelBuffer->Unmap(0, 0);
-
             commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
             commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
-            commandBuffer->BindGraphicsConstantBuffer(_modelBuffer, 1);
+            commandBuffer->BindGraphicsConstantBuffer(primitive.ModelBuffer, 1);
             commandBuffer->BindGraphicsShaderResource(albedo, 2);
             commandBuffer->BindGraphicsShaderResource(normal, 3);
             commandBuffer->BindGraphicsShaderResource(ao, 4);
@@ -291,6 +267,4 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
     }
 
     commandBuffer->EndEvent();
-    commandBuffer->End();
-    _context->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
 }

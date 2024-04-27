@@ -6,6 +6,7 @@
 #include "envmap_forward.hpp"
 
 #include <core/log.hpp>
+#include <optick.h>
 
 const float CubeVertices[] = {
     -1.0f,  1.0f, -1.0f,
@@ -89,7 +90,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
 
     // Load HDRI
     Image image;
-    image.LoadHDR("assets/env/lonely_road_afternoon_puresky_4k.hdr");
+    image.LoadHDR("assets/env/san_giuseppe_bridge_4k.hdr");
 
     Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, false, "HDR Texture");
     hdrTexture->BuildShaderResource();
@@ -197,7 +198,9 @@ void EnvMapForward::Render(Scene& scene, uint32_t width, uint32_t height)
 
     CommandBuffer::Ptr cmdBuffer = _context->GetCurrentCommandBuffer();
 
-    cmdBuffer->Begin();
+    OPTICK_GPU_CONTEXT(cmdBuffer->GetCommandList());
+    OPTICK_GPU_EVENT("Cube Map Forward");
+
     cmdBuffer->SetViewport(0, 0, width, height);
     cmdBuffer->SetTopology(Topology::TriangleList);
     cmdBuffer->BindRenderTargets({ _inputColor }, _inputDepth);
@@ -207,8 +210,6 @@ void EnvMapForward::Render(Scene& scene, uint32_t width, uint32_t height)
     cmdBuffer->BindGraphicsSampler(_cubeSampler, 2);
     cmdBuffer->BindVertexBuffer(_cubeBuffer);
     cmdBuffer->Draw(36);
-    cmdBuffer->End();
-    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
 }
 
 void EnvMapForward::Resize(uint32_t width, uint32_t height, Texture::Ptr inputColor, Texture::Ptr inputDepth)

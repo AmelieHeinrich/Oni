@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <optick.h>
 
 struct DeviceFeatures {
     bool Raytracing = false;

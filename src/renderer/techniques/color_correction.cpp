@@ -6,6 +6,7 @@
 #include "color_correction.hpp"
 
 #include <ImGui/imgui.h>
+#include <optick.h>
 
 ColorCorrection::ColorCorrection(RenderContext::Ptr context, Texture::Ptr inputHDR)
     : _renderContext(context), _inputHDR(inputHDR)
@@ -27,12 +28,14 @@ void ColorCorrection::Render(Scene& scene, uint32_t width, uint32_t height)
     if (_enable) {
         CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
 
+        OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
+        OPTICK_GPU_EVENT("Color Correction Pass");
+
         void *pData;
         _correctionParameters->Map(0, 0, &pData);
         memcpy(pData, &_settings, sizeof(ColorCorrectionSettings));
         _correctionParameters->Unmap(0, 0);
 
-        cmdBuf->Begin();
         cmdBuf->BeginEvent("Color Correction Pass");
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
         cmdBuf->BindComputePipeline(_computePipeline);
@@ -41,8 +44,6 @@ void ColorCorrection::Render(Scene& scene, uint32_t width, uint32_t height)
         cmdBuf->Dispatch(width / 30, height / 30, 1);
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::RenderTarget);
         cmdBuf->EndEvent();
-        cmdBuf->End();
-        _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
     }
 }
 

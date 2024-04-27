@@ -47,9 +47,9 @@ private:
     GraphicsPipeline::Ptr _blinnPhongPipeline;
 
     Buffer::Ptr _sceneBuffer;
-    Buffer::Ptr _modelBuffer;
     Buffer::Ptr _lightBuffer;
     Buffer::Ptr _modeBuffer;
+
     Sampler::Ptr _sampler;
 
     int _mode = 0;

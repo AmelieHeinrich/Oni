@@ -55,6 +55,7 @@ struct Primitive
 {
     Buffer::Ptr VertexBuffer;
     Buffer::Ptr IndexBuffer;
+    Buffer::Ptr ModelBuffer;
 
     uint32_t VertexCount;
     uint32_t IndexCount;

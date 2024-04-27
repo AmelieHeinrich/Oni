@@ -15,6 +15,7 @@
 
 #include <ctime>
 #include <cstdlib>
+#include <optick.h>
 
 float random_float(float min, float max)
 {
@@ -71,6 +72,8 @@ App::~App()
 void App::Run()
 {
     while (_window->IsOpen()) {
+        OPTICK_FRAME("Oni");
+
         static float framesPerSecond = 0.0f;
         static float lastTime = 0.0f;
         float currentTime = GetTickCount() * 0.001f;
@@ -101,15 +104,17 @@ void App::Run()
 
         CommandBuffer::Ptr commandBuffer = _renderContext->GetCurrentCommandBuffer();
         Texture::Ptr texture = _renderContext->GetBackBuffer();
+        commandBuffer->Begin();
 
         // RENDER
         {
+            OPTICK_EVENT("Render");
             _renderer->Render(scene, width, height, dt);
         }  
 
         // UI
         {
-            commandBuffer->Begin();
+            OPTICK_EVENT("UI");
             commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
             commandBuffer->BindRenderTargets({ texture }, nullptr);
             commandBuffer->BeginImGui(width, height);
@@ -119,12 +124,18 @@ void App::Run()
             }
             commandBuffer->EndImGui();
             commandBuffer->ImageBarrier(texture, TextureLayout::Present);
+        }
+
+        // SUBMIT
+        {
+            OPTICK_EVENT("Submit");
             commandBuffer->End();
             _renderContext->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
         }
 
         // FLUSH
         {
+            OPTICK_EVENT("Present");
             _renderContext->EndFrame();
             _renderContext->Present(true);
         }

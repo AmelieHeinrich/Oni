@@ -11,6 +11,7 @@
 
 #include <ImGui/imgui.h>
 #include <stb/stb_image_write.h>
+#include <optick.h>
 
 Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
@@ -31,23 +32,31 @@ Renderer::~Renderer()
     
 void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 {
-    _forward->Render(scene, width, height);
-    _envMapForward->Render(scene, width, height);
-    _colorCorrection->Render(scene, width, height);
-    _autoExposure->Render(scene, width, height, dt);
-    _tonemapping->Render(scene, width, height);
-
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
-    Texture::Ptr backbuffer = _renderContext->GetBackBuffer();
 
-    cmdBuf->Begin();
-    cmdBuf->ImageBarrier(backbuffer, TextureLayout::CopyDest);
-    cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::CopySource);
-    cmdBuf->CopyTextureToTexture(backbuffer, _tonemapping->GetOutput());
-    cmdBuf->ImageBarrier(backbuffer, TextureLayout::Present);
-    cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::ShaderResource);
-    cmdBuf->End();
-    _renderContext->ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
+    {
+        OPTICK_EVENT("Frame Render");
+
+        _forward->Render(scene, width, height);
+        _envMapForward->Render(scene, width, height);
+        _colorCorrection->Render(scene, width, height);
+        _autoExposure->Render(scene, width, height, dt);
+        _tonemapping->Render(scene, width, height);
+    }
+
+    {
+        CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
+        Texture::Ptr backbuffer = _renderContext->GetBackBuffer();
+
+        OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
+        OPTICK_GPU_EVENT("Copy to Backbuffer");
+
+        cmdBuf->ImageBarrier(backbuffer, TextureLayout::CopyDest);
+        cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::CopySource);
+        cmdBuf->CopyTextureToTexture(backbuffer, _tonemapping->GetOutput());
+        cmdBuf->ImageBarrier(backbuffer, TextureLayout::Present);
+        cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::ShaderResource);
+    }
 
     if (ImGui::IsKeyPressed(ImGuiKey_F12, false)) {
         Screenshot();
@@ -78,6 +87,8 @@ void Renderer::OnUI()
 
 void Renderer::Screenshot()
 {
+    OPTICK_EVENT("Screenshot");
+
     _renderContext->WaitForPreviousHostSubmit(CommandQueueType::Graphics);
 
     Texture::Ptr toScreenshot = _tonemapping->GetOutput();
@@ -96,6 +107,10 @@ void Renderer::Screenshot()
     memset(Result, 0xffffffff, toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4);
 
     CommandBuffer::Ptr cmdBuffer = _renderContext->CreateCommandBuffer(CommandQueueType::Graphics);
+
+    OPTICK_GPU_CONTEXT(cmdBuffer->GetCommandList());
+    OPTICK_GPU_EVENT("Screenshot");
+
     cmdBuffer->Begin();
     cmdBuffer->ImageBarrier(toScreenshot, TextureLayout::CopySource);
     cmdBuffer->CopyTextureToBuffer(textureBuffer, toScreenshot);
