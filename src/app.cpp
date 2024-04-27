@@ -42,7 +42,7 @@ App::App()
     scene = {};
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
+    sponza.Load(_renderContext, "assets/models/bistro/bistro.gltf");
 
     scene.Models.push_back(sponza);
 
