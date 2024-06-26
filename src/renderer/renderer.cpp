@@ -89,7 +89,7 @@ void Renderer::Screenshot()
 {
     OPTICK_EVENT("Screenshot");
 
-    _renderContext->WaitForPreviousHostSubmit(CommandQueueType::Graphics);
+    _renderContext->WaitForGPU();
 
     Texture::Ptr toScreenshot = _tonemapping->GetOutput();
     Buffer::Ptr textureBuffer = _renderContext->CreateBuffer(toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4, 0, BufferType::Copy, true, "Screenshot Buffer");

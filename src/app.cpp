@@ -29,7 +29,7 @@ App::App()
     Logger::Init();
     srand(time(NULL));
 
-    _window = std::make_shared<Window>(1280 + 16, 720 + 39, "Oni | <D3D12> | <WINDOWS>");
+    _window = std::make_shared<Window>(1920 + 16, 1080 + 39, "Oni | <D3D12> | <WINDOWS>");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
         _renderer->Resize(width, height);
@@ -42,7 +42,7 @@ App::App()
     scene = {};
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/bistro/bistro.gltf");
+    sponza.Load(_renderContext, "assets/models/Sponza.gltf");
 
     scene.Models.push_back(sponza);
 
@@ -59,13 +59,12 @@ App::App()
     scene.LightBuffer.Sun.Direction = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
     scene.LightBuffer.Sun.Color = glm::vec4(0.1f);
     scene.LightBuffer.HasSun = 0;
+
+    _renderContext->WaitForGPU();
 }
 
 App::~App()
 {
-    _renderContext->WaitForPreviousDeviceSubmit(CommandQueueType::Graphics);
-    _renderContext->WaitForPreviousHostSubmit(CommandQueueType::Graphics);
-
     Logger::Exit();
 }
 
@@ -98,7 +97,6 @@ void App::Run()
         _window->GetSize(width, height);
 
         _camera.Update(dt, _updateFrustum);
-        _renderContext->BeginFrame();
 
         scene.Camera = _camera;
 
@@ -136,8 +134,8 @@ void App::Run()
         // FLUSH
         {
             OPTICK_EVENT("Present");
-            _renderContext->EndFrame();
-            _renderContext->Present(true);
+            _renderContext->Present(_vsync);
+            _renderContext->Finish();
         }
 
         if (!_showUI) {
@@ -156,6 +154,7 @@ void App::RenderOverlay()
     if (_showUI) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Debug")) {
+                const char* vsyncLabel = _vsync ? "Disable VSync" : "Enable VSync";
                 if (ImGui::MenuItem("Resource Inspector")) {
                     _showResourceInspector = !_showResourceInspector;
                 }
@@ -164,6 +163,9 @@ void App::RenderOverlay()
                 }
                 if (ImGui::MenuItem("Scene Editor")) {
                     _showLightEditor = !_showLightEditor;
+                }
+                if (ImGui::MenuItem(vsyncLabel)) {
+                    _vsync = !_vsync;
                 }
                 ImGui::EndMenu();
             }

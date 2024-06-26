@@ -25,9 +25,14 @@ CommandQueue::~CommandQueue()
     _queue->Release();
 }
 
-void CommandQueue::Wait(Fence::Ptr fence, uint64_t value)
+void CommandQueue::Wait(std::shared_ptr<Fence> fence, uint64_t value)
 {
     _queue->Wait(fence->GetFence(), value);
+}
+
+void CommandQueue::Signal(std::shared_ptr<Fence> fence, uint64_t value)
+{
+    _queue->Signal(fence->GetFence(), value);
 }
 
 void CommandQueue::Submit(const std::vector<CommandBuffer::Ptr>& buffers)

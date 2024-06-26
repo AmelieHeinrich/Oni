@@ -42,6 +42,7 @@ private:
     FreeCamera _camera;
     Scene scene;
 
+    bool _vsync = false;
     bool _showUI = false;
     bool _showResourceInspector = false;
     bool _showRendererSettings = false;

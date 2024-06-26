@@ -8,7 +8,7 @@
 Uploader::Uploader(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps)
     : _devicePtr(device), _allocator(allocator), _heaps(heaps)
 {
-    _commandBuffer = std::make_shared<CommandBuffer>(device, heaps, CommandQueueType::Graphics);
+    _commandBuffer = std::make_shared<CommandBuffer>(device, heaps, CommandQueueType::Graphics, false);
 }
 
 Uploader::~Uploader()

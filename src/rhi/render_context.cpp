@@ -37,7 +37,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     _computeFence.Fence = std::make_shared<Fence>(_device);
     _copyFence.Fence = std::make_shared<Fence>(_device);
 
-    _graphicsFence.Value = 0;
+    _graphicsFence.Value = 1;
     _computeFence.Value = 0;
     _copyFence.Value = 0;
 
@@ -45,7 +45,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
         _commandBuffers[i] = std::make_shared<CommandBuffer>(_device, _heaps, CommandQueueType::Graphics);
-        _frameValues[i] = 0;
+        _frameValues[i] = i;
     }
 
     _fontDescriptor = _heaps.ShaderHeap->Allocate();
@@ -81,7 +81,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
 
 RenderContext::~RenderContext()
 {
-    WaitForPreviousFrame();
+    WaitForGPU();
 
     ImGui_ImplDX12_Shutdown();
     ImGui_ImplWin32_Shutdown();
@@ -91,7 +91,7 @@ RenderContext::~RenderContext()
 
 void RenderContext::Resize(uint32_t width, uint32_t height)
 {
-    WaitForPreviousFrame();
+    WaitForGPU();
 
     if (_swapChain) {
         _swapChain->Resize(width, height);
@@ -99,17 +99,18 @@ void RenderContext::Resize(uint32_t width, uint32_t height)
     }
 }
 
-void RenderContext::BeginFrame()
+void RenderContext::Finish()
 {
+    const UINT64 currentFenceValue = _frameValues[_frameIndex];
+    _graphicsQueue->Signal(_graphicsFence.Fence, currentFenceValue);
+
     _frameIndex = _swapChain->AcquireImage();
-    _graphicsFence.Fence->Wait(_frameValues[_frameIndex], 10'000'000);
 
-    _allocator->GetAllocator()->SetCurrentFrameIndex(_frameIndex);
-}
+    if (_graphicsFence.Fence->CompletedValue() < _frameValues[_frameIndex]) {
+        _graphicsFence.Fence->Wait(_frameValues[_frameIndex], INFINITE);
+    }
 
-void RenderContext::EndFrame()
-{
-    _frameValues[_frameIndex] = _graphicsFence.Fence->Value();
+    _frameValues[_frameIndex] = currentFenceValue + 1;
 }
 
 void RenderContext::Present(bool vsync)
@@ -117,53 +118,11 @@ void RenderContext::Present(bool vsync)
     _swapChain->Present(vsync);
 }
 
-void RenderContext::FlushQueues()
+void RenderContext::WaitForGPU()
 {
-    WaitForPreviousHostSubmit(CommandQueueType::Graphics);
-    WaitForPreviousHostSubmit(CommandQueueType::Compute);
-    WaitForPreviousHostSubmit(CommandQueueType::Copy);
-}
-
-void RenderContext::WaitForPreviousFrame()
-{
-    uint64_t wait = _graphicsFence.Fence->Signal(_graphicsQueue);
-    _graphicsFence.Fence->Wait(wait, 10'000'000);
-}
-
-void RenderContext::WaitForPreviousHostSubmit(CommandQueueType type)
-{
-    switch (type) {
-        case CommandQueueType::Graphics: {
-            _graphicsFence.Fence->Wait(_graphicsFence.Value, 10'000'000);
-            break;
-        }
-        case CommandQueueType::Compute:  {
-            _computeFence.Fence->Wait(_computeFence.Value, 10'000'000);
-            break;
-        }
-        case CommandQueueType::Copy: {
-            _copyFence.Fence->Wait(_copyFence.Value, 10'000'000);
-            break;
-        }
-    }
-}
-
-void RenderContext::WaitForPreviousDeviceSubmit(CommandQueueType type)
-{
-    switch (type) {
-        case CommandQueueType::Graphics: {
-            _graphicsQueue->Wait(_graphicsFence.Fence, _graphicsFence.Value);
-            break;
-        }
-        case CommandQueueType::Compute:  {
-            _computeQueue->Wait(_computeFence.Fence, _computeFence.Value);
-            break;
-        }
-        case CommandQueueType::Copy: {
-            _copyQueue->Wait(_copyFence.Fence, _copyFence.Value);
-            break;
-        }
-    }
+    _graphicsQueue->Signal(_graphicsFence.Fence, _frameValues[_frameIndex]);
+    _graphicsFence.Fence->Wait(_frameValues[_frameIndex], 10'000'000);
+    _frameValues[_frameIndex]++;
 }
 
 void RenderContext::ExecuteCommandBuffers(const std::vector<CommandBuffer::Ptr>& buffers, CommandQueueType type)
@@ -171,20 +130,14 @@ void RenderContext::ExecuteCommandBuffers(const std::vector<CommandBuffer::Ptr>&
     switch (type) {
         case CommandQueueType::Graphics: {
             _graphicsQueue->Submit(buffers);
-            _graphicsFence.Value = _graphicsFence.Fence->Signal(_graphicsQueue);
-            WaitForPreviousHostSubmit(CommandQueueType::Graphics);
             break;
         }
         case CommandQueueType::Compute:  {
             _computeQueue->Submit(buffers);
-            _computeFence.Value = _computeFence.Fence->Signal(_computeQueue);
-            WaitForPreviousHostSubmit(CommandQueueType::Compute);
             break;
         }
         case CommandQueueType::Copy: {
             _copyQueue->Submit(buffers);
-            _copyFence.Value = _copyFence.Fence->Signal(_copyQueue);
-            WaitForPreviousHostSubmit(CommandQueueType::Copy);
             break;
         }
     }
@@ -230,9 +183,9 @@ CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, Textu
     return std::make_shared<CubeMap>(_device, _allocator, _heaps, width, height, format, name);
 }
 
-CommandBuffer::Ptr RenderContext::CreateCommandBuffer(CommandQueueType type)
+CommandBuffer::Ptr RenderContext::CreateCommandBuffer(CommandQueueType type, bool close)
 {
-    return std::make_shared<CommandBuffer>(_device, _heaps, type);
+    return std::make_shared<CommandBuffer>(_device, _heaps, type, close);
 }
 
 Uploader RenderContext::CreateUploader()
@@ -242,7 +195,7 @@ Uploader RenderContext::CreateUploader()
 
 void RenderContext::FlushUploader(Uploader& uploader)
 {
-    uploader._commandBuffer->Begin();
+    uploader._commandBuffer->Begin(false);
 
     for (auto& command : uploader._commands) {
         auto cmdBuf = uploader._commandBuffer;
@@ -283,7 +236,7 @@ void RenderContext::FlushUploader(Uploader& uploader)
 
     uploader._commandBuffer->End();
     ExecuteCommandBuffers({ uploader._commandBuffer }, CommandQueueType::Graphics);
-    WaitForPreviousHostSubmit(CommandQueueType::Graphics);
+    WaitForGPU();
     uploader._commands.clear();
 }
 
@@ -293,14 +246,14 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
 
     std::vector<Buffer::Ptr> buffers;
     buffers.resize(texture->GetMips());
-    CommandBuffer::Ptr cmdBuf = CreateCommandBuffer(CommandQueueType::Graphics);
+    CommandBuffer::Ptr cmdBuf = CreateCommandBuffer(CommandQueueType::Graphics, false);
 
     for (int i = 0; i < texture->GetMips(); i++) {
         buffers[i] = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer " + std::to_string(i));
         buffers[i]->BuildConstantBuffer();
     }
 
-    cmdBuf->Begin();
+    cmdBuf->Begin(false);
     cmdBuf->BindComputePipeline(_mipmapPipeline);
     for (int i = 0; i < texture->GetMips() - 1; i++) {
         uint32_t mipWidth = (texture->GetWidth() * std::pow(0.5f, i + 1));
@@ -323,6 +276,7 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
     cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource);
     cmdBuf->End();
     ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
+    WaitForGPU();
 }
 
 void RenderContext::OnGUI()

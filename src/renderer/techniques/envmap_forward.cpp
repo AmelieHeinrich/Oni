@@ -113,40 +113,34 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     uploader.CopyHostToDeviceLocal((void*)CubeVertices, sizeof(CubeVertices), _cubeBuffer);
 
     // Run everything
-    context->FlushUploader(uploader);
+    context->FlushUploader(uploader);;
 
-    float startTime = clock();
-
-    CommandBuffer::Ptr cmdBuffer = context->CreateCommandBuffer(CommandQueueType::Graphics);
-
-    // Equi to cubemap
-    cmdBuffer->Begin();
-    cmdBuffer->BindComputePipeline(_envToCube);
-    cmdBuffer->BindComputeShaderResource(hdrTexture, 0, 0);
-    cmdBuffer->BindComputeCubeMapStorage(_map.Environment, 1, 0);
-    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
-    cmdBuffer->Dispatch(512 / 32, 512 / 32, 6);
-    cmdBuffer->End();
-    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
-
-    // Irradiance
-    cmdBuffer->Begin();
-    cmdBuffer->BindComputePipeline(_irradiance);
-    cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
-    cmdBuffer->BindComputeCubeMapStorage(_map.IrradianceMap, 1, 0);
-    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
-    cmdBuffer->Dispatch(128 / 32, 128 / 32, 6);
-    cmdBuffer->End();
-    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
-
-    // Prefilter
     std::array<Buffer::Ptr, 5> prefilterBuffers;
     for (auto& buffer : prefilterBuffers) {
         buffer = _context->CreateBuffer(256, 0, BufferType::Constant, false, "Prefilter Buffer");
         buffer->BuildConstantBuffer();
     }
 
-    cmdBuffer->Begin();
+    float startTime = clock();
+
+    CommandBuffer::Ptr cmdBuffer = context->CreateCommandBuffer(CommandQueueType::Graphics, false);
+
+    // Equi to cubemap
+    cmdBuffer->Begin(false);
+    cmdBuffer->BindComputePipeline(_envToCube);
+    cmdBuffer->BindComputeShaderResource(hdrTexture, 0, 0);
+    cmdBuffer->BindComputeCubeMapStorage(_map.Environment, 1, 0);
+    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
+    cmdBuffer->Dispatch(512 / 32, 512 / 32, 6);
+
+    // Irradiance
+    cmdBuffer->BindComputePipeline(_irradiance);
+    cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
+    cmdBuffer->BindComputeCubeMapStorage(_map.IrradianceMap, 1, 0);
+    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
+    cmdBuffer->Dispatch(128 / 32, 128 / 32, 6);
+
+    // Prefilter
     cmdBuffer->BindComputePipeline(_prefilter);
     cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
     cmdBuffer->BindComputeSampler(_cubeSampler, 2);
@@ -166,17 +160,16 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
         cmdBuffer->BindComputeConstantBuffer(prefilterBuffers[i], 3);
         cmdBuffer->Dispatch(width / 32, height / 32, 6);
     }
-    cmdBuffer->End();
-    _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
 
     // BRDF
-    cmdBuffer->Begin();
     cmdBuffer->BindComputePipeline(_brdf);
     cmdBuffer->BindComputeStorageTexture(_map.BRDF, 0, 0);
     cmdBuffer->Dispatch(512 / 32, 512 / 32, 1);
     cmdBuffer->ImageBarrier(_map.BRDF, TextureLayout::ShaderResource);
+
     cmdBuffer->End();
     _context->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
+    _context->WaitForGPU();
 
     float endTime = (clock() - startTime) / 1000.0f;
     Logger::Info("Environment map: Texture generation took %f seconds", endTime);

@@ -61,6 +61,9 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     material->Get(AI_MATKEY_COLOR_DIFFUSE, flatColor);
     meshMaterial.FlatColor = glm::vec3(flatColor.r, flatColor.g, flatColor.b);
 
+    Uploader uploader = renderContext->CreateUploader();
+    
+    // ALBEDO TEXTURE
     {
         aiString str;
         material->GetTexture(aiTextureType_DIFFUSE, 0, &str);
@@ -68,9 +71,21 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
             std::string texturePath = Directory + '/' + str.C_Str();
             meshMaterial.AlbedoPath = texturePath;
             meshMaterial.HasAlbedo = true;
-            albedoImage.LoadFromFile(texturePath);
+            if (TextureCache.count(texturePath) != 0)  {
+                meshMaterial.AlbedoTexture = TextureCache[texturePath];
+                Logger::Info("Loaded %s from cache", texturePath.c_str());
+            } else {
+                albedoImage.LoadFromFile(texturePath);
+                meshMaterial.AlbedoTexture = renderContext->CreateTexture(albedoImage.Width, albedoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AlbedoPath);
+                meshMaterial.AlbedoTexture->BuildShaderResource();
+                uploader.CopyHostToDeviceTexture(albedoImage, meshMaterial.AlbedoTexture);
+                TextureCache[texturePath] = meshMaterial.AlbedoTexture;
+                Logger::Info("Cached %s", texturePath.c_str());
+            }
         }
     }
+    
+    // NORMAL TEXTURE
     {
         aiString str;
         material->GetTexture(aiTextureType_NORMALS, 0, &str);
@@ -78,9 +93,21 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
             std::string texturePath = Directory + '/' + str.C_Str();
             meshMaterial.NormalPath = texturePath;
             meshMaterial.HasNormal = true;
-            normalImage.LoadFromFile(texturePath);
+            if (TextureCache.count(texturePath) != 0) {
+                meshMaterial.NormalTexture = TextureCache[texturePath];
+                Logger::Info("Loaded %s from cache", texturePath.c_str());
+            } else {
+                normalImage.LoadFromFile(texturePath);
+                meshMaterial.NormalTexture = renderContext->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, meshMaterial.NormalPath);
+                meshMaterial.NormalTexture->BuildShaderResource();
+                uploader.CopyHostToDeviceTexture(normalImage, meshMaterial.NormalTexture);
+                TextureCache[texturePath] = meshMaterial.NormalTexture;
+                Logger::Info("Cached %s", texturePath.c_str());
+            }
         }
     }
+    
+    // PBR TEXTURE
     {
         aiString str;
         material->GetTexture(aiTextureType_UNKNOWN, 0, &str);
@@ -88,9 +115,21 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
             std::string texturePath = Directory + '/' + str.C_Str();
             meshMaterial.MetallicRoughnessPath = texturePath;
             meshMaterial.HasMetallicRoughness = true;
-            pbrImage.LoadFromFile(texturePath);
+            if (TextureCache.count(texturePath) != 0) {
+                meshMaterial.PBRTexture = TextureCache[texturePath];
+                Logger::Info("Loaded %s from cache", texturePath.c_str());
+            } else{
+                pbrImage.LoadFromFile(texturePath);
+                meshMaterial.PBRTexture = renderContext->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
+                meshMaterial.PBRTexture->BuildShaderResource();
+                uploader.CopyHostToDeviceTexture(pbrImage, meshMaterial.PBRTexture);
+                TextureCache[texturePath] = meshMaterial.PBRTexture;
+                Logger::Info("Cached %s", texturePath.c_str());
+            }
         }
     }
+    
+    // EMISSIVE TEXTURE
     {
         aiString str;
         material->GetTexture(aiTextureType_EMISSIVE, 0, &str);
@@ -98,9 +137,21 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
             std::string texturePath = Directory + '/' + str.C_Str();
             meshMaterial.EmissivePath = texturePath;
             meshMaterial.HasEmissive = true;
-            emissiveImage.LoadFromFile(texturePath);
+            if (TextureCache.count(meshMaterial.EmissivePath) != 0) {
+                meshMaterial.EmissiveTexture = TextureCache[texturePath];
+                Logger::Info("Loaded %s from cache", texturePath.c_str());
+            } else {
+                emissiveImage.LoadFromFile(texturePath);
+                meshMaterial.EmissiveTexture = renderContext->CreateTexture(emissiveImage.Width, emissiveImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.EmissivePath);
+                meshMaterial.EmissiveTexture->BuildShaderResource();
+                uploader.CopyHostToDeviceTexture(emissiveImage, meshMaterial.EmissiveTexture);
+                TextureCache[texturePath] = meshMaterial.EmissiveTexture;
+                Logger::Info("Cached %s", texturePath.c_str());
+            }
         }
     }
+    
+    // AO TEXTURE
     {
         aiString str;
         material->GetTexture(aiTextureType_LIGHTMAP, 0, &str);
@@ -108,36 +159,20 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
             std::string texturePath = Directory + '/' + str.C_Str();
             meshMaterial.AOPath = texturePath;
             meshMaterial.HasAO = true;
-            aoImage.LoadFromFile(texturePath);
+            if (TextureCache.count(meshMaterial.AOPath) != 0) {
+                meshMaterial.AOTexture = TextureCache[meshMaterial.AOPath];
+                Logger::Info("Loaded %s from cache", texturePath.c_str());
+            } else {
+                aoImage.LoadFromFile(texturePath);
+                meshMaterial.AOTexture = renderContext->CreateTexture(aoImage.Width, aoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AOPath);
+                meshMaterial.AOTexture->BuildShaderResource();
+                uploader.CopyHostToDeviceTexture(aoImage, meshMaterial.AOTexture);
+                TextureCache[texturePath] = meshMaterial.AOTexture;
+                Logger::Info("Cached %s", texturePath.c_str());
+            }
         }
     }
 
-    Uploader uploader = renderContext->CreateUploader();
-    if (meshMaterial.HasAlbedo) {
-        meshMaterial.AlbedoTexture = renderContext->CreateTexture(albedoImage.Width, albedoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AlbedoPath);
-        meshMaterial.AlbedoTexture->BuildShaderResource();
-        uploader.CopyHostToDeviceTexture(albedoImage, meshMaterial.AlbedoTexture);
-    }
-    if (meshMaterial.HasNormal) {
-        meshMaterial.NormalTexture = renderContext->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.NormalPath);
-        meshMaterial.NormalTexture->BuildShaderResource();
-        uploader.CopyHostToDeviceTexture(normalImage, meshMaterial.NormalTexture);
-    }
-    if (meshMaterial.HasMetallicRoughness) {
-        meshMaterial.PBRTexture = renderContext->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
-        meshMaterial.PBRTexture->BuildShaderResource();
-        uploader.CopyHostToDeviceTexture(pbrImage, meshMaterial.PBRTexture);
-    }
-    if (meshMaterial.HasEmissive) {
-        meshMaterial.EmissiveTexture = renderContext->CreateTexture(emissiveImage.Width, emissiveImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.EmissivePath);
-        meshMaterial.EmissiveTexture->BuildShaderResource();
-        uploader.CopyHostToDeviceTexture(emissiveImage, meshMaterial.EmissiveTexture);
-    }
-    if (meshMaterial.HasAO) {
-        meshMaterial.AOTexture = renderContext->CreateTexture(aoImage.Width, aoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AOPath);
-        meshMaterial.AOTexture->BuildShaderResource();
-        uploader.CopyHostToDeviceTexture(aoImage, meshMaterial.AOTexture);
-    }
     uploader.CopyHostToDeviceLocal(vertices.data(), vertices.size() * sizeof(Vertex), out.VertexBuffer);
     uploader.CopyHostToDeviceLocal(indices.data(), indices.size() * sizeof(uint32_t), out.IndexBuffer);
     renderContext->FlushUploader(uploader);
@@ -163,7 +198,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
         renderContext->GenerateMips(meshMaterial.AlbedoTexture);
     }
     if (meshMaterial.HasNormal) {
-        renderContext->GenerateMips(meshMaterial.NormalTexture);
+        //renderContext->GenerateMips(meshMaterial.NormalTexture);
     }
     if (meshMaterial.HasMetallicRoughness) {
         renderContext->GenerateMips(meshMaterial.PBRTexture);

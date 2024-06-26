@@ -29,10 +29,10 @@ class CommandBuffer
 public:
     using Ptr = std::shared_ptr<CommandBuffer>;
 
-    CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps, CommandQueueType type);
+    CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps, CommandQueueType type, bool close = true);
     ~CommandBuffer();
 
-    void Begin();
+    void Begin(bool reset = true);
     void End();
 
     void BeginEvent(const std::string& name, int r = 255, int g = 255, int b = 255);

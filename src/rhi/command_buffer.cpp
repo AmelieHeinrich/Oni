@@ -25,7 +25,7 @@ bool IsHDR(TextureFormat format)
     return false;
 }
 
-CommandBuffer::CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps, CommandQueueType type)
+CommandBuffer::CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps, CommandQueueType type, bool close)
     : _type(D3D12_COMMAND_LIST_TYPE(type)), _heaps(heaps)
 {
     HRESULT result = devicePtr->GetDevice()->CreateCommandAllocator(_type, IID_PPV_ARGS(&_commandAllocator));
@@ -38,9 +38,11 @@ CommandBuffer::CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps
         Logger::Error("D3D12: Failed to create command list!");
     }
 
-    result = _commandList->Close();
-    if (FAILED(result)) {
-        Logger::Error("D3D12: Failed to close freshly created command list!");
+    if (close) {
+        result = _commandList->Close();
+        if (FAILED(result)) {
+            Logger::Error("D3D12: Failed to close freshly created command list!");
+        }
     }
 }
 
@@ -50,10 +52,12 @@ CommandBuffer::~CommandBuffer()
     _commandAllocator->Release();
 }
 
-void CommandBuffer::Begin()
+void CommandBuffer::Begin(bool reset)
 {
-    _commandAllocator->Reset();
-    _commandList->Reset(_commandAllocator, nullptr);
+    if (reset) {
+        _commandAllocator->Reset();
+        _commandList->Reset(_commandAllocator, nullptr);
+    }
 
     if (_type == D3D12_COMMAND_LIST_TYPE_DIRECT || _type == D3D12_COMMAND_LIST_TYPE_COMPUTE) {
         ID3D12DescriptorHeap* heaps[] = {

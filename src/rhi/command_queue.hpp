@@ -14,7 +14,7 @@ enum class CommandQueueType
 {
     Graphics = D3D12_COMMAND_LIST_TYPE_DIRECT,
     Compute = D3D12_COMMAND_LIST_TYPE_COMPUTE,
-    Copy = D3D12_COMMAND_LIST_TYPE_COPY
+    Copy = D3D12_COMMAND_LIST_TYPE_COPY,
 };
 
 class CommandQueue
@@ -26,6 +26,8 @@ public:
     ~CommandQueue();
 
     void Wait(std::shared_ptr<Fence> fence, uint64_t value);
+    void Signal(std::shared_ptr<Fence> fence, uint64_t value);
+
     void Submit(const std::vector<CommandBuffer::Ptr>& buffers);
 
     ID3D12CommandQueue* GetQueue() { return _queue; }

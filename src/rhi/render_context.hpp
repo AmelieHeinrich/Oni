@@ -39,13 +39,10 @@ public:
 
     void Resize(uint32_t width, uint32_t height);
 
-    void BeginFrame();
-    void EndFrame();
-
     void Present(bool vsync);
+    void Finish();
 
-    void WaitForPreviousHostSubmit(CommandQueueType type);
-    void WaitForPreviousDeviceSubmit(CommandQueueType type);
+    void WaitForGPU();
     void ExecuteCommandBuffers(const std::vector<CommandBuffer::Ptr>& buffers, CommandQueueType type);
 
     CommandBuffer::Ptr GetCurrentCommandBuffer();
@@ -57,7 +54,7 @@ public:
     Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
     Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
     CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name = "Cube Map");
-    CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type);
+    CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type, bool close = true);
     
     Uploader CreateUploader();
     void FlushUploader(Uploader& uploader);
@@ -66,9 +63,6 @@ public:
 
     void OnGUI();
     void OnOverlay();
-private:
-    void FlushQueues();
-    void WaitForPreviousFrame();
 
 private:
     Device::Ptr _device;
@@ -88,7 +82,7 @@ private:
     Allocator::Ptr _allocator;
 
     SwapChain::Ptr _swapChain;
-    uint32_t _frameIndex;
+    uint32_t _frameIndex = 0;
     uint64_t _frameValues[FRAMES_IN_FLIGHT];
     CommandBuffer::Ptr _commandBuffers[FRAMES_IN_FLIGHT];
 

@@ -19,7 +19,9 @@ public:
     void Wait(uint64_t target, uint64_t timeout);
 
     ID3D12Fence* GetFence() { return _fence; }
+    
     uint64_t Value() { return _value; }
+    uint64_t CompletedValue() { return _fence->GetCompletedValue(); }
 private:
     Device::Ptr _devicePtr;
     uint64_t _value;
