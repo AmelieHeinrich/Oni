@@ -98,7 +98,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
                 Logger::Info("Loaded %s from cache", texturePath.c_str());
             } else {
                 normalImage.LoadFromFile(texturePath);
-                meshMaterial.NormalTexture = renderContext->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, meshMaterial.NormalPath);
+                meshMaterial.NormalTexture = renderContext->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.NormalPath);
                 meshMaterial.NormalTexture->BuildShaderResource();
                 uploader.CopyHostToDeviceTexture(normalImage, meshMaterial.NormalTexture);
                 TextureCache[texturePath] = meshMaterial.NormalTexture;
@@ -198,7 +198,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
         renderContext->GenerateMips(meshMaterial.AlbedoTexture);
     }
     if (meshMaterial.HasNormal) {
-        //renderContext->GenerateMips(meshMaterial.NormalTexture);
+        renderContext->GenerateMips(meshMaterial.NormalTexture);
     }
     if (meshMaterial.HasMetallicRoughness) {
         renderContext->GenerateMips(meshMaterial.PBRTexture);

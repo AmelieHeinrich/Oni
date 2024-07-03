@@ -106,17 +106,19 @@ void Renderer::Screenshot()
     uint8_t *Result = new uint8_t[toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4];
     memset(Result, 0xffffffff, toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4);
 
-    CommandBuffer::Ptr cmdBuffer = _renderContext->CreateCommandBuffer(CommandQueueType::Graphics);
+    CommandBuffer::Ptr cmdBuffer = _renderContext->CreateCommandBuffer(CommandQueueType::Graphics, false);
 
     OPTICK_GPU_CONTEXT(cmdBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Screenshot");
 
-    cmdBuffer->Begin();
+    cmdBuffer->Begin(false);
     cmdBuffer->ImageBarrier(toScreenshot, TextureLayout::CopySource);
     cmdBuffer->CopyTextureToBuffer(textureBuffer, toScreenshot);
     cmdBuffer->ImageBarrier(toScreenshot, TextureLayout::ShaderResource);
     cmdBuffer->End();
     _renderContext->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
+
+    _renderContext->WaitForGPU();
 
     void *pData;
     textureBuffer->Map(0, 0, &pData);

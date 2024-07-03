@@ -19,7 +19,7 @@ Window::Window(int width, int height, const std::string& title)
     windowClass.hInstance = GetModuleHandle(nullptr);
     RegisterClassA(&windowClass);
 
-    _hwnd = CreateWindowA(windowClass.lpszClassName, title.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, windowClass.hInstance, nullptr);
+    _hwnd = CreateWindowA(windowClass.lpszClassName, title.c_str(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, windowClass.hInstance, nullptr);
     if (!_hwnd) {
         Logger::Error("Failed to create window!");
         return;
