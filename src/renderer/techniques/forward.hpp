@@ -46,9 +46,9 @@ private:
     GraphicsPipeline::Ptr _pbrPipeline;
     GraphicsPipeline::Ptr _blinnPhongPipeline;
 
-    Buffer::Ptr _sceneBuffer;
-    Buffer::Ptr _lightBuffer;
-    Buffer::Ptr _modeBuffer;
+    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _sceneBuffer;
+    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _lightBuffer;
+    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _modeBuffer;
 
     Sampler::Ptr _sampler;
 

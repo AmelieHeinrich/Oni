@@ -47,6 +47,7 @@ public:
 
     CommandBuffer::Ptr GetCurrentCommandBuffer();
     Texture::Ptr GetBackBuffer();
+    uint32_t GetBackBufferIndex() { return _frameIndex; }
 
     Buffer::Ptr CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback, const std::string& name = "Buffer");
     GraphicsPipeline::Ptr CreateGraphicsPipeline(GraphicsPipelineSpecs& specs);

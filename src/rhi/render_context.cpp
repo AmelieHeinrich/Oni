@@ -37,7 +37,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     _computeFence.Fence = std::make_shared<Fence>(_device);
     _copyFence.Fence = std::make_shared<Fence>(_device);
 
-    _graphicsFence.Value = 1;
+    _graphicsFence.Value = 0;
     _computeFence.Value = 0;
     _copyFence.Value = 0;
 
@@ -45,7 +45,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
         _commandBuffers[i] = std::make_shared<CommandBuffer>(_device, _heaps, CommandQueueType::Graphics);
-        _frameValues[i] = i;
+        _frameValues[i] = 0;
     }
 
     _fontDescriptor = _heaps.ShaderHeap->Allocate();

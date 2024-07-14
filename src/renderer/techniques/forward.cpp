@@ -65,16 +65,18 @@ Forward::Forward(RenderContext::Ptr context)
         _blinnPhongPipeline = context->CreateGraphicsPipeline(specs);
     }
 
-    _sceneBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Scene Buffer CBV");
-    _sceneBuffer->BuildConstantBuffer();
+    for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+        _sceneBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Scene Buffer CBV");
+        _sceneBuffer[i]->BuildConstantBuffer();
+    
+        _lightBuffer[i] = context->CreateBuffer(24832, 0, BufferType::Constant, false, "Light Buffer CBV");
+        _lightBuffer[i]->BuildConstantBuffer();
 
-    _lightBuffer = context->CreateBuffer(24832, 0, BufferType::Constant, false, "Light Buffer CBV");
-    _lightBuffer->BuildConstantBuffer();
+        _modeBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Mode Buffer CBV");
+        _modeBuffer[i]->BuildConstantBuffer();
+    }
 
-    _modeBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Mode Buffer CBV");
-    _modeBuffer->BuildConstantBuffer();
-
-    _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, true, 0);
+    _sampler = context->CreateSampler(SamplerAddress::Border, SamplerFilter::Linear, true, 0);
 }
 
 Forward::~Forward()
@@ -126,6 +128,7 @@ void Forward::ConnectEnvironmentMap(EnvironmentMap& map)
 void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
+    uint32_t frameIndex = _context->GetBackBufferIndex();
 
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("PBR Forward");
@@ -141,18 +144,18 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     data.CameraPosition = glm::vec4(scene.Camera.GetPosition(), 1.0f);
 
     void *pData;
-    _sceneBuffer->Map(0, 0, &pData);
+    _sceneBuffer[frameIndex]->Map(0, 0, &pData);
     memcpy(pData, &data, sizeof(Data));
-    _sceneBuffer->Unmap(0, 0);
+    _sceneBuffer[frameIndex]->Unmap(0, 0);
 
-    _lightBuffer->Map(0, 0, &pData);
+    _lightBuffer[frameIndex]->Map(0, 0, &pData);
     memcpy(pData, &scene.LightBuffer, sizeof(LightData));
-    _lightBuffer->Unmap(0, 0);
+    _lightBuffer[frameIndex]->Unmap(0, 0);
 
     glm::ivec4 mode(_mode, _ibl, 0, 0);
-    _modeBuffer->Map(0, 0, &pData);
+    _modeBuffer[frameIndex]->Map(0, 0, &pData);
     memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
-    _modeBuffer->Unmap(0, 0);
+    _modeBuffer[frameIndex]->Unmap(0, 0);
 
     commandBuffer->BeginEvent("Forward Pass");
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
@@ -162,13 +165,13 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->ClearRenderTarget(_outputImage, 0.3f, 0.5f, 0.8f, 1.0f);
     commandBuffer->ClearDepthTarget(_depthBuffer);
     commandBuffer->BindGraphicsPipeline(_pbrPipeline);
-    commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer, 0);
+    commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer[frameIndex], 0);
     commandBuffer->BindGraphicsCubeMap(_map.IrradianceMap, 7);
     commandBuffer->BindGraphicsCubeMap(_map.PrefilterMap, 8);
     commandBuffer->BindGraphicsShaderResource(_map.BRDF, 9);
     commandBuffer->BindGraphicsSampler(_sampler, 10);
-    commandBuffer->BindGraphicsConstantBuffer(_lightBuffer, 11);
-    commandBuffer->BindGraphicsConstantBuffer(_modeBuffer, 12);
+    commandBuffer->BindGraphicsConstantBuffer(_lightBuffer[frameIndex], 11);
+    commandBuffer->BindGraphicsConstantBuffer(_modeBuffer[frameIndex], 12);
 
     for (auto model : scene.Models) {
         for (auto primitive : model.Primitives) {
@@ -202,6 +205,7 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
 void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
+    uint32_t frameIndex = _context->GetBackBufferIndex();
 
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Blinn Phong Forward");
@@ -217,18 +221,18 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
     data.CameraPosition = glm::vec4(scene.Camera.GetPosition(), 1.0f);
 
     void *pData;
-    _sceneBuffer->Map(0, 0, &pData);
+    _sceneBuffer[frameIndex]->Map(0, 0, &pData);
     memcpy(pData, &data, sizeof(Data));
-    _sceneBuffer->Unmap(0, 0);
+    _sceneBuffer[frameIndex]->Unmap(0, 0);
 
-    _lightBuffer->Map(0, 0, &pData);
+    _lightBuffer[frameIndex]->Map(0, 0, &pData);
     memcpy(pData, &scene.LightBuffer, sizeof(LightData));
-    _lightBuffer->Unmap(0, 0);
+    _lightBuffer[frameIndex]->Unmap(0, 0);
 
     glm::ivec4 mode(_mode, _ibl, 0, 0);
-    _modeBuffer->Map(0, 0, &pData);
+    _modeBuffer[frameIndex]->Map(0, 0, &pData);
     memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
-    _modeBuffer->Unmap(0, 0);
+    _modeBuffer[frameIndex]->Unmap(0, 0);
 
     commandBuffer->BeginEvent("Forward Pass");
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
@@ -239,10 +243,10 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->ClearDepthTarget(_depthBuffer);
     commandBuffer->BindGraphicsPipeline(_blinnPhongPipeline);
 
-    commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer, 0);
+    commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer[frameIndex], 0);
     commandBuffer->BindGraphicsSampler(_sampler, 5);
-    commandBuffer->BindGraphicsConstantBuffer(_lightBuffer, 6);
-    commandBuffer->BindGraphicsConstantBuffer(_modeBuffer, 7);
+    commandBuffer->BindGraphicsConstantBuffer(_lightBuffer[frameIndex], 6);
+    commandBuffer->BindGraphicsConstantBuffer(_modeBuffer[frameIndex], 7);
 
     for (auto& model : scene.Models) {
         for (auto& primitive : model.Primitives) {
