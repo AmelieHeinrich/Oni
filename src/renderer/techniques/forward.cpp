@@ -76,7 +76,7 @@ Forward::Forward(RenderContext::Ptr context)
         _modeBuffer[i]->BuildConstantBuffer();
     }
 
-    _sampler = context->CreateSampler(SamplerAddress::Border, SamplerFilter::Linear, true, 0);
+    _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, true, 0);
 }
 
 Forward::~Forward()

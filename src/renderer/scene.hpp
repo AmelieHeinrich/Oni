@@ -24,7 +24,6 @@ struct PointLight
 
 struct DirectionalLight
 {
-    glm::vec4 Position;
     glm::vec4 Direction;
     glm::vec4 Color;
 };

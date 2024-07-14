@@ -37,7 +37,6 @@ struct PointLight
 
 struct DirectionalLight
 {
-    float4 Position;
     float4 Direction;
     float4 Color;
 };
@@ -172,36 +171,26 @@ float3 CalcPointLight(FragmentIn Input, PointLight light, float3 V, float3 N, fl
 
 float3 CalcDirectionalLight(FragmentIn Input, DirectionalLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
 {
-    float3 color = pow(light.Color.xyz, 2.2);
-    float3 dir = normalize(light.Direction.xyz);
+    float3 lightColor = light.Color.xyz;
 
-    float3 L = normalize(light.Position.xyz - Input.WorldPos.xyz);
+    float3 L = normalize(light.Direction.xyz);
     float3 H = normalize(V + L);
-    
-    // spotlight (soft edges)
-    // 👉 Here I compute the light attenuation, however am not sure
-    // where exactly to plug it in
-
-    float theta = dot(L, -dir); 
-    float attenuation = smoothstep(10.0 * PI / 180.0, 5.0 * PI / 180.0, theta);
-
-    // cook-torrance brdf
-    float3 NDF = DistributionGGX(N, H, roughness);
-    float3 G = GeometrySmith(N, V, L, roughness);
-    float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
-
-    float3 kD = (float3(1.0, 1.0, 1.0) - F) * (1.0 - metallic);
-
     float NdotL = max(dot(N, L), 0.0);
+    float3 radiance = lightColor * NdotL;
 
-    float3 numerator = NDF * G * F;
-    float3 denominator = max(4.0 * max(dot(N, V), 0.0) * NdotL, 0.001);
+    float NDF = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+    float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    
+    float3 numerator = F * G * NDF;
+    float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
     float3 specular = numerator / denominator;
 
-    // add to outgoing radiance Lo
-    float3 radiance = color;
-    
-    return (kD * albedo.rgb / float3(PI, PI, PI) + specular) * radiance * NdotL;
+    float3 kS = F;
+    float3 kD = float3(1.0, 1.0, 1.0) - kS;
+    kD *= 1.0 - metallic;
+
+    return (kD * albedo.xyz / PI + specular) * radiance;
 }
 
 static const float MAX_REFLECTION_LOD = 4.0;

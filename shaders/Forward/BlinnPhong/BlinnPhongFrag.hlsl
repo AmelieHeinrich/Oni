@@ -37,7 +37,6 @@ struct PointLight
 
 struct DirectionalLight
 {
-    float4 Position;
     float4 Direction;
     float4 Color;
 };
@@ -106,7 +105,7 @@ float3 CalcPointLight(FragmentIn Input, PointLight light, float3 N, float3 V)
     ambient  *= attenuation;
     diffuse  *= attenuation;
     specular *= attenuation;
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse + specular) * float3(light.Brightness, light.Brightness, light.Brightness);
 }
 
 float3 CalcDirLight(FragmentIn Input, DirectionalLight light, float3 N, float3 V)

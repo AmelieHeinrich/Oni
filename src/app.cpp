@@ -42,7 +42,7 @@ App::App()
     scene = {};
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/SciFiHelmet.gltf");
+    sponza.Load(_renderContext, "assets/models/Sponza.gltf");
 
     scene.Models.push_back(sponza);
 
@@ -53,12 +53,11 @@ App::App()
         light.Brightness = 5.0f;
         scene.LightBuffer.PointLights[i] = light;
     }
-    scene.LightBuffer.PointLightCount = 1;
+    scene.LightBuffer.PointLightCount = 0;
 
-    scene.LightBuffer.Sun.Position = glm::vec4(0.0f, 10.0f, 0.0f, 0.0f);
-    scene.LightBuffer.Sun.Direction = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
-    scene.LightBuffer.Sun.Color = glm::vec4(0.1f);
-    scene.LightBuffer.HasSun = 0;
+    scene.LightBuffer.Sun.Direction = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+    scene.LightBuffer.Sun.Color = glm::vec4(20.0f);
+    scene.LightBuffer.HasSun = 1;
 
     _renderContext->WaitForGPU();
 }
@@ -217,6 +216,15 @@ void App::ShowLightEditor()
     ImGui::Begin("Scene Editor");
 
     ImGui::Checkbox("Update Frustum", &_updateFrustum);
+
+    if (ImGui::TreeNodeEx("Sun")) {
+        float color = scene.LightBuffer.Sun.Color.x;
+        ImGui::SliderFloat("Intensity", &color, 0.0f, 50.0f);
+        scene.LightBuffer.Sun.Color = glm::vec4(color);
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
 
     for (int i = 0; i < scene.LightBuffer.PointLightCount; i++) {
         PointLight& light = scene.LightBuffer.PointLights[i];
