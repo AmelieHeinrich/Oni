@@ -16,6 +16,7 @@
 Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
 {
+    _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Medium);
     _forward = std::make_shared<Forward>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _forward->GetOutput(), _forward->GetDepthBuffer());
     _colorCorrection = std::make_shared<ColorCorrection>(context, _forward->GetOutput());
@@ -23,6 +24,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _tonemapping = std::make_shared<Tonemapping>(context, _forward->GetOutput());
 
     _forward->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
+    // TODO(ame): Connect shadow map
 }
 
 Renderer::~Renderer()
@@ -37,6 +39,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
     {
         OPTICK_EVENT("Frame Render");
 
+        _shadows->Render(scene);
         _forward->Render(scene, width, height);
         _envMapForward->Render(scene, width, height);
         _colorCorrection->Render(scene, width, height);
@@ -65,6 +68,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 
 void Renderer::Resize(uint32_t width, uint32_t height)
 {
+    _shadows->Resize(width, height);
     _forward->Resize(width, height);
     _envMapForward->Resize(width, height, _forward->GetOutput(), _forward->GetDepthBuffer());
     _colorCorrection->Resize(width, height, _forward->GetOutput());
@@ -76,6 +80,7 @@ void Renderer::OnUI()
 {
     ImGui::Begin("Renderer Settings");
 
+    _shadows->OnUI();
     _forward->OnUI();
     _envMapForward->OnUI();
     _colorCorrection->OnUI();

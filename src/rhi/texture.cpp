@@ -131,33 +131,39 @@ Texture::~Texture()
     }
 }
 
-void Texture::BuildRenderTarget()
+void Texture::BuildRenderTarget(TextureFormat specificFormat)
 {
     _rtv = _heaps.RTVHeap->Allocate();
 
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
     rtvDesc.Format = DXGI_FORMAT(_format);
+    if (specificFormat != TextureFormat::None)
+        rtvDesc.Format = DXGI_FORMAT(specificFormat);
     rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     _devicePtr->GetDevice()->CreateRenderTargetView(_resource->Resource, &rtvDesc, _rtv.CPU);
 }
 
-void Texture::BuildDepthTarget()
+void Texture::BuildDepthTarget(TextureFormat specificFormat)
 {
     _dsv = _heaps.DSVHeap->Allocate();
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
     dsvDesc.Format = DXGI_FORMAT(_format);
+    if (specificFormat != TextureFormat::None)
+        dsvDesc.Format = DXGI_FORMAT(specificFormat);
     dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     _devicePtr->GetDevice()->CreateDepthStencilView(_resource->Resource, &dsvDesc, _dsv.CPU);
 }
 
-void Texture::BuildShaderResource()
+void Texture::BuildShaderResource(TextureFormat specificFormat)
 {
     {
         auto firstMip = _heaps.ShaderHeap->Allocate();
     
         D3D12_SHADER_RESOURCE_VIEW_DESC ShaderResourceView = {};
         ShaderResourceView.Format = DXGI_FORMAT(_format);
+        if (specificFormat != TextureFormat::None)
+            ShaderResourceView.Format = DXGI_FORMAT(specificFormat);
         ShaderResourceView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         ShaderResourceView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         ShaderResourceView.Texture2D.MipLevels = _mipLevels;
@@ -173,6 +179,8 @@ void Texture::BuildShaderResource()
     
         D3D12_SHADER_RESOURCE_VIEW_DESC ShaderResourceView = {};
         ShaderResourceView.Format = DXGI_FORMAT(_format);
+        if (specificFormat != TextureFormat::None)
+            ShaderResourceView.Format = DXGI_FORMAT(specificFormat);
         ShaderResourceView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         ShaderResourceView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         ShaderResourceView.Texture2D.MipLevels = 1;
@@ -184,13 +192,15 @@ void Texture::BuildShaderResource()
     }
 }
 
-void Texture::BuildStorage()
+void Texture::BuildStorage(TextureFormat specificFormat)
 {
     for (int i = 0; i < _mipLevels; i++) {
         auto uav = _heaps.ShaderHeap->Allocate();
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC UnorderedAccessView = {};
         UnorderedAccessView.Format = DXGI_FORMAT(_format);
+        if (specificFormat != TextureFormat::None)
+            UnorderedAccessView.Format = DXGI_FORMAT(specificFormat);
         UnorderedAccessView.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
         UnorderedAccessView.Texture2D.MipSlice = i;
         _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource->Resource, nullptr, &UnorderedAccessView, uav.CPU);

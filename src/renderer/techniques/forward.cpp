@@ -42,7 +42,7 @@ Forward::Forward(RenderContext::Ptr context)
         specs.DepthFormat = TextureFormat::R32Depth;
         specs.Depth = DepthOperation::Less;
         specs.DepthEnabled = true;
-        specs.Cull = CullMode::None;
+        specs.Cull = CullMode::Front;
         specs.Fill = FillMode::Solid;
         ShaderCompiler::CompileShader("shaders/Forward/PBR/PBRVert.hlsl", "Main", ShaderType::Vertex, specs.Bytecodes[ShaderType::Vertex]);
         ShaderCompiler::CompileShader("shaders/Forward/PBR/PBRFrag.hlsl", "Main", ShaderType::Fragment, specs.Bytecodes[ShaderType::Fragment]);
@@ -57,7 +57,7 @@ Forward::Forward(RenderContext::Ptr context)
         specs.DepthFormat = TextureFormat::R32Depth;
         specs.Depth = DepthOperation::Less;
         specs.DepthEnabled = true;
-        specs.Cull = CullMode::None;
+        specs.Cull = CullMode::Front;
         specs.Fill = FillMode::Solid;
         ShaderCompiler::CompileShader("shaders/Forward/BlinnPhong/BlinnPhongVert.hlsl", "Main", ShaderType::Vertex, specs.Bytecodes[ShaderType::Vertex]);
         ShaderCompiler::CompileShader("shaders/Forward/BlinnPhong/BlinnPhongFrag.hlsl", "Main", ShaderType::Fragment, specs.Bytecodes[ShaderType::Fragment]);

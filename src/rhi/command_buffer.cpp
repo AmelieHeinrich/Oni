@@ -202,7 +202,7 @@ void CommandBuffer::SetTopology(Topology topology)
     _commandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY(topology));
 }
 
-void CommandBuffer::BindRenderTargets(const std::vector<Texture::Ptr> renderTargets, Texture::Ptr depthTarget)
+void CommandBuffer::BindRenderTargets(const std::vector<Texture::Ptr>& renderTargets, Texture::Ptr depthTarget)
 {
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvDescriptors;
     D3D12_CPU_DESCRIPTOR_HANDLE dsvDescriptor;

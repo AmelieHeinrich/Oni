@@ -56,7 +56,7 @@ App::App()
     scene.LightBuffer.PointLightCount = 0;
 
     scene.LightBuffer.Sun.Direction = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-    scene.LightBuffer.Sun.Color = glm::vec4(20.0f);
+    scene.LightBuffer.Sun.Color = glm::vec4(15.0f);
     scene.LightBuffer.HasSun = 1;
 
     _renderContext->WaitForGPU();

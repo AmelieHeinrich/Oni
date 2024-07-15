@@ -7,6 +7,7 @@
 
 #include "scene.hpp"
 
+#include "techniques/shadows.hpp"
 #include "techniques/forward.hpp"
 #include "techniques/envmap_forward.hpp"
 #include "techniques/color_correction.hpp"
@@ -27,6 +28,7 @@ private:
 
     RenderContext::Ptr _renderContext;
 
+    std::shared_ptr<Shadows> _shadows;
     std::shared_ptr<Forward> _forward;
     std::shared_ptr<EnvMapForward> _envMapForward;
     std::shared_ptr<ColorCorrection> _colorCorrection;

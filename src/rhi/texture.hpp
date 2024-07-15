@@ -11,13 +11,15 @@
 
 enum class TextureFormat
 {
+    None = DXGI_FORMAT_UNKNOWN,
     RGBA8 = DXGI_FORMAT_R8G8B8A8_UNORM,
     RGBA32Float = DXGI_FORMAT_R32G32B32A32_FLOAT,
     RGBA16Float = DXGI_FORMAT_R16G16B16A16_FLOAT,
     RGBA16Unorm = DXGI_FORMAT_R16G16B16A16_UNORM,
     RG16Float = DXGI_FORMAT_R16G16_FLOAT,
     R32Float = DXGI_FORMAT_R32_FLOAT,
-    R32Depth = DXGI_FORMAT_D32_FLOAT
+    R32Depth = DXGI_FORMAT_D32_FLOAT,
+    R32Typeless = DXGI_FORMAT_R32_TYPELESS // For shadows!
 };
 
 enum class TextureLayout
@@ -52,10 +54,10 @@ public:
     Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
     ~Texture();
 
-    void BuildRenderTarget();
-    void BuildDepthTarget();
-    void BuildShaderResource();
-    void BuildStorage();
+    void BuildRenderTarget(TextureFormat specificFormat = TextureFormat::None);
+    void BuildDepthTarget(TextureFormat specificFormat = TextureFormat::None);
+    void BuildShaderResource(TextureFormat specificFormat = TextureFormat::None);
+    void BuildStorage(TextureFormat specificFormat = TextureFormat::None);
 
     void SetState(D3D12_RESOURCE_STATES state, int mip) { _states[mip] = state; }
     D3D12_RESOURCE_STATES GetState(int mip) { return _states[mip]; }
@@ -64,6 +66,8 @@ public:
 
     static uint64_t GetComponentSize(TextureFormat format);
     TextureFormat GetFormat() { return _format; }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE GetImGuiImage() { return _srvs.front().GPU; }
 
     int GetWidth() { return _width; }
     int GetHeight() { return _height; }
