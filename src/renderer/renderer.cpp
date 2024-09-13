@@ -4,6 +4,7 @@
  */
 
 #include "renderer.hpp"
+#include "core/log.hpp"
 
 #include <sstream>
 #include <algorithm>
@@ -86,13 +87,13 @@ void Renderer::OnUI()
     ImGui::End();
 }
 
-void Renderer::Screenshot(Texture::Ptr screenshotTexture)
+void Renderer::Screenshot(Texture::Ptr screenshotTexture, TextureLayout newLayout)
 {
     OPTICK_EVENT("Screenshot");
 
     _renderContext->WaitForGPU();
 
-    Texture::Ptr toScreenshot = screenshotTexture ? screenshotTexture : _tonemapping->GetOutput();
+    Texture::Ptr toScreenshot = screenshotTexture != nullptr ? screenshotTexture : _tonemapping->GetOutput();
     Buffer::Ptr textureBuffer = _renderContext->CreateBuffer(toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4, 0, BufferType::Copy, true, "Screenshot Buffer");
 
     std::stringstream Stream;
@@ -115,7 +116,7 @@ void Renderer::Screenshot(Texture::Ptr screenshotTexture)
     cmdBuffer->Begin(false);
     cmdBuffer->ImageBarrier(toScreenshot, TextureLayout::CopySource);
     cmdBuffer->CopyTextureToBuffer(textureBuffer, toScreenshot);
-    cmdBuffer->ImageBarrier(toScreenshot, TextureLayout::ShaderResource);
+    cmdBuffer->ImageBarrier(toScreenshot, newLayout);
     cmdBuffer->End();
     _renderContext->ExecuteCommandBuffers({ cmdBuffer }, CommandQueueType::Graphics);
 
@@ -127,5 +128,6 @@ void Renderer::Screenshot(Texture::Ptr screenshotTexture)
     textureBuffer->Unmap(0, 0);
 
     stbi_write_png(String.c_str(), toScreenshot->GetWidth(), toScreenshot->GetHeight(), 4, Result, toScreenshot->GetWidth() * 4);
+    Logger::Info("Saved screenshot at %s", String.c_str());
     delete Result;
 }

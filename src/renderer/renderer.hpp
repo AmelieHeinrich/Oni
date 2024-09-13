@@ -23,7 +23,7 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height, float dt);
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
-    void Screenshot(Texture::Ptr screenshotTexture = nullptr);
+    void Screenshot(Texture::Ptr screenshotTexture = nullptr, TextureLayout newLayout = TextureLayout::ShaderResource);
 private:
 
     RenderContext::Ptr _renderContext;

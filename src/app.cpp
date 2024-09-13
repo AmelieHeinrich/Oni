@@ -113,6 +113,10 @@ void App::Run()
             commandBuffer->ImageBarrier(texture, TextureLayout::Present);
         }
 
+        if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_F2)) {
+            _renderer->Screenshot(texture, TextureLayout::Present);
+        }
+
         // SUBMIT
         {
             OPTICK_EVENT("Submit");
@@ -125,10 +129,6 @@ void App::Run()
             OPTICK_EVENT("Present");
             _renderContext->Present(_vsync);
             _renderContext->Finish();
-        }
-
-        if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_F12)) {
-            _renderer->Screenshot(texture);
         }
 
         if (!_showUI) {
@@ -201,6 +201,7 @@ void App::RenderHelper()
     ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
     ImGui::Text("WASD + Mouse for Camera");
     ImGui::Text("Debug Menu: F1");
+    ImGui::Text("Screenshot: F2");
     ImGui::Text("%d FPS (%fms)", _fps, _frameTime);
     ImGui::Text(_vsync ? "VSYNC: ON" : "VSYNC: OFF");
     ImGui::End();

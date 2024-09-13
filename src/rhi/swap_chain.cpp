@@ -44,6 +44,8 @@ SwapChain::SwapChain(Device::Ptr device, CommandQueue::Ptr graphicsQueue, Descri
         _devicePtr->GetDevice()->CreateRenderTargetView(_buffers[i], nullptr, _descriptors[i].CPU);
 
         _textures[i] = std::make_shared<Texture>(_devicePtr);
+        _textures[i]->_width = _width;
+        _textures[i]->_height = _height;
         _textures[i]->_release = false;
         _textures[i]->_resource = new GPUResource;
         _textures[i]->_resource->Resource = _buffers[i];
@@ -110,6 +112,8 @@ void SwapChain::Resize(uint32_t width, uint32_t height)
             _devicePtr->GetDevice()->CreateRenderTargetView(_buffers[i], nullptr, _descriptors[i].CPU);
 
             _textures[i] = std::make_shared<Texture>(_devicePtr);
+            _textures[i]->_width = _width;
+            _textures[i]->_height = _height;
             _textures[i]->_release = false;
             _textures[i]->_resource = new GPUResource;
             _textures[i]->_resource->Resource = _buffers[i];
