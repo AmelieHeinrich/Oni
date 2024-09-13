@@ -90,7 +90,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
 
     // Load HDRI
     Image image;
-    image.LoadHDR("assets/env/san_giuseppe_bridge_4k.hdr");
+    image.LoadHDR("assets/env/sm64/cairo.hdr");
 
     Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, false, "HDR Texture");
     hdrTexture->BuildShaderResource();
