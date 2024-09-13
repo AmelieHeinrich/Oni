@@ -60,10 +60,6 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         cmdBuf->ImageBarrier(backbuffer, TextureLayout::Present);
         cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::ShaderResource);
     }
-
-    if (ImGui::IsKeyPressed(ImGuiKey_F12, false)) {
-        Screenshot();
-    }
 }
 
 void Renderer::Resize(uint32_t width, uint32_t height)
@@ -90,13 +86,13 @@ void Renderer::OnUI()
     ImGui::End();
 }
 
-void Renderer::Screenshot()
+void Renderer::Screenshot(Texture::Ptr screenshotTexture)
 {
     OPTICK_EVENT("Screenshot");
 
     _renderContext->WaitForGPU();
 
-    Texture::Ptr toScreenshot = _tonemapping->GetOutput();
+    Texture::Ptr toScreenshot = screenshotTexture ? screenshotTexture : _tonemapping->GetOutput();
     Buffer::Ptr textureBuffer = _renderContext->CreateBuffer(toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4, 0, BufferType::Copy, true, "Screenshot Buffer");
 
     std::stringstream Stream;

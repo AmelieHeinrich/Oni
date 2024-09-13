@@ -23,8 +23,8 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height, float dt);
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
+    void Screenshot(Texture::Ptr screenshotTexture = nullptr);
 private:
-    void Screenshot();
 
     RenderContext::Ptr _renderContext;
 

@@ -47,14 +47,6 @@ App::App()
     sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
 
     scene.Models.push_back(sponza);
-
-    for (int i = 0; i < 0; i++) {
-        glm::vec3 Position = glm::vec3(random_float(-4.0f, 4.0f), random_float(1.0f, 5.0f), random_float(-4.0f, 4.0f));
-        glm::vec3 Color = glm::vec3(random_float(0.1f, 1.0f), random_float(0.1f, 1.0f), random_float(0.0f, 1.0f));
-
-        PointLight light(Position, Color, 5.0f);
-        scene.Lights.AddPointLight(light);
-    }
     scene.Lights.SetSun(glm::vec3(0.0f, -10.0f, 0.0f), glm::vec4(0.1f, 1.0f, 0.1f, 0.0f), glm::vec4(15.0f));
 
     _renderContext->WaitForGPU();
@@ -133,6 +125,10 @@ void App::Run()
             OPTICK_EVENT("Present");
             _renderContext->Present(_vsync);
             _renderContext->Finish();
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_F12)) {
+            _renderer->Screenshot(texture);
         }
 
         if (!_showUI) {
@@ -250,19 +246,41 @@ void App::ShowLightEditor()
 
     ImGui::Separator();
 
-    // TODO: REWORk
-    //for (int i = 0; i < scene.LightBuffer.PointLightCount; i++) {
-    //    PointLight& light = scene.LightBuffer.PointLights[i];
-    //    if (ImGui::TreeNodeEx(("Light " + std::to_string(i)).c_str())) {
-    //        ImGui::DragFloat4("Position", glm::value_ptr(light.Position));
-    //        ImGui::ColorPicker4("Color", glm::value_ptr(light.Color));
-    //        ImGui::DragFloat("Brightness", &light.Brightness);
-    //        ImGui::TreePop();
-    //    }
-    //}
-    //if (ImGui::Button("Add Light")) {
-    //    scene.LightBuffer.PointLightCount++;
-    //}
+    if (ImGui::Button("Add Point Light")) {
+        scene.Lights.AddPointLight(PointLight(glm::vec3(0.0f), glm::vec3(1.0f), 1.0f));   
+    }
+
+    for (int i = 0; i < scene.Lights.PointLights.size(); i++) {
+        auto& light = scene.Lights.PointLights[i];
+        if (ImGui::TreeNodeEx(std::string("Point Light " + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_Framed)) {
+            ImGui::ColorPicker3("Color", glm::value_ptr(light.Color), ImGuiColorEditFlags_PickerHueBar);
+            ImGui::SliderFloat("Brightness", &light.Brightness, 0.0f, 100.0f);
+
+            glm::mat4 Transform(1.0f);
+            glm::vec3 DummyRotation;
+            glm::vec3 DummyScale;
+
+            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(light.Position),
+                                                    glm::value_ptr(glm::vec3(0.0f)), 
+                                                    glm::value_ptr(glm::vec3(1.0f)),
+                                                    glm::value_ptr(Transform));
+
+            ImGuizmo::Manipulate(glm::value_ptr(scene.Camera.View()),
+                                 glm::value_ptr(scene.Camera.Projection()),
+                                 ImGuizmo::OPERATION::TRANSLATE,
+                                 ImGuizmo::MODE::WORLD,
+                                 glm::value_ptr(Transform),
+                                 nullptr,
+                                 nullptr);
+
+            ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(Transform),
+                                                  glm::value_ptr(light.Position),
+                                                  glm::value_ptr(DummyRotation),
+                                                  glm::value_ptr(DummyScale));
+
+            ImGui::TreePop();
+        }
+    }
 
     ImGui::End();
 }
