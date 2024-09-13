@@ -59,6 +59,9 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
     //IO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
 
+    // Add fonts
+    IO.FontDefault = IO.Fonts->AddFontFromFileTTF("assets/fonts/Roboto-Regular.ttf", 14); 
+
     ImGui::StyleColorsDark();
     ImGuiStyle& Style = ImGui::GetStyle();
 

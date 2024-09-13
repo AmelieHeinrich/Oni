@@ -5,7 +5,7 @@
 
  struct FragmentIn
  {
-     float4 Position : SV_POSITION;
+    float4 Position : SV_POSITION;
  };
 
 void Main()

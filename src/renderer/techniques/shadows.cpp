@@ -23,7 +23,7 @@ Shadows::Shadows(RenderContext::Ptr context, ShadowMapResolution resolution)
     GraphicsPipelineSpecs specs;
     specs.Bytecodes[ShaderType::Vertex] = shadowVert;
     specs.Bytecodes[ShaderType::Fragment] = shadowPix;
-    specs.Cull = CullMode::None;
+    specs.Cull = CullMode::Back;
     specs.Depth = DepthOperation::Less;
     specs.DepthEnabled = true;
     specs.DepthFormat = TextureFormat::R32Depth;
@@ -47,7 +47,7 @@ Shadows::~Shadows()
 
 }
 
-void Shadows::Render(Scene& scene)
+void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
     uint32_t frameIndex = _context->GetBackBufferIndex();
@@ -55,8 +55,12 @@ void Shadows::Render(Scene& scene)
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Shadow Pass");
 
+    float near_plane = 1.0f, far_plane = 7.5f;
+    glm::mat4 depthProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+    glm::mat4 depthView = glm::lookAt(scene.Lights.SunPosition, glm::vec3(-scene.Lights.Sun.Direction), glm::vec3(0.0f, 1.0f, 0.0f)); // Kill yourself
+
     ShadowParam param;
-    param.LightMatrix = glm::mat4(1.0f); // Just this to calc and I should be good sigma
+    param.LightMatrix = depthProjection * depthView;
     param.Model = glm::mat4(1.0f);
 
     void *pData;

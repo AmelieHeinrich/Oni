@@ -11,6 +11,8 @@
 #include "model.hpp"
 
 #include <ImGui/imgui.h>
+#include <ImGuizmo/ImGuizmo.h>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <ctime>
@@ -24,12 +26,12 @@ float random_float(float min, float max)
 }
 
 App::App()
-    : _camera(1280, 720), _lastFrame(0.0f)
+    : _camera(1920, 1080), _lastFrame(0.0f)
 {
     Logger::Init();
     srand(time(NULL));
 
-    _window = std::make_shared<Window>(1920 + 16, 1080 + 39, "Oni | <D3D12> | <WINDOWS>");
+    _window = std::make_shared<Window>(1920 + 16, 1080 + 39, "ONI");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
         _renderer->Resize(width, height);
@@ -42,22 +44,18 @@ App::App()
     scene = {};
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/Sponza.gltf");
+    sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
 
     scene.Models.push_back(sponza);
 
-    for (int i = 0; i < 1; i++) {
-        PointLight light;
-        light.Position = glm::vec4(random_float(-4.0f, 4.0f), random_float(1.0f, 5.0f), random_float(-4.0f, 4.0f), 1.0f);
-        light.Color = glm::vec4(random_float(0.1f, 1.0f), random_float(0.1f, 1.0f), random_float(0.0f, 1.0f), 1.0f);
-        light.Brightness = 5.0f;
-        scene.LightBuffer.PointLights[i] = light;
-    }
-    scene.LightBuffer.PointLightCount = 0;
+    for (int i = 0; i < 0; i++) {
+        glm::vec3 Position = glm::vec3(random_float(-4.0f, 4.0f), random_float(1.0f, 5.0f), random_float(-4.0f, 4.0f));
+        glm::vec3 Color = glm::vec3(random_float(0.1f, 1.0f), random_float(0.1f, 1.0f), random_float(0.0f, 1.0f));
 
-    scene.LightBuffer.Sun.Direction = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-    scene.LightBuffer.Sun.Color = glm::vec4(15.0f);
-    scene.LightBuffer.HasSun = 1;
+        PointLight light(Position, Color, 5.0f);
+        scene.Lights.AddPointLight(light);
+    }
+    scene.Lights.SetSun(glm::vec3(0.0f, -10.0f, 0.0f), glm::vec4(0.1f, 1.0f, 0.1f, 0.0f), glm::vec4(15.0f));
 
     _renderContext->WaitForGPU();
 }
@@ -208,37 +206,63 @@ void App::RenderHelper()
     ImGui::Text("WASD + Mouse for Camera");
     ImGui::Text("Debug Menu: F1");
     ImGui::Text("%d FPS (%fms)", _fps, _frameTime);
+    ImGui::Text(_vsync ? "VSYNC: ON" : "VSYNC: OFF");
     ImGui::End();
 }
 
 void App::ShowLightEditor()
 {
+    ImGuiIO& io = ImGui::GetIO();
+
+    //////////////////////////////////// IMGUIZMO
+
+    ImGui::SetNextWindowPos({0, 0});
+    ImGui::SetNextWindowSize({ 1920, 1080 });
+    ImGui::Begin("ImGuizmo Context", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs);
+
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetDrawlist();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+    // Draw grid
+    if (_drawGrid) {
+        ImGuizmo::DrawGrid(glm::value_ptr(scene.Camera.View()),
+                           glm::value_ptr(scene.Camera.Projection()),
+                           glm::value_ptr(glm::mat4(1.0f)),
+                           100.0f);
+    }
+
+    ImGui::End();
+
+    /////////////////////////////////// SCENE PANEL
+
     ImGui::Begin("Scene Editor");
 
+    ImGui::Checkbox("Draw Grid (EXPERIMENTAL)", &_drawGrid);
     ImGui::Checkbox("Update Frustum", &_updateFrustum);
 
-    if (ImGui::TreeNodeEx("Sun")) {
-        float color = scene.LightBuffer.Sun.Color.x;
-        ImGui::SliderFloat("Intensity", &color, 0.0f, 50.0f);
-        scene.LightBuffer.Sun.Color = glm::vec4(color);
+    if (ImGui::TreeNodeEx("Sun", ImGuiTreeNodeFlags_Framed)) {
+        float intensity = scene.Lights.Sun.Color.x;
+        ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
+        scene.Lights.Sun.Color = glm::vec3(intensity);
         ImGui::TreePop();
     }
 
     ImGui::Separator();
 
-    for (int i = 0; i < scene.LightBuffer.PointLightCount; i++) {
-        PointLight& light = scene.LightBuffer.PointLights[i];
-        if (ImGui::TreeNodeEx(("Light " + std::to_string(i)).c_str())) {
-            ImGui::DragFloat4("Position", glm::value_ptr(light.Position));
-            ImGui::ColorPicker4("Color", glm::value_ptr(light.Color));
-            ImGui::DragFloat("Brightness", &light.Brightness);
-            ImGui::TreePop();
-        }
-    }
-
-    if (ImGui::Button("Add Light")) {
-        scene.LightBuffer.PointLightCount++;
-    }
+    // TODO: REWORk
+    //for (int i = 0; i < scene.LightBuffer.PointLightCount; i++) {
+    //    PointLight& light = scene.LightBuffer.PointLights[i];
+    //    if (ImGui::TreeNodeEx(("Light " + std::to_string(i)).c_str())) {
+    //        ImGui::DragFloat4("Position", glm::value_ptr(light.Position));
+    //        ImGui::ColorPicker4("Color", glm::value_ptr(light.Color));
+    //        ImGui::DragFloat("Brightness", &light.Brightness);
+    //        ImGui::TreePop();
+    //    }
+    //}
+    //if (ImGui::Button("Add Light")) {
+    //    scene.LightBuffer.PointLightCount++;
+    //}
 
     ImGui::End();
 }

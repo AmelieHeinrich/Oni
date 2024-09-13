@@ -12,7 +12,7 @@ target("Oni")
     set_languages("c++17")
     add_files("src/**.cpp")
     add_includedirs("src", "ext", "ext/PIX/include", "ext/optick/")
-    add_deps("D3D12MA", "ImGui", "stb", "optick")
+    add_deps("D3D12MA", "ImGui", "stb", "optick", "ImGuizmo")
     add_linkdirs("ext/assimp/bin")
     add_linkdirs("ext/PIX/lib")
 

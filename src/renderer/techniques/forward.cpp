@@ -149,7 +149,7 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     _sceneBuffer[frameIndex]->Unmap(0, 0);
 
     _lightBuffer[frameIndex]->Map(0, 0, &pData);
-    memcpy(pData, &scene.LightBuffer, sizeof(LightData));
+    memcpy(pData, &scene.Lights.GetGPUData(), sizeof(LightSettings::GPUData));
     _lightBuffer[frameIndex]->Unmap(0, 0);
 
     glm::ivec4 mode(_mode, _ibl, 0, 0);
@@ -226,7 +226,7 @@ void Forward::RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height)
     _sceneBuffer[frameIndex]->Unmap(0, 0);
 
     _lightBuffer[frameIndex]->Map(0, 0, &pData);
-    memcpy(pData, &scene.LightBuffer, sizeof(LightData));
+    memcpy(pData, &scene.Lights.GetGPUData(), sizeof(LightSettings::GPUData));
     _lightBuffer[frameIndex]->Unmap(0, 0);
 
     glm::ivec4 mode(_mode, _ibl, 0, 0);

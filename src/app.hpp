@@ -48,6 +48,7 @@ private:
     bool _showRendererSettings = false;
     bool _showLightEditor = false;
     bool _updateFrustum = true;
+    bool _drawGrid = false;
 
     int _fps;
     float _frameTime = 0.0f;

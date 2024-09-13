@@ -39,7 +39,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
     {
         OPTICK_EVENT("Frame Render");
 
-        _shadows->Render(scene);
+        _shadows->Render(scene, width, height);
         _forward->Render(scene, width, height);
         _envMapForward->Render(scene, width, height);
         _colorCorrection->Render(scene, width, height);

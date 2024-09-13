@@ -5,45 +5,19 @@
 
 #pragma once
 
+#include <vector>
+
 #include "model.hpp"
 #include "camera.hpp"
-
-#include <glm/gtc/type_ptr.hpp>
-
-#define MAX_POINT_LIGHTS 512
-
-struct PointLight
-{
-    glm::vec4 Position;
-    glm::vec4 Color;
-    float Brightness;
-    uint32_t _pad0;
-    uint32_t _pad1;
-    uint32_t _pad2;
-};
-
-struct DirectionalLight
-{
-    glm::vec4 Direction;
-    glm::vec4 Color;
-};
-
-struct LightData
-{
-    PointLight PointLights[MAX_POINT_LIGHTS];
-    int PointLightCount;
-    glm::vec3 _Pad0;
-
-    DirectionalLight Sun;
-    int HasSun;
-    glm::vec3 _Pad1;
-};
+#include "lights.hpp"
 
 struct Scene
 {
-    std::vector<Model> Models;
+    Scene() = default;
+    ~Scene() = default;
 
     FreeCamera Camera;
-    
-    LightData LightBuffer;
+
+    std::vector<Model> Models;
+    LightSettings Lights;
 };
