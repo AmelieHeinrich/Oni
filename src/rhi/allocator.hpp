@@ -40,6 +40,12 @@ struct GPUResource
 class Allocator
 {
 public:
+    struct Stats
+    {
+        uint64_t Total;
+        uint64_t Used;
+    };
+
     using Ptr = std::shared_ptr<Allocator>;
 
     Allocator(Device::Ptr devicePtr);
@@ -50,6 +56,8 @@ public:
     D3D12MA::Allocator* GetAllocator() { return _allocator; }
 
     void OnGUI();
+
+    Stats GetStats();
 private:
     friend struct GPUResource;
 

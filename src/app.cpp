@@ -35,7 +35,7 @@ App::App()
     srand(time(NULL));
 
     // Compress every model texture
-    TextureCompressor::TraverseDirectory("assets/textures/");
+    TextureCompressor::TraverseDirectory("assets/textures/", TextureCompressorFormat::BC1);
 
     _window = std::make_shared<Window>(1920 + 16, 1080 + 39, "ONI");
     _window->OnResize([&](uint32_t width, uint32_t height) {
@@ -50,7 +50,7 @@ App::App()
     scene = {};
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
+    sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
 
     scene.Models.push_back(sponza);
     scene.Lights.SetSun(glm::vec3(0.0f, -10.0f, 0.0f), glm::vec4(0.1f, 1.0f, 0.1f, 0.0f), glm::vec4(15.0f));
@@ -76,6 +76,10 @@ void App::Run()
             lastTime = currentTime;
             _fps = (int)framesPerSecond;
             framesPerSecond = 0;
+        }
+        _pastFps.push_back(_fps);
+        if (_pastFps.size() > _historySize) {
+            _pastFps.erase(_pastFps.begin());
         }
 
         float time = _dtTimer.GetElapsed();
@@ -121,6 +125,9 @@ void App::Run()
 
         if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_F2)) {
             _renderer->Screenshot(texture, TextureLayout::Present);
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_F3)) {
+            _hideOverlay = !_hideOverlay;
         }
 
         // SUBMIT
@@ -187,30 +194,34 @@ void App::RenderOverlay()
 
 void App::RenderHelper()
 {
-    static bool p_open = true;
+    if (!_hideOverlay) {
+        static bool p_open = true;
 
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-    const float PAD = 10.0f;
-    const ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImVec2 work_pos = viewport->WorkPos;
-    ImVec2 work_size = viewport->WorkSize;
-    ImVec2 window_pos, window_pos_pivot;
-    window_pos.x = (work_pos.x + PAD);
-    window_pos.y = (work_pos.y + PAD);
-    window_pos_pivot.x = 0.0f;
-    window_pos_pivot.y = 0.0f;
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-    window_flags |= ImGuiWindowFlags_NoMove;
+        ImGuiIO& io = ImGui::GetIO();
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+        const float PAD = 10.0f;
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImVec2 work_pos = viewport->WorkPos;
+        ImVec2 work_size = viewport->WorkSize;
+        ImVec2 window_pos, window_pos_pivot;
+        window_pos.x = (work_pos.x + PAD);
+        window_pos.y = (work_pos.y + PAD);
+        window_pos_pivot.x = 0.0f;
+        window_pos_pivot.y = 0.0f;
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+        window_flags |= ImGuiWindowFlags_NoMove;
 
-    ImGui::SetNextWindowBgAlpha(0.35f);
-    ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
-    ImGui::Text("WASD + Mouse for Camera");
-    ImGui::Text("Debug Menu: F1");
-    ImGui::Text("Screenshot: F2");
-    ImGui::Text("%d FPS (%fms)", _fps, _frameTime);
-    ImGui::Text(_vsync ? "VSYNC: ON" : "VSYNC: OFF");
-    ImGui::End();
+        ImGui::SetNextWindowBgAlpha(0.35f);
+        ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
+        ImGui::Text("WASD + Mouse for Camera");
+        ImGui::Text("Debug Menu: F1");
+        ImGui::Text("Screenshot: F2");
+        ImGui::Text("Hide Overlay: F3");
+        ImGui::Text("%d FPS (%.0fms)", _fps, _frameTime);
+        ImGui::PlotLines("FPS Graph", _pastFps.data(), _pastFps.size());
+        ImGui::Text(_vsync ? "VSYNC: ON" : "VSYNC: OFF");
+        ImGui::End();
+    }
 }
 
 void App::ShowLightEditor()

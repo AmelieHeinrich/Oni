@@ -110,17 +110,20 @@ void Allocator::OnGUI()
     if (_uiSelected) {
         ImGui::Text("Resource: %s", _uiSelected->Name.c_str());
         ImGui::Separator();
-        ImGui::Text("Size: %fmb", (float(_uiSelected->Size) / 1024.0f) / 1024.0f);
 
         // Textures
         if (_uiSelected->Type == GPUResourceType::Texture) {
             ImGui::Text("Texture Size: (%d, %d)", _uiSelected->AttachedTexture->GetWidth(), _uiSelected->AttachedTexture->GetHeight());
             for (int i = 0; i < _uiSelected->AttachedTexture->GetMips(); i++) {
-                char buf[16];
+                char buf[32] = {};
                 sprintf(buf, "Mip %d", i);
                 if (ImGui::TreeNodeEx(buf, ImGuiTreeNodeFlags_Framed)) {
-                    if (_uiSelected->AttachedTexture->_srvs[i].Valid && _uiSelected->AttachedTexture->_dsv.Valid != true) {
-                        ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
+                    if (_uiSelected->AttachedTexture->_srvs.size() > 0) {
+                        if (_uiSelected->AttachedTexture->_srvs[i].Valid && _uiSelected->AttachedTexture->_dsv.Valid != true) {
+                            ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
+                        }
+                    } else {
+                        ImGui::TextColored(ImVec4(1, 0, 0, 1), "> Mip preview unavailable");
                     }
                     ImGui::TreePop();
                 }
@@ -130,4 +133,16 @@ void Allocator::OnGUI()
     ImGui::EndChild();
 
     ImGui::End();
+}
+
+Allocator::Stats Allocator::GetStats()
+{
+    D3D12MA::Budget budget;
+    _allocator->GetBudget(&budget, nullptr);
+    
+    Allocator::Stats stats;
+    stats.Used = budget.UsageBytes;
+    stats.Total = budget.BudgetBytes;
+
+    return stats;
 }

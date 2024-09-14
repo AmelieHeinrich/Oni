@@ -6,6 +6,7 @@
 #include "render_context.hpp"
 
 #include <core/log.hpp>
+#include <psapi.h>
 
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_impl_win32.h>
@@ -13,9 +14,15 @@
 
 #include <shader/bytecode.hpp>
 #include <cmath>
+#include <sstream>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+static float normalize(float value, float old_min, float old_max, float new_min, float new_max)
+{
+    return (new_max - new_min) * (value - old_min) / (old_max - old_min) + new_min;
+}
 
 RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     : _window(hwnd)
@@ -311,5 +318,72 @@ void RenderContext::OnOverlay()
     ImGui::Text("Version 0.0.1");
     ImGui::Text("Renderer: D3D12");
     ImGui::Text("%s", _device->GetName().c_str());
+
+    ImGui::Separator();
+
+    // VRAM
+    {
+        Allocator::Stats stats = _allocator->GetStats();
+
+        uint64_t total = stats.Total;
+        uint64_t used = stats.Used;
+        uint64_t percentage = (used * 100) / total;
+
+        float stupidVRAMPercetange = normalize(stats.Total / stats.Used, 0.0f, 100.0f, 0.0f, 1.0f);
+
+        std::stringstream ss;
+        ss << "VRAM Usage (" << percentage << "%%): " << (((used / 1024.0F) / 1024.0f) / 1024.0f) << "gb/" << (((total / 1024.0F) / 1024.0f) / 1024.0f) << "gb";
+
+        std::stringstream percentss;
+        percentss << percentage << "%";
+
+        ImGui::Text(ss.str().c_str());
+        ImGui::ProgressBar(stupidVRAMPercetange, ImVec2(0, 0), percentss.str().c_str());
+    }
+
+    // RAM
+    {
+        HANDLE hProcess = GetCurrentProcess();
+        PROCESS_MEMORY_COUNTERS pmc;
+        GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc));
+
+        uint64_t totalRam = 0;
+        GetPhysicallyInstalledSystemMemory(&totalRam);
+
+        uint64_t total = totalRam * 1024;
+        uint64_t used = pmc.WorkingSetSize;
+        uint64_t percentage = (used * 100) / total;
+
+        float stupidRAMPercetange = normalize(percentage, 0.0f, 100.0f, 0.0f, 1.0f);
+
+        std::stringstream ss;
+        ss << "RAM Usage (" << percentage << "%%): " << (((used / 1024.0F) / 1024.0f) / 1024.0f) << "gb/" << (((total / 1024.0F) / 1024.0f) / 1024.0f) << "gb";
+
+        std::stringstream percentss;
+        percentss << percentage << "%";
+        
+        ImGui::Text(ss.str().c_str());
+        ImGui::ProgressBar(stupidRAMPercetange, ImVec2(0, 0), percentss.str().c_str());
+    }
+
+    // Battery
+    {
+        SYSTEM_POWER_STATUS status;
+        GetSystemPowerStatus(&status);
+
+        uint64_t percentage = status.BatteryLifePercent;
+
+        float stupidBatteryPercetange = normalize(percentage, 0.0f, 100.0f, 0.0f, 1.0f);
+
+        std::stringstream ss;
+        ss << "Battery (" << percentage << "%%)";
+
+        std::stringstream percentss;
+        percentss << percentage << "%";
+        
+        ImGui::Text(ss.str().c_str());
+        ImGui::ProgressBar(stupidBatteryPercetange, ImVec2(0, 0), percentss.str().c_str());
+    }
+
     ImGui::End();
 }

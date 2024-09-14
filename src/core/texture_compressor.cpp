@@ -60,20 +60,27 @@ public:
 class OniTextureFileWriter : nvtt::OutputHandler
 {
 public:
-    OniTextureFileWriter(const std::string& path) {
+    OniTextureFileWriter(const std::string& path, int width, int height, int mipCount, int mode) {
         f = fopen(path.c_str(), "wb+");
         if (!f) {
             Logger::Error("Failed to fopen file %s", path.c_str());
         }
-    }
 
-    virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {
         TextureFile::Header header;
         header.width = width;
         header.height = height;
-        header.mipCount = 1;
+        header.mipCount = mipCount;
+        header.mode = mode;
         
         fwrite(&header, sizeof(header), 1, f);
+    }
+
+    ~OniTextureFileWriter() {
+        fclose(f);
+    }
+
+    virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {
+        Logger::Info("Writing mip %d of size (%d, %d)", miplevel, width, height);
     }
 
     virtual bool writeData(const void * data, int size) override {
@@ -82,14 +89,14 @@ public:
     }
 
     virtual void endImage() override {
-        fclose(f);
+        Logger::Info("Finished writing mip");
     }
 
 private:
     FILE *f;
 };
 
-void TextureCompressor::TraverseDirectory(const std::string& path)
+void TextureCompressor::TraverseDirectory(const std::string& path, TextureCompressorFormat format)
 {
     if (!FileSystem::Exists(".cache")) {
         FileSystem::CreateDirectoryFromPath(".cache/");
@@ -101,7 +108,9 @@ void TextureCompressor::TraverseDirectory(const std::string& path)
     context.enableCudaAcceleration(true);
 
     nvtt::CompressionOptions compressionOptions;
-    compressionOptions.setFormat(nvtt::Format_BC7);
+    compressionOptions.setFormat(nvtt::Format_BC1);
+
+    int mode = format == TextureCompressorFormat::BC1 ? 1 : 7;
 
     for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(path)) {
         std::string entryPath = dirEntry.path().string();
@@ -116,20 +125,28 @@ void TextureCompressor::TraverseDirectory(const std::string& path)
             continue;
         }
 
-        OniTextureFileWriter writer(cached);
-
         nvtt::Surface image;
         if (!image.load(entryPath.c_str())) {
             Logger::Error("nvtt: Failed to load texture");
         }
 
+        int mipCount = image.countMipmaps();
+
+        OniTextureFileWriter writer(cached, image.width(), image.height(), mipCount, mode);
+
         nvtt::OutputOptions outputOptions;
         outputOptions.setErrorHandler(reinterpret_cast<nvtt::ErrorHandler*>(&errorHandler));
         outputOptions.setOutputHandler(reinterpret_cast<nvtt::OutputHandler*>(&writer));
 
-        if (!context.compress(image, 0, 0, compressionOptions, outputOptions)) {
-            Logger::Error("Failed to compress BC7 texture!");
-            continue;
+        for (int i = 0; i < mipCount; i++) {
+            if (!context.compress(image, 0, i, compressionOptions, outputOptions)) {
+                Logger::Error("Failed to compress texture!");
+            }
+
+            if (i == mipCount - 1) break;
+
+            // Prepare the next mip:
+            image.buildNextMipmap(nvtt::MipmapFilter_Box);
         }
 
         Logger::Info("Compressed %s to %s", entryPath.c_str(), cached.c_str());

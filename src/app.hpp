@@ -43,12 +43,17 @@ private:
     Scene scene;
 
     bool _vsync = false;
+    bool _fpsAsGraph = false;
+    bool _hideOverlay = false;
     bool _showUI = false;
     bool _showResourceInspector = false;
     bool _showRendererSettings = false;
     bool _showLightEditor = false;
     bool _updateFrustum = true;
     bool _drawGrid = false;
+
+    std::vector<float> _pastFps;
+    int _historySize = 10000;
 
     int _fps;
     float _frameTime = 0.0f;

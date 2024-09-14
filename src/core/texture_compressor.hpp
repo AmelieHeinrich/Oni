@@ -11,11 +11,17 @@
 #include "bitmap.hpp"
 #include "texture_file.hpp"
 
+enum class TextureCompressorFormat
+{
+    BC1,
+    BC7
+};
+
 class TextureCompressor
 {
 public:
     // Compresses every texture file in given directory
-    static void TraverseDirectory(const std::string& path);
+    static void TraverseDirectory(const std::string& path, TextureCompressorFormat format);
 
     static bool ExistsInCache(const std::string& path);
     static TextureFile GetFromCache(const std::string& path);
