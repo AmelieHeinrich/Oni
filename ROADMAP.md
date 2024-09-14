@@ -13,6 +13,7 @@
 - Ocean rendering
 - Terrain generation
 - Animation
+- Z-Prepass
 
 ## GPU driven rendering
 - Mesh shaders
