@@ -15,8 +15,8 @@ struct VertexOut
 
 struct ShadowParameters
 {
-    row_major float4x4 LightSpaceMatrix;
-    row_major float4x4 ModelMatrix;
+    column_major float4x4 LightSpaceMatrix;
+    column_major float4x4 ModelMatrix;
 };
 
 ConstantBuffer<ShadowParameters> Params : register(b0);
@@ -24,7 +24,7 @@ ConstantBuffer<ShadowParameters> Params : register(b0);
 VertexOut Main(VertexIn input)
 {
     VertexOut output = (VertexOut)0;
-    output.Position = mul(Params.LightSpaceMatrix, float4(input.Position, 1.0));
+    output.Position = mul(float4(input.Position, 1.0), Params.LightSpaceMatrix);
     output.Position = mul(output.Position, Params.ModelMatrix);
     return output;
 }

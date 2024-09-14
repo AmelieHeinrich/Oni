@@ -55,9 +55,16 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Shadow Pass");
 
+    glm::vec3 lightFront;
+    lightFront.x = glm::cos(glm::radians(scene.Lights.Sun.Direction.y)) * glm::cos(glm::radians(scene.Lights.Sun.Direction.x));
+    lightFront.y = glm::sin(glm::radians(scene.Lights.Sun.Direction.x));
+    lightFront.z = glm::sin(glm::radians(scene.Lights.Sun.Direction.y)) * glm::cos(glm::radians(scene.Lights.Sun.Direction.x));
+
+    glm::mat4 lightTransform = glm::lookAt(scene.Lights.SunPosition, scene.Lights.SunPosition + lightFront, glm::vec3(0.0f, 1.0f, 0.0f));
+
     float near_plane = 1.0f, far_plane = 7.5f;
     glm::mat4 depthProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-    glm::mat4 depthView = glm::lookAt(scene.Lights.SunPosition, glm::vec3(-scene.Lights.Sun.Direction), glm::vec3(0.0f, 1.0f, 0.0f)); // Kill yourself
+    glm::mat4 depthView = lightTransform; // Kill yourself
 
     ShadowParam param;
     param.LightMatrix = depthProjection * depthView;

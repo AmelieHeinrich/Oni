@@ -16,13 +16,13 @@ struct VertexOut
 
 cbuffer Transform : register(b0)
 {
-	row_major float4x4 ModelViewProjection;
+	column_major float4x4 ModelViewProjection;
 };
 
 VertexOut Main(VertexIn input)
 {
 	VertexOut output = (VertexOut)0;
-	output.Position = mul(float4(input.Position, 1.0), ModelViewProjection);
+	output.Position = mul(ModelViewProjection, float4(input.Position, 1.0));
 	output.LocalPosition = input.Position;
 	return output;
 }

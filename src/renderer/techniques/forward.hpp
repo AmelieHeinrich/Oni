@@ -29,28 +29,30 @@ public:
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
     void ConnectEnvironmentMap(EnvironmentMap& map);
+    void ConnectShadowMap(Texture::Ptr texture);
 
     Texture::Ptr GetOutput() { return _outputImage; }
     Texture::Ptr GetDepthBuffer() { return _depthBuffer; }
 private:
     void RenderPBR(Scene& scene, uint32_t width, uint32_t height);
-    void RenderBlinnPhong(Scene& scene, uint32_t width, uint32_t height);
 
     RenderContext::Ptr _context;
     EnvironmentMap _map;
 
     Texture::Ptr _whiteTexture;
+    Texture::Ptr _blackTexture;
     Texture::Ptr _outputImage;
     Texture::Ptr _depthBuffer;
+    Texture::Ptr _shadowMap;
 
     GraphicsPipeline::Ptr _pbrPipeline;
-    GraphicsPipeline::Ptr _blinnPhongPipeline;
 
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _sceneBuffer;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _lightBuffer;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _modeBuffer;
 
     Sampler::Ptr _sampler;
+    Sampler::Ptr _shadowSampler;
 
     int _mode = 0;
     bool _pbr = true;

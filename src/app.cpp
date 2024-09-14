@@ -49,11 +49,15 @@ App::App()
 
     scene = {};
 
+    Model platform;
+    platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
+
     Model sponza;
     sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
 
+    scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
-    scene.Lights.SetSun(glm::vec3(0.0f, -10.0f, 0.0f), glm::vec4(0.1f, 1.0f, 0.1f, 0.0f), glm::vec4(15.0f));
+    scene.Lights.SetSun(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec4(5.0f));
 
     _renderContext->WaitForGPU();
 }
@@ -250,6 +254,8 @@ void App::ShowLightEditor()
 
     /////////////////////////////////// SCENE PANEL
 
+    static ImGuizmo::OPERATION operation = ImGuizmo::OPERATION::ROTATE;
+
     ImGui::Begin("Scene Editor");
 
     ImGui::Checkbox("Draw Grid (EXPERIMENTAL)", &_drawGrid);
@@ -259,6 +265,39 @@ void App::ShowLightEditor()
         float intensity = scene.Lights.Sun.Color.x;
         ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
         scene.Lights.Sun.Color = glm::vec3(intensity);
+
+        ImGui::SliderFloat3("Position", glm::value_ptr(scene.Lights.SunPosition), -100.0f, 100.0f);
+        ImGui::SliderFloat3("Rotation", glm::value_ptr(scene.Lights.Sun.Direction), -1.0f, 1.0f);
+        
+        if (ImGui::Button("Translate")) {
+            operation = ImGuizmo::OPERATION::TRANSLATE;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Rotate")) {
+            operation = ImGuizmo::OPERATION::ROTATE;
+        }
+
+        glm::mat4 Transform(1.0f);
+        glm::vec3 DummyScale;
+
+        ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(scene.Lights.SunPosition),
+                                                glm::value_ptr(scene.Lights.Sun.Direction), 
+                                                glm::value_ptr(glm::vec3(1.0f)),
+                                                glm::value_ptr(Transform));
+
+        ImGuizmo::Manipulate(glm::value_ptr(scene.Camera.View()),
+                                 glm::value_ptr(scene.Camera.Projection()),
+                                 operation,
+                                 ImGuizmo::MODE::WORLD,
+                                 glm::value_ptr(Transform),
+                                 nullptr,
+                                 nullptr);
+
+        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(Transform),
+                                              glm::value_ptr(scene.Lights.SunPosition),
+                                              glm::value_ptr(scene.Lights.Sun.Direction),
+                                              glm::value_ptr(DummyScale));
+
         ImGui::TreePop();
     }
 

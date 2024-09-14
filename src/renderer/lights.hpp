@@ -109,6 +109,7 @@ public:
 
     void SetSun(glm::vec3 position, glm::vec3 direction, glm::vec3 color) {
         HasSun = true;
+        SunPosition = position;
         Sun.Direction = direction;
         Sun.Color = color;
     }

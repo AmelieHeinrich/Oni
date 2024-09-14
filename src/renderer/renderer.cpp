@@ -27,7 +27,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _tonemapping = std::make_shared<Tonemapping>(context, _forward->GetOutput());
 
     _forward->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
-    // TODO(ame): Connect shadow map
+    _forward->ConnectShadowMap(_shadows->GetOutput());
 }
 
 Renderer::~Renderer()

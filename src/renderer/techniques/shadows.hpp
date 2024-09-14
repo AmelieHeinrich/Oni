@@ -36,11 +36,9 @@ public:
     void Resize(uint32_t width, uint32_t height) {};
     void OnUI();
 
-    Texture::Ptr GetOutput() { _shadowMap; }
+    Texture::Ptr GetOutput() { return _shadowMap; }
 
 private:
-    void GenerateMatrices(const glm::vec3& Origin, const glm::vec3& SunDirection, glm::mat4& Projection, glm::mat4& View, float Distance);
-
     RenderContext::Ptr _context;
 
     ShadowMapResolution _shadowMapResolution;

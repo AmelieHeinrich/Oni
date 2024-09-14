@@ -22,14 +22,14 @@ struct VertexOut
 
 struct SceneData
 {
-    row_major float4x4 View;
-    row_major float4x4 Projection;
+    column_major float4x4 View;
+    column_major float4x4 Projection;
     float4 CameraPosition;
 };
 
 struct ModelData
 {
-    row_major float4x4 Transform;
+    column_major float4x4 Transform;
     float4 FlatColor;
 };
 
@@ -39,13 +39,19 @@ ConstantBuffer<ModelData> ModelBuffer : register(b1);
 VertexOut Main(VertexIn Input)
 {
     VertexOut Output = (VertexOut)0;
+    
     Output.Position = mul(float4(Input.Position, 1.0f), ModelBuffer.Transform);
-    Output.Position = mul(Output.Position, SceneBuffer.View);
-    Output.Position = mul(Output.Position, SceneBuffer.Projection);
+    Output.Position = mul(SceneBuffer.View, Output.Position);
+    Output.Position = mul(SceneBuffer.Projection, Output.Position);
+    
     Output.TexCoords = Input.TexCoords;
+   
     Output.Normals = normalize(float4(mul(transpose(ModelBuffer.Transform), float4(Input.Normals, 1.0))).xyz);
+   
     Output.WorldPos = mul(float4(Input.Position, 1.0), ModelBuffer.Transform);
+   
     Output.CameraPosition = SceneBuffer.CameraPosition;
+   
     Output.FlatColor = ModelBuffer.FlatColor;
     return Output;
 }

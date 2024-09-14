@@ -22,7 +22,7 @@ struct FragmentIn
     float3 Normals: NORMAL;
     float4 WorldPos : COLOR0;
     float4 CameraPosition: COLOR1;
-    float4 FlatColor: COLOR2;
+    float4 FragPosLightSpace: COLOR2;
 };
 
 struct PointLight
@@ -69,10 +69,12 @@ Texture2D AOTexture : register(t6);
 TextureCube Irradiance : register(t7);
 TextureCube Prefilter : register(t8);
 Texture2D BRDF : register(t9);
+Texture2D ShadowMap : register(t10);
 
-SamplerState Sampler : register(s10);
-ConstantBuffer<LightData> LightBuffer : register(b11);
-ConstantBuffer<OutputBuffer> OutputData : register(b12);
+SamplerState Sampler : register(s11);
+SamplerState ShadowSampler : register(s12);
+ConstantBuffer<LightData> LightBuffer : register(b13);
+ConstantBuffer<OutputBuffer> OutputData : register(b14);
 
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
@@ -193,11 +195,28 @@ float3 CalcDirectionalLight(FragmentIn Input, DirectionalLight light, float3 V, 
     return (kD * albedo.xyz / PI + specular) * radiance;
 }
 
+float ShadowCalculation(FragmentIn Input)
+{
+    float bias = max(0.05 * (1.0 - dot(Input.Normals, LightBuffer.Sun.Direction.xyz)), 0.005);
+
+    float3 projectionCoords = Input.FragPosLightSpace.xyz / Input.FragPosLightSpace.w;
+    projectionCoords = projectionCoords * 0.5 + 0.5;
+
+    float closestdepth = ShadowMap.Sample(ShadowSampler, projectionCoords.xy).r;
+    float currentDepth = projectionCoords.z;
+    float shadow = currentDepth - bias > closestdepth ? 1.0 : 0.0;
+
+    if (projectionCoords.z > 1.0)
+        shadow = 0.0;
+
+    return shadow;
+}
+
 static const float MAX_REFLECTION_LOD = 4.0;
 
 float4 Main(FragmentIn Input) : SV_TARGET
 {
-    float4 albedo = Texture.Sample(Sampler, Input.TexCoords) * Input.FlatColor;
+    float4 albedo = Texture.Sample(Sampler, Input.TexCoords);
     if (albedo.a < 0.25)
         discard;
     float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords);
@@ -206,6 +225,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float roughness = metallicRoughness.g;
     float4 aot = AOTexture.Sample(Sampler, Input.TexCoords);
     float ao = aot.r;
+    float shadow = ShadowCalculation(Input);
 
     if (emission.x != 1.0f && emission.y != 1.0f && emission.y != 1.0f) {
         albedo.xyz += emission.xyz;
@@ -251,7 +271,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
         ambient = kD * albedo.xyz * ao;
     }
 
-    float3 color = ambient + Lo;
+    float3 color = ((ambient * (1.0 - shadow)) + Lo);
     float4 final = float4(0.0, 0.0, 0.0, 0.0);
 
     switch (OutputData.Mode) {

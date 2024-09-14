@@ -182,7 +182,7 @@ EnvMapForward::~EnvMapForward()
 
 void EnvMapForward::Render(Scene& scene, uint32_t width, uint32_t height)
 {
-    glm::mat4 mvp = scene.Camera.Projection() * glm::mat4(glm::mat3x3(scene.Camera.View())) * glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f));
+    glm::mat4 mvp = scene.Camera.Projection() * glm::mat4(glm::mat3(scene.Camera.View())) * glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f));
 
     void *pData;
     _cubeCBV->Map(0, 0, &pData);
