@@ -53,8 +53,8 @@ VertexOut Main(VertexIn Input)
     
     Output.CameraPosition = SceneBuffer.CameraPosition;
     
-    Output.LightPos = mul(SceneBuffer.SunMatrix, float4(Input.Position, 1.0f));
-    Output.LightPos = mul(Output.LightPos, ModelBuffer.Transform);
+    Output.LightPos = mul(float4(Input.Position, 1.0f), ModelBuffer.Transform);
+    Output.LightPos = mul(SceneBuffer.SunMatrix, Output.LightPos);
     
     return Output;
 }

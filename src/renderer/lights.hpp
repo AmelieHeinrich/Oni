@@ -63,7 +63,7 @@ public:
 
     GPUData GetGPUData() {
         GPUData data = {};
-        data.Direction = glm::vec4(Direction, 1.0);
+        data.Direction = glm::radians(glm::vec4(Direction, 1.0));
         data.Color = glm::vec4(Color, 1.0);
         return data;
     }

@@ -55,40 +55,39 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Shadow Pass");
 
-    glm::vec3 lightFront;
-    lightFront.x = glm::cos(glm::radians(scene.Lights.Sun.Direction.y)) * glm::cos(glm::radians(scene.Lights.Sun.Direction.x));
-    lightFront.y = glm::sin(glm::radians(scene.Lights.Sun.Direction.x));
-    lightFront.z = glm::sin(glm::radians(scene.Lights.Sun.Direction.y)) * glm::cos(glm::radians(scene.Lights.Sun.Direction.x));
-
-    glm::mat4 lightTransform = glm::lookAt(scene.Lights.SunPosition, scene.Lights.SunPosition + lightFront, glm::vec3(0.0f, 1.0f, 0.0f));
-
-    float near_plane = 1.0f, far_plane = 7.5f;
-    glm::mat4 depthProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-    glm::mat4 depthView = lightTransform; // Kill yourself
-
-    ShadowParam param;
-    param.LightMatrix = depthProjection * depthView;
-    param.Model = glm::mat4(1.0f);
-
-    void *pData;
-    _shadowParam[frameIndex]->Map(0, 0, &pData);
-    memcpy(pData, &param, sizeof(ShadowParam));
-    _shadowParam[frameIndex]->Unmap(0, 0);
-
-    commandBuffer->BeginEvent("Shadow Pass");
     commandBuffer->ImageBarrier(_shadowMap, TextureLayout::Depth);
-    commandBuffer->SetViewport(0, 0, float(_shadowMapResolution), float(_shadowMapResolution));
-    commandBuffer->SetTopology(Topology::TriangleList);
-    commandBuffer->BindRenderTargets({}, _shadowMap);
     commandBuffer->ClearDepthTarget(_shadowMap);
-    commandBuffer->BindGraphicsPipeline(_shadowPipeline);
-    commandBuffer->BindGraphicsConstantBuffer(_shadowParam[frameIndex], 0);
 
-    for (auto& model : scene.Models) {
-        for (auto& primitive : model.Primitives) {
-            commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
-            commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
-            commandBuffer->DrawIndexed(primitive.IndexCount);
+    if (_renderShadows) {
+        float near_plane = 1.0f, far_plane = 10.0f;
+        glm::mat4 depthProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        glm::mat4 depthView = glm::inverse(glm::translate(glm::mat4(1.0f), scene.Lights.SunPosition)
+                                         * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.x), glm::vec3(1.0f, 0.0f, 0.0f))
+                                         * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.y), glm::vec3(0.0f, 1.0f, 0.0f))
+                                         * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.z), glm::vec3(0.0f, 0.0f, 1.0f)));
+                                     
+        ShadowParam param;
+        param.LightMatrix = depthView * depthProjection;
+        param.Model = glm::mat4(1.0f);
+
+        void *pData;
+        _shadowParam[frameIndex]->Map(0, 0, &pData);
+        memcpy(pData, &param, sizeof(ShadowParam));
+        _shadowParam[frameIndex]->Unmap(0, 0);
+
+        commandBuffer->BeginEvent("Shadow Pass");
+        commandBuffer->SetViewport(0, 0, float(_shadowMapResolution), float(_shadowMapResolution));
+        commandBuffer->SetTopology(Topology::TriangleList);
+        commandBuffer->BindRenderTargets({}, _shadowMap);
+        commandBuffer->BindGraphicsPipeline(_shadowPipeline);
+        commandBuffer->BindGraphicsConstantBuffer(_shadowParam[frameIndex], 0);
+
+        for (auto& model : scene.Models) {
+            for (auto& primitive : model.Primitives) {
+                commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
+                commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
+                commandBuffer->DrawIndexed(primitive.IndexCount);
+            }
         }
     }
 
@@ -99,6 +98,7 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
 void Shadows::OnUI()
 {
     if (ImGui::TreeNodeEx("Shadows", ImGuiTreeNodeFlags_Framed)) {
+        ImGui::Checkbox("Render Shadows", &_renderShadows);
         ImGui::Image((ImTextureID)_shadowMap->GetImGuiImage().ptr, ImVec2(256, 256));
         ImGui::TreePop();
     }

@@ -19,7 +19,7 @@
 Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
 {
-    _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Medium);
+    _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::High);
     _forward = std::make_shared<Forward>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _forward->GetOutput(), _forward->GetDepthBuffer());
     _colorCorrection = std::make_shared<ColorCorrection>(context, _forward->GetOutput());

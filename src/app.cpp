@@ -29,7 +29,7 @@ float random_float(float min, float max)
 }
 
 App::App()
-    : _camera(1920, 1080), _lastFrame(0.0f)
+    : _camera(1920, 1080), _lastFrame(0.0f), _sunMatrix(1.0f)
 {
     Logger::Init();
     srand(time(NULL));
@@ -57,7 +57,7 @@ App::App()
 
     scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
-    scene.Lights.SetSun(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec4(5.0f));
+    scene.Lights.SetSun(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec4(5.0f));
 
     _renderContext->WaitForGPU();
 }
@@ -202,7 +202,7 @@ void App::RenderHelper()
         static bool p_open = true;
 
         ImGuiIO& io = ImGui::GetIO();
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDocking;
         const float PAD = 10.0f;
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImVec2 work_pos = viewport->WorkPos;
@@ -267,7 +267,7 @@ void App::ShowLightEditor()
         scene.Lights.Sun.Color = glm::vec3(intensity);
 
         ImGui::SliderFloat3("Position", glm::value_ptr(scene.Lights.SunPosition), -100.0f, 100.0f);
-        ImGui::SliderFloat3("Rotation", glm::value_ptr(scene.Lights.Sun.Direction), -1.0f, 1.0f);
+        ImGui::SliderFloat3("Rotation", glm::value_ptr(scene.Lights.Sun.Direction), -360.0f, 360.0f);
         
         if (ImGui::Button("Translate")) {
             operation = ImGuizmo::OPERATION::TRANSLATE;
@@ -277,23 +277,17 @@ void App::ShowLightEditor()
             operation = ImGuizmo::OPERATION::ROTATE;
         }
 
-        glm::mat4 Transform(1.0f);
         glm::vec3 DummyScale;
-
-        ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(scene.Lights.SunPosition),
-                                                glm::value_ptr(scene.Lights.Sun.Direction), 
-                                                glm::value_ptr(glm::vec3(1.0f)),
-                                                glm::value_ptr(Transform));
 
         ImGuizmo::Manipulate(glm::value_ptr(scene.Camera.View()),
                                  glm::value_ptr(scene.Camera.Projection()),
                                  operation,
                                  ImGuizmo::MODE::WORLD,
-                                 glm::value_ptr(Transform),
+                                 glm::value_ptr(_sunMatrix),
                                  nullptr,
                                  nullptr);
 
-        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(Transform),
+        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(_sunMatrix),
                                               glm::value_ptr(scene.Lights.SunPosition),
                                               glm::value_ptr(scene.Lights.Sun.Direction),
                                               glm::value_ptr(DummyScale));

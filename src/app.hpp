@@ -57,4 +57,6 @@ private:
 
     int _fps;
     float _frameTime = 0.0f;
+
+    glm::mat4 _sunMatrix;
 };

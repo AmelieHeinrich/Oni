@@ -134,16 +134,14 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("PBR Forward");
 
-    glm::vec3 lightFront;
-    lightFront.x = glm::cos(glm::radians(scene.Lights.Sun.Direction.y)) * glm::cos(glm::radians(scene.Lights.Sun.Direction.x));
-    lightFront.y = glm::sin(glm::radians(scene.Lights.Sun.Direction.x));
-    lightFront.z = glm::sin(glm::radians(scene.Lights.Sun.Direction.y)) * glm::cos(glm::radians(scene.Lights.Sun.Direction.x));
+    // TODO(amelie): calculate view matrix
 
-    glm::mat4 lightTransform = glm::lookAt(scene.Lights.SunPosition, scene.Lights.SunPosition + lightFront, glm::vec3(0.0f, 1.0f, 0.0f));
-
-    float near_plane = 1.0f, far_plane = 7.5f;
+    float near_plane = 1.0f, far_plane = 10.0f;
     glm::mat4 depthProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-    glm::mat4 depthView = lightTransform; // Kill yourself
+    glm::mat4 depthView = glm::translate(glm::mat4(1.0f), scene.Lights.SunPosition)
+                                     * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.x), glm::vec3(1.0f, 0.0f, 0.0f))
+                                     * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.y), glm::vec3(0.0f, 1.0f, 0.0f))
+                                     * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
     struct Data {
         glm::mat4 View;
@@ -155,7 +153,7 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     data.View = scene.Camera.View();
     data.Projection = scene.Camera.Projection();
     data.CameraPosition = glm::vec4(scene.Camera.GetPosition(), 1.0f);
-    data.SunMatrix = depthProjection * depthView;
+    data.SunMatrix = depthView * depthProjection;
 
     void *pData;
     _sceneBuffer[frameIndex]->Map(0, 0, &pData);

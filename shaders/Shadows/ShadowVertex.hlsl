@@ -24,7 +24,9 @@ ConstantBuffer<ShadowParameters> Params : register(b0);
 VertexOut Main(VertexIn input)
 {
     VertexOut output = (VertexOut)0;
-    output.Position = mul(float4(input.Position, 1.0), Params.LightSpaceMatrix);
-    output.Position = mul(output.Position, Params.ModelMatrix);
+
+    output.Position = mul(float4(input.Position, 1.0), Params.ModelMatrix);
+    output.Position = mul(Params.LightSpaceMatrix, output.Position);
+    
     return output;
 }

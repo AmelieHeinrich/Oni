@@ -44,6 +44,7 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 
 ### Misc
 - Resource inspector
+- VRAM/RAM/Battery usage UI
 - Screenshot system
 - Mipmap generation through compute
 - Simple scene editor to add/move lights around
