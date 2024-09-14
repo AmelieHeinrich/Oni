@@ -353,6 +353,12 @@ void CommandBuffer::CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src)
     CopySource.PlacedFootprint.Footprint.RowPitch = dst->_width * Texture::GetComponentSize(dst->GetFormat());
     CopySource.SubresourceIndex = 0;
 
+    if (dst->GetFormat() == TextureFormat::BC1) {
+        CopySource.PlacedFootprint.Footprint.RowPitch = dst->_width * 2;
+    } else if (dst->GetFormat() == TextureFormat::BC7) {
+        CopySource.PlacedFootprint.Footprint.RowPitch = dst->_width * 4;
+    }
+
     D3D12_TEXTURE_COPY_LOCATION CopyDest = {};
     CopyDest.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
     CopyDest.pResource = dst->_resource->Resource;

@@ -19,6 +19,8 @@ enum class TextureFormat
     RG16Float = DXGI_FORMAT_R16G16_FLOAT,
     R32Float = DXGI_FORMAT_R32_FLOAT,
     R32Depth = DXGI_FORMAT_D32_FLOAT,
+    BC1 = DXGI_FORMAT_BC1_UNORM,
+    BC7 = DXGI_FORMAT_BC7_UNORM,
     R32Typeless = DXGI_FORMAT_R32_TYPELESS // For shadows!
 };
 
@@ -64,7 +66,7 @@ public:
 
     GPUResource& GetResource() { return *_resource; }
 
-    static uint64_t GetComponentSize(TextureFormat format);
+    static float GetComponentSize(TextureFormat format);
     TextureFormat GetFormat() { return _format; }
 
     D3D12_GPU_DESCRIPTOR_HANDLE GetImGuiImage() { return _srvs.front().GPU; }

@@ -8,6 +8,7 @@
 
 #include <sys/stat.h>
 #include <fstream>
+#include <filesystem>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -79,6 +80,12 @@ void FileSystem::Copy(const std::string& oldPath, const std::string& newPath, bo
     if (!CopyFileA(oldPath.c_str(), newPath.c_str(), !overwrite)) {
         Logger::Error("Failed to copy file %s to {1}", oldPath.c_str(), newPath.c_str());
     }
+}
+
+std::string FileSystem::GetFileExtension(const std::string& path)
+{
+    std::filesystem::path fsPath(path);
+    return fsPath.extension().string();
 }
 
 int FileSystem::GetFileSize(const std::string& path)

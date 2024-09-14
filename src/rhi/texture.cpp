@@ -24,28 +24,34 @@ D3D12_RESOURCE_FLAGS GetResourceFlag(TextureUsage usage)
     return D3D12_RESOURCE_FLAG_NONE;
 }
 
-uint64_t Texture::GetComponentSize(TextureFormat format)
+float Texture::GetComponentSize(TextureFormat format)
 {
     switch (format)
     {
         case TextureFormat::RGBA16Unorm:
         case TextureFormat::RGBA16Float: {
-            return 4 * sizeof(short);
+            return 4.0f * sizeof(short);
         }
         case TextureFormat::RGBA8: {
-            return 4 * sizeof(char);
+            return 4.0f * sizeof(char);
         }
         case TextureFormat::R32Depth: {
-            return 0;
+            return 0.0f;
         }
         case TextureFormat::RGBA32Float: {
-            return 4 * sizeof(float);
+            return 4.0f * sizeof(float);
         }
         case TextureFormat::RG16Float: {
-            return 2 * sizeof(short);
+            return 2.0f * sizeof(short);
         }
         case TextureFormat::R32Float: {
             return sizeof(float);
+        }
+        case TextureFormat::BC1: {
+            return 0.5f;
+        }
+        case TextureFormat::BC7: {
+            return 1.0f;
         }
     }
     return 0;
@@ -101,6 +107,9 @@ Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
     ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     ResourceDesc.Flags = GetResourceFlag(usage);
     ResourceDesc.MipLevels = _mipLevels;
+    if (format == TextureFormat::BC1 || format == TextureFormat::BC7) {
+        ResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    }
 
     _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _states[0], name);
     _resource->AttachTexture(this);

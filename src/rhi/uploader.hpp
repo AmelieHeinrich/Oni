@@ -8,7 +8,7 @@
 #include "command_queue.hpp"
 #include "command_buffer.hpp"
 #include "device.hpp"
-#include "core/image.hpp"
+#include "core/bitmap.hpp"
 
 #include <vector>
 
@@ -20,7 +20,7 @@ public:
 
     void CopyHostToDeviceShared(void* pData, uint64_t uiSize, Buffer::Ptr pDestBuffer);
     void CopyHostToDeviceLocal(void* pData, uint64_t uiSize, Buffer::Ptr pDestBuffer);
-    void CopyHostToDeviceTexture(Image& image, Texture::Ptr pDestTexture);
+    void CopyHostToDeviceTexture(Bitmap& image, Texture::Ptr pDestTexture);
     void CopyBufferToBuffer(Buffer::Ptr pSourceBuffer, Buffer::Ptr pDestBuffer);
     void CopyTextureToTexture(Texture::Ptr pSourceTexture, Texture::Ptr pDestTexture);
     void CopyBufferToTexture(Buffer::Ptr pSourceBuffer, Texture::Ptr pDestTexture);

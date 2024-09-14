@@ -20,6 +20,8 @@ public:
     static void Move(const std::string& oldPath, const std::string& newPath);
     static void Copy(const std::string& oldPath, const std::string& newPath, bool overwrite = true);
 
+    static std::string GetFileExtension(const std::string& path);
+
     static int32_t GetFileSize(const std::string& path);
     static std::string ReadFile(const std::string& path);
     static void *ReadBytes(const std::string& path);

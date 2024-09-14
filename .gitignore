@@ -6,6 +6,7 @@ build
 # Engine files
 log.txt
 imgui.ini
+.cache
 
 # Big ahhh assets
 assets/models/bistro

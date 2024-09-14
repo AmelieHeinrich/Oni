@@ -70,3 +70,15 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 ### UI (as of 9/14/2024)
 
 ![](screenshots/EngineUI.png)
+
+## Third party dependencies
+
+- [D3D12MA](https://gpuopen.com/d3d12-memory-allocator/)
+- [glm](https://github.com/g-truc/glm)
+- [ImGui](https://github.com/ocornut/ImGui)
+- [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)
+- [nvtt](https://github.com/castano/nvidia-texture-tools)
+- [optick](https://github.com/bombomby/optick)
+- [stb](https://github.com/nothings/stb)
+- [Agility SDK](https://devblogs.microsoft.com/directx/directx12agility/)
+- [Assimp](https://github.com/assimp/assimp)

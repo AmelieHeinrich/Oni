@@ -5,7 +5,7 @@
 
 #include "model.hpp"
 
-#include "core/image.hpp"
+#include "core/bitmap.hpp"
 #include "core/log.hpp"
 
 void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, const aiScene *scene, glm::mat4 transform)
@@ -51,11 +51,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     Material meshMaterial = {};
     out.MaterialIndex = Materials.size();
 
-    Image albedoImage;
-    Image normalImage;
-    Image pbrImage;
-    Image emissiveImage;
-    Image aoImage;
+    Bitmap albedoImage;
+    Bitmap normalImage;
+    Bitmap pbrImage;
+    Bitmap emissiveImage;
+    Bitmap aoImage;
 
     aiColor3D flatColor(1.0f, 1.0f, 1.0f);
     material->Get(AI_MATKEY_COLOR_DIFFUSE, flatColor);

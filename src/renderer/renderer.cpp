@@ -5,6 +5,8 @@
 
 #include "renderer.hpp"
 #include "core/log.hpp"
+#include "core/texture_file.hpp"
+#include "core/texture_compressor.hpp"
 
 #include <sstream>
 #include <algorithm>

@@ -6,7 +6,10 @@
 #include "app.hpp"
 
 #include "shader/bytecode.hpp"
-#include "core/image.hpp"
+
+#include "core/bitmap.hpp"
+#include "core/texture_compressor.hpp"
+#include "core/file_system.hpp"
 
 #include "model.hpp"
 
@@ -31,6 +34,9 @@ App::App()
     Logger::Init();
     srand(time(NULL));
 
+    // Compress every model texture
+    TextureCompressor::TraverseDirectory("assets/textures/");
+
     _window = std::make_shared<Window>(1920 + 16, 1080 + 39, "ONI");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
@@ -44,7 +50,7 @@ App::App()
     scene = {};
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/Sponza.gltf");
+    sponza.Load(_renderContext, "assets/models/DamagedHelmet.gltf");
 
     scene.Models.push_back(sponza);
     scene.Lights.SetSun(glm::vec3(0.0f, -10.0f, 0.0f), glm::vec4(0.1f, 1.0f, 0.1f, 0.0f), glm::vec4(15.0f));

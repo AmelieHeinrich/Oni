@@ -18,7 +18,7 @@ Forward::Forward(RenderContext::Ptr context)
     _whiteTexture->BuildShaderResource();
 
     uint32_t color = 0xFFFFFFFF;
-    Image image;
+    Bitmap image;
     image.Width = 1;
     image.Height = 1;
     image.Delete = false;

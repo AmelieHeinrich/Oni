@@ -24,9 +24,11 @@ public:
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
     void Screenshot(Texture::Ptr screenshotTexture = nullptr, TextureLayout newLayout = TextureLayout::ShaderResource);
-private:
 
+private:
     RenderContext::Ptr _renderContext;
+
+    std::shared_ptr<Texture> _testTexture;
 
     std::shared_ptr<Shadows> _shadows;
     std::shared_ptr<Forward> _forward;
