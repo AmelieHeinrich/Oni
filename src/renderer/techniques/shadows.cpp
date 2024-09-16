@@ -9,7 +9,7 @@
 
 struct ShadowParam
 {
-    glm::mat4 LightMatrix;
+    glm::mat4 SunMatrix;
     glm::mat4 Model;
 };
 
@@ -23,7 +23,7 @@ Shadows::Shadows(RenderContext::Ptr context, ShadowMapResolution resolution)
     GraphicsPipelineSpecs specs;
     specs.Bytecodes[ShaderType::Vertex] = shadowVert;
     specs.Bytecodes[ShaderType::Fragment] = shadowPix;
-    specs.Cull = CullMode::Back;
+    specs.Cull = CullMode::Front;
     specs.Depth = DepthOperation::Less;
     specs.DepthEnabled = true;
     specs.DepthFormat = TextureFormat::R32Depth;
@@ -59,15 +59,11 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->ClearDepthTarget(_shadowMap);
 
     if (_renderShadows) {
-        float near_plane = 1.0f, far_plane = 10.0f;
-        glm::mat4 depthProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-        glm::mat4 depthView = glm::inverse(glm::translate(glm::mat4(1.0f), scene.Lights.SunPosition)
-                                         * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.x), glm::vec3(1.0f, 0.0f, 0.0f))
-                                         * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.y), glm::vec3(0.0f, 1.0f, 0.0f))
-                                         * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.z), glm::vec3(0.0f, 0.0f, 1.0f)));
-                                     
+        glm::mat4 depthProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 0.05f, 50.0f);
+        glm::mat4 depthView = glm::lookAt(scene.Lights.SunTransform.Position, scene.Lights.SunTransform.Position - scene.Lights.SunTransform.GetFrontVector(), glm::vec3(0.0f, 1.0f, 0.0f));
+        
         ShadowParam param;
-        param.LightMatrix = depthView * depthProjection;
+        param.SunMatrix = depthProjection * depthView;
         param.Model = glm::mat4(1.0f);
 
         void *pData;

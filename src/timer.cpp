@@ -9,15 +9,20 @@
 
 Timer::Timer()
 {
-    _start = clock();
+    QueryPerformanceFrequency(&_frequency);
+    QueryPerformanceCounter(&_start);
 }
 
 float Timer::GetElapsed()
 {
-    return clock() - _start;
+    LARGE_INTEGER end;
+
+    QueryPerformanceCounter(&end);
+
+    return (end.QuadPart - _start.QuadPart) * 1000.0 / _frequency.QuadPart;
 }
 
 void Timer::Restart()
 {
-    _start = clock();
+    QueryPerformanceCounter(&_start);
 }

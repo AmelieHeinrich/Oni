@@ -55,6 +55,7 @@ private:
     Sampler::Ptr _shadowSampler;
 
     int _mode = 0;
+    bool _visualizeShadow = false;
     bool _pbr = true;
     bool _ibl = true;
 };

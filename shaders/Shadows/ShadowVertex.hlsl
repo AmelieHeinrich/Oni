@@ -15,7 +15,7 @@ struct VertexOut
 
 struct ShadowParameters
 {
-    column_major float4x4 LightSpaceMatrix;
+    column_major float4x4 SunMatrix;
     column_major float4x4 ModelMatrix;
 };
 
@@ -25,8 +25,7 @@ VertexOut Main(VertexIn input)
 {
     VertexOut output = (VertexOut)0;
 
-    output.Position = mul(float4(input.Position, 1.0), Params.ModelMatrix);
-    output.Position = mul(Params.LightSpaceMatrix, output.Position);
+    output.Position = mul(mul(Params.ModelMatrix, Params.SunMatrix), float4(input.Position, 1.0));
     
     return output;
 }

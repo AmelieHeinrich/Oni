@@ -47,5 +47,5 @@ private:
     Texture::Ptr _shadowMap;
     
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _shadowParam;
-    bool _renderShadows = false;
+    bool _renderShadows = true;
 };

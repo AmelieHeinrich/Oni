@@ -16,7 +16,9 @@ struct Scene
     Scene() = default;
     ~Scene() = default;
 
-    FreeCamera Camera;
+    void Update();
+
+    FreeCamera Camera = FreeCamera();
 
     std::vector<Model> Models;
     LightSettings Lights;

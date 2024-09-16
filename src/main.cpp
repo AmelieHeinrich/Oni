@@ -7,6 +7,6 @@
 
 int main(void)
 {
-    App app;
+    App app = {};
     app.Run();
 }

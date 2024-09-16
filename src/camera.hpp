@@ -63,7 +63,7 @@ private:
     float _Pitch;
     float _FOV;
 
-    glm::vec3 _Position;
+    glm::vec3 _Position = glm::vec3(0.0f);
     glm::vec3 _Front;
     glm::vec3 _Up;
     glm::vec3 _Right;
@@ -76,8 +76,8 @@ private:
     glm::mat4 _Projection;
     glm::mat4 _ViewMat;
 
-    float _Acceleration;
-    float _Friction;
+    float _Acceleration = 0.0f;
+    float _Friction = 0.0F;
     glm::vec3 _Velocity;
     float _MaxVelocity;
 

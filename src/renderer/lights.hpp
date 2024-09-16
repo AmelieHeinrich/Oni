@@ -7,6 +7,7 @@
 #pragma once
 
 #include <glm/gtc/type_ptr.hpp>
+#include <core/transform.hpp>
 
 #define MAX_POINT_LIGHTS 512
 #define MAX_DIRECTIONAL_LIGHTS 512
@@ -63,7 +64,7 @@ public:
 
     GPUData GetGPUData() {
         GPUData data = {};
-        data.Direction = glm::radians(glm::vec4(Direction, 1.0));
+        data.Direction = glm::vec4(Direction, 1.0);
         data.Color = glm::vec4(Color, 1.0);
         return data;
     }
@@ -107,15 +108,19 @@ public:
         PointLights.push_back(light);
     }
 
-    void SetSun(glm::vec3 position, glm::vec3 direction, glm::vec3 color) {
+    void SetSun(glm::vec3 position, glm::vec3 rotation, glm::vec3 color) {
         HasSun = true;
-        SunPosition = position;
-        Sun.Direction = direction;
+        SunTransform.Position = position;
+        SunTransform.Rotation = rotation;
+        SunTransform.Update();
+
+        Sun.Direction = SunTransform.GetFrontVector();
         Sun.Color = color;
     }
 
     std::vector<PointLight> PointLights;
+    
     bool HasSun = false;
     DirectionalLight Sun;
-    glm::vec3 SunPosition;
+    Transform SunTransform;
 };

@@ -40,8 +40,6 @@
 - Film grain
 
 ## Other
-- BC7-BC6H compression
-- Profiler
 - Render graph
 - Multithreading
 - Developer console

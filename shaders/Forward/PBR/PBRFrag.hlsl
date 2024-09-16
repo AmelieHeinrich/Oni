@@ -197,14 +197,27 @@ float3 CalcDirectionalLight(FragmentIn Input, DirectionalLight light, float3 V, 
 
 float ShadowCalculation(FragmentIn Input)
 {
-    float bias = max(0.05 * (1.0 - dot(Input.Normals, LightBuffer.Sun.Direction.xyz)), 0.005);
-
     float3 projectionCoords = Input.FragPosLightSpace.xyz / Input.FragPosLightSpace.w;
-    projectionCoords = projectionCoords * 0.5 + 0.5;
+    projectionCoords.xy = projectionCoords.xy * 0.5 + 0.5;
+    projectionCoords.y = 1.0 - projectionCoords.y;
 
-    float closestdepth = ShadowMap.Sample(ShadowSampler, projectionCoords.xy).r;
+    float closestDepth = ShadowMap.Sample(ShadowSampler, projectionCoords.xy).r;
     float currentDepth = projectionCoords.z;
-    float shadow = currentDepth - bias > closestdepth ? 1.0 : 0.0;
+
+    float bias = max(0.05 * (1.0 - dot(Input.Normals, LightBuffer.Sun.Direction.xyz)), 0.005);
+    
+    float shadowWidth, shadowHeight;
+    ShadowMap.GetDimensions(shadowWidth, shadowHeight);
+
+    float shadow = 0.0;
+    float2 texelSize = 1.0 / float2(shadowWidth, shadowHeight);
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y <= 1; ++y) {
+            float pcfDepth = ShadowMap.Sample(ShadowSampler, projectionCoords.xy + float2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.005;
+        }    
+    }
+    shadow /= 9.0;
 
     if (projectionCoords.z > 1.0)
         shadow = 0.0;
@@ -247,7 +260,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
         Lo += CalcPointLight(Input, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
     }
     if (LightBuffer.HasSun) {
-        Lo += CalcDirectionalLight(Input, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo);
+        Lo += CalcDirectionalLight(Input, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo) * (1.0 - shadow);
     }
 
     float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
@@ -271,7 +284,9 @@ float4 Main(FragmentIn Input) : SV_TARGET
         ambient = kD * albedo.xyz * ao;
     }
 
-    float3 color = ((ambient * (1.0 - shadow)) + Lo);
+    ambient *= 0.5;
+
+    float3 color = (ambient + Lo);
     float4 final = float4(0.0, 0.0, 0.0, 0.0);
 
     switch (OutputData.Mode) {

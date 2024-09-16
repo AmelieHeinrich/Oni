@@ -44,7 +44,8 @@ enum class TextureUsage
     RenderTarget,
     DepthTarget,
     Storage,
-    ShaderResource
+    ShaderResource,
+    RenderStorage
 };
 
 class Texture

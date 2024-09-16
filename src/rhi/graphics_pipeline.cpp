@@ -151,7 +151,7 @@ GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs&
     Desc.RasterizerState.CullMode = D3D12_CULL_MODE(specs.Cull);
     Desc.RasterizerState.DepthClipEnable = true;
     Desc.RasterizerState.FrontCounterClockwise = specs.CCW;
-    Desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    Desc.PrimitiveTopologyType = specs.Line ? D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE : D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     if (specs.DepthEnabled) {
         Desc.DepthStencilState.DepthEnable = true;
         Desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;

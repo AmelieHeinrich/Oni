@@ -13,6 +13,7 @@ target("Oni")
     add_files("src/**.cpp")
     add_includedirs("src", "ext", "ext/PIX/include", "ext/optick/", "ext/nvtt")
     add_deps("D3D12MA", "ImGui", "stb", "optick", "ImGuizmo")
+    add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE")
 
     add_linkdirs("ext/assimp/bin")
     add_linkdirs("ext/PIX/lib")

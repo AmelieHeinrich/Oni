@@ -11,6 +11,8 @@
 #include "core/texture_compressor.hpp"
 #include "core/file_system.hpp"
 
+#include "renderer/techniques/debug_renderer.hpp"
+
 #include "model.hpp"
 
 #include <ImGui/imgui.h>
@@ -21,6 +23,8 @@
 #include <ctime>
 #include <cstdlib>
 #include <optick.h>
+#include <sstream>
+#include <iomanip>
 
 float random_float(float min, float max)
 {
@@ -29,7 +33,7 @@ float random_float(float min, float max)
 }
 
 App::App()
-    : _camera(1920, 1080), _lastFrame(0.0f), _sunMatrix(1.0f)
+    : _camera(1920, 1080), _lastFrame(0.0f)
 {
     Logger::Init();
     srand(time(NULL));
@@ -53,11 +57,11 @@ App::App()
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
     Model sponza;
-    sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
+    sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
 
-    scene.Models.push_back(platform);
+    //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
-    scene.Lights.SetSun(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec4(5.0f));
+    scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
 
     _renderContext->WaitForGPU();
 }
@@ -71,6 +75,9 @@ void App::Run()
 {
     while (_window->IsOpen()) {
         OPTICK_FRAME("Oni");
+
+        _frameTimer.Restart();
+        auto& stats = _renderer->GetStats();
 
         static float framesPerSecond = 0.0f;
         static float lastTime = 0.0f;
@@ -90,18 +97,23 @@ void App::Run()
         float dt = (time - _lastFrame) / 1000.0f;
         _lastFrame = time;
 
-        _window->Update();
-
         if (ImGui::IsKeyPressed(ImGuiKey_F1)) {
             _showUI = !_showUI;
         }
 
         uint32_t width, height;
+        _window->Update();
         _window->GetSize(width, height);
 
         _camera.Update(dt, _updateFrustum);
-
         scene.Camera = _camera;
+
+        scene.Lights.Sun.Direction = scene.Lights.SunTransform.GetFrontVector();
+
+        glm::vec3 A = scene.Lights.SunTransform.Position;
+        glm::vec3 B = A + scene.Lights.SunTransform.GetFrontVector();
+
+        DebugRenderer::Get()->PushLine(B, A, glm::vec3(1.0f));
 
         CommandBuffer::Ptr commandBuffer = _renderContext->GetCurrentCommandBuffer();
         Texture::Ptr texture = _renderContext->GetBackBuffer();
@@ -116,15 +128,17 @@ void App::Run()
         // UI
         {
             OPTICK_EVENT("UI");
-            commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
-            commandBuffer->BindRenderTargets({ texture }, nullptr);
-            commandBuffer->BeginImGui(width, height);
-            RenderOverlay();
-            if (!_showUI) {
-                RenderHelper();
-            }
-            commandBuffer->EndImGui();
-            commandBuffer->ImageBarrier(texture, TextureLayout::Present);
+            stats.PushFrameTime("UI", [this, commandBuffer, texture, width, height]() {
+                commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
+                commandBuffer->BindRenderTargets({ texture }, nullptr);
+                commandBuffer->BeginImGui(width, height);
+                RenderOverlay();
+                if (!_showUI) {
+                    RenderHelper();
+                }
+                commandBuffer->EndImGui();
+                commandBuffer->ImageBarrier(texture, TextureLayout::Present);
+            });
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_F2)) {
@@ -138,22 +152,30 @@ void App::Run()
         {
             OPTICK_EVENT("Submit");
             commandBuffer->End();
-            _renderContext->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
+
+            stats.PushFrameTime("Submit", [this, commandBuffer] {
+                _renderContext->ExecuteCommandBuffers({ commandBuffer }, CommandQueueType::Graphics);
+            });
         }
 
         // FLUSH
         {
             OPTICK_EVENT("Present");
-            _renderContext->Present(_vsync);
-            _renderContext->Finish();
+
+            stats.PushFrameTime("Present", [this]() {
+                _renderContext->Present(_vsync);
+                _renderContext->Finish();
+            });
         }
+
+        DebugRenderer::Get()->Reset();
 
         if (!_showUI) {
             _camera.Input(dt);
         }
 
         if ((_updateTimer.GetElapsed() / 1000.0f) > 1.0f) {
-            _frameTime = clock() - time;
+            _frameTime = _frameTimer.GetElapsed();
             _updateTimer.Restart();
         } 
     }
@@ -200,6 +222,7 @@ void App::RenderHelper()
 {
     if (!_hideOverlay) {
         static bool p_open = true;
+        auto stats = _renderer->GetStats();
 
         ImGuiIO& io = ImGui::GetIO();
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDocking;
@@ -221,9 +244,16 @@ void App::RenderHelper()
         ImGui::Text("Debug Menu: F1");
         ImGui::Text("Screenshot: F2");
         ImGui::Text("Hide Overlay: F3");
-        ImGui::Text("%d FPS (%.0fms)", _fps, _frameTime);
-        ImGui::PlotLines("FPS Graph", _pastFps.data(), _pastFps.size());
+        ImGui::Separator();
         ImGui::Text(_vsync ? "VSYNC: ON" : "VSYNC: OFF");
+        ImGui::Text("%d FPS (%.2fms)", _fps, _frameTime);
+        ImGui::PlotLines("FPS Graph", _pastFps.data(), _pastFps.size());
+        ImGui::Separator();
+        for (auto pair : stats.FrameTimesHistory) {
+            char buffer[256] = {};
+            sprintf(buffer, "%s (%.2fms)", pair.first.c_str(), pair.second.back());
+            ImGui::PlotLines(buffer, pair.second.data(), pair.second.size());
+        }
         ImGui::End();
     }
 }
@@ -266,8 +296,8 @@ void App::ShowLightEditor()
         ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
         scene.Lights.Sun.Color = glm::vec3(intensity);
 
-        ImGui::SliderFloat3("Position", glm::value_ptr(scene.Lights.SunPosition), -100.0f, 100.0f);
-        ImGui::SliderFloat3("Rotation", glm::value_ptr(scene.Lights.Sun.Direction), -360.0f, 360.0f);
+        ImGui::SliderFloat3("Position", glm::value_ptr(scene.Lights.SunTransform.Position), -100.0f, 100.0f);
+        ImGui::SliderFloat3("Rotation", glm::value_ptr(scene.Lights.SunTransform.Rotation), -360.0f, 360.0f);
         
         if (ImGui::Button("Translate")) {
             operation = ImGuizmo::OPERATION::TRANSLATE;
@@ -277,20 +307,23 @@ void App::ShowLightEditor()
             operation = ImGuizmo::OPERATION::ROTATE;
         }
 
-        glm::vec3 DummyScale;
+        ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(scene.Lights.SunTransform.Position),
+                                                glm::value_ptr(scene.Lights.SunTransform.Rotation),
+                                                glm::value_ptr(scene.Lights.SunTransform.Scale),
+                                                glm::value_ptr(scene.Lights.SunTransform.Matrix));
 
         ImGuizmo::Manipulate(glm::value_ptr(scene.Camera.View()),
-                                 glm::value_ptr(scene.Camera.Projection()),
-                                 operation,
-                                 ImGuizmo::MODE::WORLD,
-                                 glm::value_ptr(_sunMatrix),
-                                 nullptr,
-                                 nullptr);
+                             glm::value_ptr(scene.Camera.Projection()),
+                             operation,
+                             ImGuizmo::MODE::WORLD,
+                             glm::value_ptr(scene.Lights.SunTransform.Matrix),
+                             nullptr,
+                             nullptr);
 
-        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(_sunMatrix),
-                                              glm::value_ptr(scene.Lights.SunPosition),
-                                              glm::value_ptr(scene.Lights.Sun.Direction),
-                                              glm::value_ptr(DummyScale));
+        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(scene.Lights.SunTransform.Matrix),
+                                              glm::value_ptr(scene.Lights.SunTransform.Position),
+                                              glm::value_ptr(scene.Lights.SunTransform.Rotation),
+                                              glm::value_ptr(scene.Lights.SunTransform.Scale));
 
         ImGui::TreePop();
     }

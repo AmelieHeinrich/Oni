@@ -20,10 +20,10 @@ Sampler::Sampler(Device::Ptr device, DescriptorHeap::Heaps& heaps, SamplerAddres
         SamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
     }
     SamplerDesc.MipLODBias = 0.0f;
-    SamplerDesc.BorderColor[0] = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
-    SamplerDesc.BorderColor[1] = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
-    SamplerDesc.BorderColor[2] = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
-    SamplerDesc.BorderColor[3] = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+    SamplerDesc.BorderColor[0] = 1.0f;
+    SamplerDesc.BorderColor[1] = 1.0f;
+    SamplerDesc.BorderColor[2] = 1.0f;
+    SamplerDesc.BorderColor[3] = 1.0f;
 
     _descriptor = heaps.SamplerHeap->Allocate();
     device->GetDevice()->CreateSampler(&SamplerDesc, _descriptor.CPU);

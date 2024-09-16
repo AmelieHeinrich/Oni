@@ -46,4 +46,5 @@ private:
 
     Buffer::Ptr _cubeBuffer;
     Buffer::Ptr _cubeCBV;
+    bool _drawSkybox = true;
 };

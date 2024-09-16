@@ -66,7 +66,7 @@ Forward::Forward(RenderContext::Ptr context)
     }
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        _sceneBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Scene Buffer CBV");
+        _sceneBuffer[i] = context->CreateBuffer(512, 0, BufferType::Constant, false, "Scene Buffer CBV");
         _sceneBuffer[i]->BuildConstantBuffer();
     
         _lightBuffer[i] = context->CreateBuffer(24832, 0, BufferType::Constant, false, "Light Buffer CBV");
@@ -77,7 +77,7 @@ Forward::Forward(RenderContext::Ptr context)
     }
 
     _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, true, 0);
-    _shadowSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, false, 0);
+    _shadowSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Nearest, false, 0);
 }
 
 Forward::~Forward()
@@ -105,9 +105,9 @@ void Forward::Resize(uint32_t width, uint32_t height)
 
 void Forward::OnUI()
 {
-    if (ImGui::TreeNodeEx("Forward", ImGuiTreeNodeFlags_Framed))
-    {
+    if (ImGui::TreeNodeEx("Forward", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Enable IBL", &_ibl);
+        ImGui::Checkbox("Visualize Shadows", &_visualizeShadow);
 
         static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Specular", "Ambient" };
         ImGui::Combo("Mode", (int*)&_mode, Modes, 8);
@@ -134,26 +134,22 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("PBR Forward");
 
-    // TODO(amelie): calculate view matrix
-
-    float near_plane = 1.0f, far_plane = 10.0f;
-    glm::mat4 depthProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-    glm::mat4 depthView = glm::translate(glm::mat4(1.0f), scene.Lights.SunPosition)
-                                     * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.x), glm::vec3(1.0f, 0.0f, 0.0f))
-                                     * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.y), glm::vec3(0.0f, 1.0f, 0.0f))
-                                     * glm::rotate(glm::mat4(1.0f), glm::radians(scene.Lights.Sun.Direction.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::mat4 depthProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 0.05f, 50.0f);
+    glm::mat4 depthView = glm::lookAt(scene.Lights.SunTransform.Position, scene.Lights.SunTransform.Position - scene.Lights.SunTransform.GetFrontVector(), glm::vec3(0.0f, 1.0f, 0.0f));
 
     struct Data {
-        glm::mat4 View;
-        glm::mat4 Projection;
-        glm::vec4 CameraPosition;
+        glm::mat4 CameraMatrix;
         glm::mat4 SunMatrix;
+        glm::vec4 CameraPosition;
     };
     Data data;
-    data.View = scene.Camera.View();
-    data.Projection = scene.Camera.Projection();
+    if (!_visualizeShadow) {
+        data.CameraMatrix = scene.Camera.Projection() * scene.Camera.View();
+    } else {
+        data.CameraMatrix = depthProjection * depthView;
+    }
     data.CameraPosition = glm::vec4(scene.Camera.GetPosition(), 1.0f);
-    data.SunMatrix = depthView * depthProjection;
+    data.SunMatrix = depthProjection * depthView;
 
     void *pData;
     _sceneBuffer[frameIndex]->Map(0, 0, &pData);
@@ -174,7 +170,7 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->SetViewport(0, 0, width, height);
     commandBuffer->SetTopology(Topology::TriangleList);
     commandBuffer->BindRenderTargets({ _outputImage }, _depthBuffer);
-    commandBuffer->ClearRenderTarget(_outputImage, 0.3f, 0.5f, 0.8f, 1.0f);
+    commandBuffer->ClearRenderTarget(_outputImage, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearDepthTarget(_depthBuffer);
     commandBuffer->BindGraphicsPipeline(_pbrPipeline);
     commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer[frameIndex], 0);

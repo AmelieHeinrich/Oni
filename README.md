@@ -2,7 +2,7 @@
 
 Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose is for it to be used as a portfolio piece once I go back to job finding.
 
-![](screenshots/engine/Screenshot%20Thu%20Apr%2025%2000_06_00%202024.png)
+![](screenshots/Bistro.png)
 
 ## Authors
 
@@ -31,15 +31,14 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 ### Techniques
 
 - Forward shading
-- PBR lighting model
-- Blinn Phong lighting model
+- PBR lighting model and materials
 - IBL
-- Normal, PBR, emissive, AO textures
-- Skybox renderer
+- Environment mapping
 - Point, directional lights
+- Shadow mapping (directional)
 
 ### Post Processing
-- Color correction (can be tuned)
+- Color correction
 - Tonemapping
 
 ### Misc
@@ -48,29 +47,18 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - Screenshot system
 - Mipmap generation through compute
 - Simple scene editor to add/move lights around
+- Debug renderer (lines)
 
 ## WIP:
 
 - Texture compression
-- Shadow mapping
+- JSON config files
 
 ## Screenshots
 
-### Physically Based Rendering - IBL
-
-| Damaged Helmet | Bistro | Sponza |
-|---|---|---|
-| ![](screenshots/DamagedHelmetPBR.png) | ![](screenshots/engine/Screenshot%20Thu%20Apr%2025%2000_06_00%202024.png) | ![](screenshots/SponzaPBR.png) |
-
-### Color correction
-
-| Off | On |
-|---|---|
-| ![](screenshots/No%20CC.png) | ![](screenshots/With%20CC.png) |
-
 ### UI (as of 9/14/2024)
 
-![](screenshots/EngineUI.png)
+![](screenshots/UI.png)
 
 ## Third party dependencies
 

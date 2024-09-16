@@ -1,0 +1,47 @@
+{
+    "oni": {
+        "vsync": false,
+        "updateFrustum": false,
+        "drawGrid": false,
+        "assetFolder": "assets",
+        "cacheFolder": ".cache"
+    },
+    "techniques": {
+        "geometry": "classic",
+        "geometryShading": "forward",
+        "shadows": "rastered"
+    },
+    "passSettings": {
+        "shadows": {
+            "renderShadows": false
+        },
+        "forward": {
+            "enableIbl": true
+        },
+        "environmentMap": {
+            "path": "assets/env/day/san_giuseppe_bridge_4k.hdr",
+            "drawSkybox": false
+        },
+        "colorCorrection": {
+            "enable": false,
+            "exposure": 2.2,
+            "temperature": 0.0,
+            "tint": 0.0,
+            "contrast": [1.0, 1.0, 1.0],
+            "linearMidPoint": [0.0, 0.0, 0.0],
+            "brightness": [0.0, 0.0, 0.0],
+            "colorFilter": [0.0, 0.0, 0.0],
+            "colorFilterIntensity": 1.0,
+            "saturation": [1.0, 1.0, 1.0]
+        },
+        "autoExposure": {
+            "enable": false
+        },
+        "tonemapping": {
+            "mode": 0
+        },
+        "debugRenderer": {
+            "drawLines": true
+        }
+    }
+}

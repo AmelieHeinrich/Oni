@@ -58,6 +58,7 @@ public:
     CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type, bool close = true);
     
     Uploader CreateUploader();
+    void FlushUploader(Uploader& uploader, CommandBuffer::Ptr commandBuffer);
     void FlushUploader(Uploader& uploader);
 
     void GenerateMips(Texture::Ptr texture);
@@ -66,6 +67,8 @@ public:
     void OnOverlay();
 
 private:
+    void SetStyle();
+
     Device::Ptr _device;
     std::shared_ptr<Window> _window;
     

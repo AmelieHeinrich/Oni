@@ -43,6 +43,7 @@ struct GraphicsPipelineSpecs
     TextureFormat DepthFormat;
     bool DepthEnabled;
     bool CCW = true;
+    bool Line = false;
 
     std::unordered_map<ShaderType, ShaderBytecode> Bytecodes;
 };

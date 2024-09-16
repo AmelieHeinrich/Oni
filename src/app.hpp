@@ -37,6 +37,7 @@ private:
 
     Timer _dtTimer;
     Timer _updateTimer;
+    Timer _frameTimer;
     float _lastFrame;
 
     FreeCamera _camera;
@@ -57,6 +58,4 @@ private:
 
     int _fps;
     float _frameTime = 0.0f;
-
-    glm::mat4 _sunMatrix;
 };

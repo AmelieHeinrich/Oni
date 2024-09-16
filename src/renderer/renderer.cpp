@@ -19,12 +19,15 @@
 Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
 {
-    _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::High);
+    _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
     _forward = std::make_shared<Forward>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _forward->GetOutput(), _forward->GetDepthBuffer());
     _colorCorrection = std::make_shared<ColorCorrection>(context, _forward->GetOutput());
     _autoExposure = std::make_shared<AutoExposure>(context, _forward->GetOutput());
     _tonemapping = std::make_shared<Tonemapping>(context, _forward->GetOutput());
+    _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
+
+    DebugRenderer::SetDebugRenderer(_debugRenderer);
 
     _forward->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
     _forward->ConnectShadowMap(_shadows->GetOutput());
@@ -42,12 +45,27 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
     {
         OPTICK_EVENT("Frame Render");
 
-        _shadows->Render(scene, width, height);
-        _forward->Render(scene, width, height);
-        _envMapForward->Render(scene, width, height);
-        _colorCorrection->Render(scene, width, height);
-        _autoExposure->Render(scene, width, height, dt);
-        _tonemapping->Render(scene, width, height);
+        _stats.PushFrameTime("Shadows", [this, &scene, width, height]() {
+            _shadows->Render(scene, width, height);
+        });
+        _stats.PushFrameTime("Forward", [this, &scene, width, height]() {
+            _forward->Render(scene, width, height);
+        });
+        _stats.PushFrameTime("Environment Map", [this, &scene, width, height]() {
+            _envMapForward->Render(scene, width, height);
+        });
+        _stats.PushFrameTime("Color Correction", [this, &scene, width, height]() {
+            _colorCorrection->Render(scene, width, height);
+        });
+        _stats.PushFrameTime("Auto Exposure", [this, &scene, width, height, dt]() {
+            _autoExposure->Render(scene, width, height, dt);
+        });
+        _stats.PushFrameTime("Tonemapping", [this, &scene, width, height]() {
+            _tonemapping->Render(scene, width, height);
+        });
+        _stats.PushFrameTime("Debug Renderer", [this, &scene, width, height]() {
+            _debugRenderer->Flush(scene, width, height);
+        });
     }
 
     {
@@ -57,11 +75,13 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
         OPTICK_GPU_EVENT("Copy to Backbuffer");
 
-        cmdBuf->ImageBarrier(backbuffer, TextureLayout::CopyDest);
-        cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::CopySource);
-        cmdBuf->CopyTextureToTexture(backbuffer, _tonemapping->GetOutput());
-        cmdBuf->ImageBarrier(backbuffer, TextureLayout::Present);
-        cmdBuf->ImageBarrier(_tonemapping->GetOutput(), TextureLayout::ShaderResource);
+        _stats.PushFrameTime("Copy to Backbuffer", [this, cmdBuf, backbuffer]() {
+            cmdBuf->ImageBarrier(backbuffer, TextureLayout::CopyDest);
+            cmdBuf->ImageBarrier(_debugRenderer->GetOutput(), TextureLayout::CopySource);
+            cmdBuf->CopyTextureToTexture(backbuffer, _debugRenderer->GetOutput());
+            cmdBuf->ImageBarrier(backbuffer, TextureLayout::Present);
+            cmdBuf->ImageBarrier(_debugRenderer->GetOutput(), TextureLayout::ShaderResource);
+        });
     }
 }
 
@@ -73,6 +93,7 @@ void Renderer::Resize(uint32_t width, uint32_t height)
     _colorCorrection->Resize(width, height, _forward->GetOutput());
     _autoExposure->Resize(width, height, _forward->GetOutput());
     _tonemapping->Resize(width, height, _forward->GetOutput());
+    _debugRenderer->Resize(width, height, _tonemapping->GetOutput());
 }
 
 void Renderer::OnUI()
@@ -85,6 +106,7 @@ void Renderer::OnUI()
     _colorCorrection->OnUI();
     _autoExposure->OnUI();
     _tonemapping->OnUI();
+    _debugRenderer->OnUI();
 
     ImGui::End();
 }
