@@ -7,9 +7,10 @@
 
 #include <vector>
 
-#include "model.hpp"
-#include "camera.hpp"
 #include "lights.hpp"
+
+#include "core/model.hpp"
+#include "core/camera.hpp"
 
 struct Scene
 {

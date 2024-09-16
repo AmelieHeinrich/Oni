@@ -6,7 +6,8 @@
 #pragma once
 
 #include "scene.hpp"
-#include "timer.hpp"
+
+#include "core/timer.hpp"
 
 #include "techniques/shadows.hpp"
 #include "techniques/forward.hpp"

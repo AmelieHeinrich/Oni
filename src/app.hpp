@@ -7,11 +7,9 @@
 
 #include "core/log.hpp"
 #include "core/window.hpp"
-
-#include "model.hpp"
-
-#include "camera.hpp"
-#include "timer.hpp"
+#include "core/model.hpp"
+#include "core/camera.hpp"
+#include "core/timer.hpp"
 
 #include "rhi/render_context.hpp"
 

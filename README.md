@@ -53,6 +53,7 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 
 - Texture compression
 - JSON config files
+- Shader hot reloading
 
 ## Screenshots
 
@@ -71,3 +72,4 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - [stb](https://github.com/nothings/stb)
 - [Agility SDK](https://devblogs.microsoft.com/directx/directx12agility/)
 - [Assimp](https://github.com/assimp/assimp)
+- [Filewatch](https://github.com/ThomasMonkman/filewatch)

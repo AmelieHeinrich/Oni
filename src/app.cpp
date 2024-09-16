@@ -3,18 +3,6 @@
  * @Create Time: 2024-03-28 20:06:52
  */
 
-#include "app.hpp"
-
-#include "shader/bytecode.hpp"
-
-#include "core/bitmap.hpp"
-#include "core/texture_compressor.hpp"
-#include "core/file_system.hpp"
-
-#include "renderer/techniques/debug_renderer.hpp"
-
-#include "model.hpp"
-
 #include <ImGui/imgui.h>
 #include <ImGuizmo/ImGuizmo.h>
 
@@ -25,6 +13,17 @@
 #include <optick.h>
 #include <sstream>
 #include <iomanip>
+
+#include "app.hpp"
+
+#include "shader/bytecode.hpp"
+
+#include "core/bitmap.hpp"
+#include "core/texture_compressor.hpp"
+#include "core/file_system.hpp"
+#include "core/model.hpp"
+
+#include "renderer/techniques/debug_renderer.hpp"
 
 float random_float(float min, float max)
 {
@@ -97,6 +96,8 @@ void App::Run()
         float dt = (time - _lastFrame) / 1000.0f;
         _lastFrame = time;
 
+        _camera.Update(_updateFrustum);
+
         if (ImGui::IsKeyPressed(ImGuiKey_F1)) {
             _showUI = !_showUI;
         }
@@ -105,7 +106,6 @@ void App::Run()
         _window->Update();
         _window->GetSize(width, height);
 
-        _camera.Update(dt, _updateFrustum);
         scene.Camera = _camera;
 
         scene.Lights.Sun.Direction = scene.Lights.SunTransform.GetFrontVector();
