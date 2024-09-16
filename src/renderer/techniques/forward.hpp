@@ -40,7 +40,6 @@ private:
     EnvironmentMap _map;
 
     Texture::Ptr _whiteTexture;
-    Texture::Ptr _blackTexture;
     Texture::Ptr _outputImage;
     Texture::Ptr _depthBuffer;
     Texture::Ptr _shadowMap;
@@ -58,4 +57,7 @@ private:
     bool _visualizeShadow = false;
     bool _pbr = true;
     bool _ibl = true;
+    bool _draw = true;
+
+    bool _reconstruct = false;
 };

@@ -16,8 +16,7 @@
 
 #include "app.hpp"
 
-#include "shader/bytecode.hpp"
-
+#include "core/shader_bytecode.hpp"
 #include "core/bitmap.hpp"
 #include "core/texture_compressor.hpp"
 #include "core/file_system.hpp"
@@ -37,8 +36,15 @@ App::App()
     Logger::Init();
     srand(time(NULL));
 
+    if (!FileSystem::Exists("screenshots")) {
+        FileSystem::CreateDirectoryFromPath("screenshots");
+    }
+    if (!FileSystem::Exists("screenshots/engine")) {
+        FileSystem::CreateDirectoryFromPath("screenshots/engine");
+    }
+
     // Compress every model texture
-    TextureCompressor::TraverseDirectory("assets/textures/", TextureCompressorFormat::BC1);
+    //TextureCompressor::TraverseDirectory("assets/textures/", TextureCompressorFormat::BC1);
 
     _window = std::make_shared<Window>(1920 + 16, 1080 + 39, "ONI");
     _window->OnResize([&](uint32_t width, uint32_t height) {
@@ -52,15 +58,15 @@ App::App()
 
     scene = {};
 
-    Model platform;
+    Model platform = {};
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
-    Model sponza;
+    Model sponza = {};
     sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
 
     //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
-    scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
+    scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(15.0f));
 
     _renderContext->WaitForGPU();
 }
@@ -185,19 +191,25 @@ void App::RenderOverlay()
 {
     if (_showUI) {
         if (ImGui::BeginMainMenuBar()) {
-            if (ImGui::BeginMenu("Debug")) {
+            if (ImGui::BeginMenu("Window")) {
                 const char* vsyncLabel = _vsync ? "Disable VSync" : "Enable VSync";
+                if (ImGui::MenuItem(vsyncLabel)) {
+                    _vsync = !_vsync;
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Scene")) {
+                if (ImGui::MenuItem("Scene Editor")) {
+                    _showLightEditor = !_showLightEditor;
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Debug")) {
                 if (ImGui::MenuItem("Resource Inspector")) {
                     _showResourceInspector = !_showResourceInspector;
                 }
                 if (ImGui::MenuItem("Renderer Settings")) {
                     _showRendererSettings = !_showRendererSettings;
-                }
-                if (ImGui::MenuItem("Scene Editor")) {
-                    _showLightEditor = !_showLightEditor;
-                }
-                if (ImGui::MenuItem(vsyncLabel)) {
-                    _vsync = !_vsync;
                 }
                 ImGui::EndMenu();
             }

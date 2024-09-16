@@ -5,19 +5,19 @@
 
 #include "render_context.hpp"
 
-#include <core/log.hpp>
 #include <psapi.h>
 
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_impl_win32.h>
 #include <ImGui/imgui_impl_dx12.h>
-
-#include <shader/bytecode.hpp>
 #include <cmath>
 #include <sstream>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <core/shader_bytecode.hpp>
+#include <core/log.hpp>
 
 static float normalize(float value, float old_min, float old_max, float new_min, float new_max)
 {
@@ -89,6 +89,8 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
 
     _mipmapPipeline = CreateComputePipeline(bytecode);
     _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, true, 0);
+
+    WaitForGPU();
 }
 
 RenderContext::~RenderContext()
@@ -327,6 +329,40 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
     cmdBuf->End();
     ExecuteCommandBuffers({ cmdBuf }, CommandQueueType::Graphics);
     WaitForGPU();
+}
+
+void RenderContext::GenerateMips(Texture::Ptr texture, CommandBuffer::Ptr cmdBuf)
+{
+    texture->BuildStorage();
+
+    std::vector<Buffer::Ptr> buffers;
+    buffers.resize(texture->GetMips());
+
+    for (int i = 0; i < texture->GetMips(); i++) {
+        buffers[i] = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer " + std::to_string(i));
+        buffers[i]->BuildConstantBuffer();
+    }
+
+    cmdBuf->BindComputePipeline(_mipmapPipeline);
+    for (int i = 0; i < texture->GetMips() - 1; i++) {
+        uint32_t mipWidth = (texture->GetWidth() * std::pow(0.5f, i + 1));
+        uint32_t mipHeight = (texture->GetHeight() * std::pow(0.5f, i + 1));
+        glm::vec4 data(mipWidth, mipHeight, 0, 0);
+
+        void *pData;
+        buffers[i]->Map(0, 0, &pData);
+        memcpy(pData, glm::value_ptr(data), sizeof(data));
+        buffers[i]->Unmap(0, 0);
+
+        cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource, i);
+        cmdBuf->ImageBarrier(texture, TextureLayout::Storage, i + 1);
+        cmdBuf->BindComputeShaderResource(texture, 0, i);
+        cmdBuf->BindComputeStorageTexture(texture, 1, i + 1);
+        cmdBuf->BindComputeSampler(_mipmapSampler, 2);
+        cmdBuf->BindComputeConstantBuffer(buffers[i], 3);
+        cmdBuf->Dispatch(std::max(mipWidth / 8, 1u), std::max(mipHeight / 8, 1u), 1);
+    }
+    cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource);
 }
 
 void RenderContext::OnGUI()

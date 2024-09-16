@@ -38,10 +38,12 @@ DebugRenderer::DebugRenderer(RenderContext::Ptr context, Texture::Ptr output)
     specs.Line = true;
     LineShader = context->CreateGraphicsPipeline(specs);
 
-    LineTransferBuffer = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), 0, BufferType::Constant, false, "Line Transfer Buffer");
-    LineVertexBuffer = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), sizeof(LineVertex), BufferType::Vertex, false, "Line Vertex Buffer");
-    LineUniformBuffer = context->CreateBuffer(256, 0, BufferType::Constant, false, "Line Uniform Buffer");
-    LineUniformBuffer->BuildConstantBuffer();
+    for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+        LineTransferBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), 0, BufferType::Constant, false, "Line Transfer Buffer");
+        LineVertexBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), sizeof(LineVertex), BufferType::Vertex, false, "Line Vertex Buffer");
+        LineUniformBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Line Uniform Buffer");
+        LineUniformBuffer[i]->BuildConstantBuffer();
+    }
 }
 
 void DebugRenderer::Resize(uint32_t width, uint32_t height, Texture::Ptr output)
@@ -70,6 +72,7 @@ void DebugRenderer::PushLine(glm::vec3 a, glm::vec3 b, glm::vec3 color)
 void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr cmdBuffer = Context->GetCurrentCommandBuffer();
+    uint32_t frameIndex = Context->GetBackBufferIndex();
 
     OPTICK_GPU_CONTEXT(cmdBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Debug Renderer");
@@ -94,24 +97,24 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             glm::mat4 mvp = scene.Camera.Projection() * scene.Camera.View();
 
             void *pData;
-            LineUniformBuffer->Map(0, 0, &pData);
+            LineUniformBuffer[frameIndex]->Map(0, 0, &pData);
             memcpy(pData, glm::value_ptr(mvp), sizeof(glm::mat4));
-            LineUniformBuffer->Unmap(0, 0);
+            LineUniformBuffer[frameIndex]->Unmap(0, 0);
 
-            LineTransferBuffer->Map(0, 0, &pData);
+            LineTransferBuffer[frameIndex]->Map(0, 0, &pData);
             memcpy(pData, vertices.data(), sizeof(LineVertex) * vertices.size());
-            LineTransferBuffer->Unmap(0, 0);
+            LineTransferBuffer[frameIndex]->Unmap(0, 0);
 
             Uploader uploader = Context->CreateUploader();
-            uploader.CopyBufferToBuffer(LineTransferBuffer, LineVertexBuffer);
+            uploader.CopyBufferToBuffer(LineTransferBuffer[frameIndex], LineVertexBuffer[frameIndex]);
             Context->FlushUploader(uploader, cmdBuffer);
 
             cmdBuffer->SetViewport(0, 0, width, height);
             cmdBuffer->SetTopology(Topology::LineList);
             cmdBuffer->BindRenderTargets({ Output }, nullptr);
             cmdBuffer->BindGraphicsPipeline(LineShader);
-            cmdBuffer->BindGraphicsConstantBuffer(LineUniformBuffer, 0);
-            cmdBuffer->BindVertexBuffer(LineVertexBuffer);
+            cmdBuffer->BindGraphicsConstantBuffer(LineUniformBuffer[frameIndex], 0);
+            cmdBuffer->BindVertexBuffer(LineVertexBuffer[frameIndex]);
             cmdBuffer->Draw(vertices.size());
         }
     }

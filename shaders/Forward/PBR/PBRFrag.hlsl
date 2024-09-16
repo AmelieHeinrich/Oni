@@ -284,7 +284,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
         ambient = kD * albedo.xyz * ao;
     }
 
-    ambient *= 0.5;
+    ambient *= 0.6;
 
     float3 color = (ambient + Lo);
     float4 final = float4(0.0, 0.0, 0.0, 0.0);

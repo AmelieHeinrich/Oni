@@ -17,29 +17,15 @@ Forward::Forward(RenderContext::Ptr context)
     _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "White Texture");
     _whiteTexture->BuildShaderResource();
 
-    _blackTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "Black Texture");
-    _blackTexture->BuildShaderResource();
-
     Uploader uploader = context->CreateUploader();
 
-    {
-        uint32_t color = 0xFFFFFFFF;
-        Bitmap image;
-        image.Width = 1;
-        image.Height = 1;
-        image.Delete = false;
-        image.Bytes = reinterpret_cast<char*>(&color);
-        uploader.CopyHostToDeviceTexture(image, _whiteTexture);
-    }
-    {
-        uint32_t color = 0xFF000000;
-        Bitmap image;
-        image.Width = 1;
-        image.Height = 1;
-        image.Delete = false;
-        image.Bytes = reinterpret_cast<char*>(&color);
-        uploader.CopyHostToDeviceTexture(image, _blackTexture);
-    }
+    uint32_t color = 0xFFFFFFFF;
+    Bitmap image;
+    image.Width = 1;
+    image.Height = 1;
+    image.Delete = false;
+    image.Bytes = reinterpret_cast<char*>(&color);
+    uploader.CopyHostToDeviceTexture(image, _whiteTexture);
 
     _context->FlushUploader(uploader);
 
@@ -77,7 +63,7 @@ Forward::Forward(RenderContext::Ptr context)
     }
 
     _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, true, 0);
-    _shadowSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Nearest, false, 0);
+    _shadowSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, false, 0);
 }
 
 Forward::~Forward()
@@ -106,6 +92,7 @@ void Forward::Resize(uint32_t width, uint32_t height)
 void Forward::OnUI()
 {
     if (ImGui::TreeNodeEx("Forward", ImGuiTreeNodeFlags_Framed)) {
+        ImGui::Checkbox("Draw Geometry", &_draw);
         ImGui::Checkbox("Enable IBL", &_ibl);
         ImGui::Checkbox("Visualize Shadows", &_visualizeShadow);
 
@@ -141,6 +128,7 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
         glm::mat4 CameraMatrix;
         glm::mat4 SunMatrix;
         glm::vec4 CameraPosition;
+        glm::vec3 _Pad0;
     };
     Data data;
     if (!_visualizeShadow) {
@@ -167,45 +155,47 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
 
     commandBuffer->BeginEvent("Forward Pass");
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
-    commandBuffer->SetViewport(0, 0, width, height);
-    commandBuffer->SetTopology(Topology::TriangleList);
-    commandBuffer->BindRenderTargets({ _outputImage }, _depthBuffer);
     commandBuffer->ClearRenderTarget(_outputImage, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearDepthTarget(_depthBuffer);
-    commandBuffer->BindGraphicsPipeline(_pbrPipeline);
-    commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer[frameIndex], 0);
-    commandBuffer->BindGraphicsCubeMap(_map.IrradianceMap, 7);
-    commandBuffer->BindGraphicsCubeMap(_map.PrefilterMap, 8);
-    commandBuffer->BindGraphicsShaderResource(_map.BRDF, 9);
-    commandBuffer->BindGraphicsShaderResource(_shadowMap, 10);
-    commandBuffer->BindGraphicsSampler(_sampler, 11);
-    commandBuffer->BindGraphicsSampler(_shadowSampler, 12);
-    commandBuffer->BindGraphicsConstantBuffer(_lightBuffer[frameIndex], 13);
-    commandBuffer->BindGraphicsConstantBuffer(_modeBuffer[frameIndex], 14);
+    if (_draw) {
+        commandBuffer->SetViewport(0, 0, width, height);
+        commandBuffer->SetTopology(Topology::TriangleList);
+        commandBuffer->BindRenderTargets({ _outputImage }, _depthBuffer);
+        commandBuffer->BindGraphicsPipeline(_pbrPipeline);
+        commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer[frameIndex], 0);
+        commandBuffer->BindGraphicsCubeMap(_map.IrradianceMap, 7);
+        commandBuffer->BindGraphicsCubeMap(_map.PrefilterMap, 8);
+        commandBuffer->BindGraphicsShaderResource(_map.BRDF, 9);
+        commandBuffer->BindGraphicsShaderResource(_shadowMap, 10);
+        commandBuffer->BindGraphicsSampler(_sampler, 11);
+        commandBuffer->BindGraphicsSampler(_shadowSampler, 12);
+        commandBuffer->BindGraphicsConstantBuffer(_lightBuffer[frameIndex], 13);
+        commandBuffer->BindGraphicsConstantBuffer(_modeBuffer[frameIndex], 14);
 
-    for (auto model : scene.Models) {
-        for (auto primitive : model.Primitives) {
-            //if (!scene.Camera.InFrustum(primitive.BoundingBox)) {
-            //    continue;
-            //}
+        for (auto model : scene.Models) {
+            for (auto primitive : model.Primitives) {
+                //if (!scene.Camera.InFrustum(primitive.BoundingBox)) {
+                //    continue;
+                //}
 
-            auto material = model.Materials[primitive.MaterialIndex];
+                auto material = model.Materials[primitive.MaterialIndex];
 
-            Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
-            Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
-            Texture::Ptr pbr = material.HasMetallicRoughness ? material.PBRTexture : _whiteTexture;
-            Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _whiteTexture;
-            Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
+                Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
+                Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
+                Texture::Ptr pbr = material.HasMetallicRoughness ? material.PBRTexture : _whiteTexture;
+                Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _whiteTexture;
+                Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
-            commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
-            commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
-            commandBuffer->BindGraphicsConstantBuffer(primitive.ModelBuffer, 1);
-            commandBuffer->BindGraphicsShaderResource(albedo, 2);
-            commandBuffer->BindGraphicsShaderResource(normal, 3);
-            commandBuffer->BindGraphicsShaderResource(pbr, 4);
-            commandBuffer->BindGraphicsShaderResource(emissive, 5);
-            commandBuffer->BindGraphicsShaderResource(ao, 6);
-            commandBuffer->DrawIndexed(primitive.IndexCount);
+                commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
+                commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
+                commandBuffer->BindGraphicsConstantBuffer(primitive.ModelBuffer, 1);
+                commandBuffer->BindGraphicsShaderResource(albedo, 2);
+                commandBuffer->BindGraphicsShaderResource(normal, 3);
+                commandBuffer->BindGraphicsShaderResource(pbr, 4);
+                commandBuffer->BindGraphicsShaderResource(emissive, 5);
+                commandBuffer->BindGraphicsShaderResource(ao, 6);
+                commandBuffer->DrawIndexed(primitive.IndexCount);
+            }
         }
     }
 

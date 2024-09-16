@@ -7,7 +7,7 @@
 
 #include "device.hpp"
 
-#include <shader/bytecode.hpp>
+#include <core/shader_bytecode.hpp>
 
 class ComputePipeline
 {

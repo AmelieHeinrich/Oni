@@ -62,7 +62,8 @@ public:
     void FlushUploader(Uploader& uploader);
 
     void GenerateMips(Texture::Ptr texture);
-
+    void GenerateMips(Texture::Ptr texture, CommandBuffer::Ptr commandBuffer);
+    
     void OnGUI();
     void OnOverlay();
 

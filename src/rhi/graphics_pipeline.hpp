@@ -7,7 +7,7 @@
 
 #include "texture.hpp"
 
-#include <shader/bytecode.hpp>
+#include <core/shader_bytecode.hpp>
 #include <unordered_map>
 
 enum class FillMode

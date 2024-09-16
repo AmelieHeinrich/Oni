@@ -53,9 +53,9 @@ private:
     DrawList List;
 
     GraphicsPipeline::Ptr LineShader;
-    Buffer::Ptr LineTransferBuffer;
-    Buffer::Ptr LineVertexBuffer;
-    Buffer::Ptr LineUniformBuffer;
+    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> LineTransferBuffer;
+    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> LineVertexBuffer;
+    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> LineUniformBuffer;
 
     float LineWidth = 2.0f;
 };
