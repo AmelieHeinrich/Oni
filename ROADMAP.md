@@ -7,7 +7,7 @@
 - Raytraced shadows
 - Raytraced reflections
 - Raytraced global illumination
-- Raytraced ambient occlsuion
+- Raytraced ambient occlusion
 - Clustered forward/tiled light culling
 - Shell texturing for foliage
 - Ocean rendering

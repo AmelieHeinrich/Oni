@@ -5,6 +5,8 @@
 
 #include "log.hpp"
 
+#include <ImGui/imgui.h>
+
 #include <exception>
 #include <sstream>
 #include <iomanip>
@@ -47,6 +49,8 @@ void Logger::Info(const char *fmt, ...)
     std::cout << ss.str();
     std::cout << "\033[39m";
     _Data.LogFile << ss.str();
+
+    _Data.LogRecord.push_back({ ss.str(), LogLevel::Info });
 }
 
 void Logger::Warn(const char *fmt, ...)
@@ -67,6 +71,8 @@ void Logger::Warn(const char *fmt, ...)
     std::cout << ss.str();
     std::cout << "\033[39m";
     _Data.LogFile << ss.str();
+
+    _Data.LogRecord.push_back({ ss.str(), LogLevel::Warn });
 }
 
 void Logger::Error(const char *fmt, ...)
@@ -87,4 +93,38 @@ void Logger::Error(const char *fmt, ...)
     std::cout << ss.str();
     std::cout << "\033[39m";
     _Data.LogFile << ss.str();
+
+    _Data.LogRecord.push_back({ ss.str(), LogLevel::Error });
+}
+
+void Logger::OnUI()
+{
+    ImGui::Begin("Log");
+    if (ImGui::Button("Clear")) {
+        _Data.LogRecord.clear();
+    }
+    ImGui::Separator();
+
+    if (ImGui::BeginChild("scrolling", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar)) {
+        for (auto& text : _Data.LogRecord) {
+            switch (text.second) {
+                case LogLevel::Info:
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), text.first.c_str());
+                    break;
+                case LogLevel::Warn:
+                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), text.first.c_str());
+                    break;
+                case LogLevel::Error:
+                    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), text.first.c_str());
+                    break;
+            }
+        }
+        
+        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+            ImGui::SetScrollHereY(1.0f);
+        
+        ImGui::EndChild();
+    }
+
+    ImGui::End();
 }

@@ -205,6 +205,9 @@ void App::RenderOverlay()
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Debug")) {
+                if (ImGui::MenuItem("Log")) {
+                    _showLogger = !_showLogger;
+                }
                 if (ImGui::MenuItem("Resource Inspector")) {
                     _showResourceInspector = !_showResourceInspector;
                 }
@@ -224,6 +227,9 @@ void App::RenderOverlay()
         }
         if (_showLightEditor) {
             ShowLightEditor();
+        }
+        if (_showLogger) {
+            Logger::OnUI();
         }
 
         _renderContext->OnOverlay();

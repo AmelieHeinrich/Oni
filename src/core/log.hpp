@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <utility>
 
 class Logger
 {
@@ -17,10 +19,20 @@ public:
     static void Warn(const char *fmt, ...);
     static void Error(const char *fmt, ...);
 
+    static void OnUI();
 private:
+    enum class LogLevel
+    {
+        Info,
+        Warn,
+        Error,
+        Other
+    };
+
     struct LoggerData
     {
         std::ofstream LogFile;
+        std::vector<std::pair<std::string, LogLevel>> LogRecord;
     };
     static LoggerData _Data;
 };

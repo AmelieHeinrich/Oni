@@ -44,12 +44,14 @@ private:
     bool _vsync = false;
     bool _fpsAsGraph = false;
     bool _hideOverlay = false;
+    bool _drawGrid = false;
+
     bool _showUI = false;
     bool _showResourceInspector = false;
     bool _showRendererSettings = false;
     bool _showLightEditor = false;
+    bool _showLogger = false;
     bool _updateFrustum = true;
-    bool _drawGrid = false;
 
     std::vector<float> _pastFps;
     int _historySize = 10000;
