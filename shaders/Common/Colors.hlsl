@@ -63,3 +63,13 @@ half Luminance(half3 linearRgb)
 {
     return dot(linearRgb, float3(0.2126729, 0.7151522, 0.0721750));
 }
+
+half3 SoftLight(half3 backdrop, half3 source)
+{
+    half3 dependency;
+    if (backdrop.r <= 0.25 && backdrop.g <= 0.25 && backdrop.b <= 0.25) dependency = ((16.0 * backdrop.rgb - 12.0) * backdrop.rgb + 4.0) * backdrop.rgb;
+    else dependency = sqrt(backdrop.rgb);
+
+    if (backdrop.r <= 0.5 && backdrop.g <= 0.5 && backdrop.b <= 0.5) return backdrop.rgb - (1.0 - 2.0 * source.rgb) * backdrop.rgb * (1.0 - backdrop.rgb);
+    else return backdrop.rgb + (2.0 * source.rgb - 1.0) * (dependency - backdrop.rgb);
+}

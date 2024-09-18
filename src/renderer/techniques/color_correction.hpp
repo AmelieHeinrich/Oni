@@ -20,6 +20,8 @@ public:
 
     Texture::Ptr GetOutput() { return _inputHDR; }
 private:
+    // TODO(ame): Channel mixer + color picker for shadows/highlights/midtones
+    // TODO(ame): LUT?
     struct ColorCorrectionSettings
     {
         float Exposure = 0.0f;
@@ -29,7 +31,12 @@ private:
         glm::vec4 ColorFilter = glm::vec4(1.0f);
         float HueShift = 0.0f;
         float Saturation = 0.0f;
-        glm::vec2 _Pad2;
+        float Temperature = 0.0f;
+        float Tint = 0.0f;
+        glm::vec4 Shadows = glm::vec4(0.4f);
+        glm::vec4 Highlights = glm::vec4(0.4f);
+        float Balance = 0.0f;
+        glm::vec3 _Pad2;
     };
 
     RenderContext::Ptr _renderContext;
