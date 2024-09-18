@@ -9,6 +9,7 @@
 
 #include <rhi/render_context.hpp>
 #include <renderer/scene.hpp>
+#include <renderer/hot_reloadable_pipeline.hpp>
 
 // Possible resolution :
 //  - Very Low: 256x256
@@ -35,6 +36,7 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height);
     void Resize(uint32_t width, uint32_t height) {};
     void OnUI();
+    void Reconstruct();
 
     Texture::Ptr GetOutput() { return _shadowMap; }
 
@@ -43,7 +45,8 @@ private:
 
     ShadowMapResolution _shadowMapResolution;
 
-    GraphicsPipeline::Ptr _shadowPipeline;
+    HotReloadablePipeline _shadowPipeline;
+
     Texture::Ptr _shadowMap;
     
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _shadowParam;

@@ -8,6 +8,8 @@
 #include <rhi/render_context.hpp>
 #include <renderer/scene.hpp>
 
+#include "renderer/hot_reloadable_pipeline.hpp"
+
 class AutoExposure
 {
 public:
@@ -17,14 +19,15 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height, float dt);
     void Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR);
     void OnUI();
+    void Reconstruct();
 
     Texture::Ptr GetOutput() { return _inputHDR; }
 
 private:
     RenderContext::Ptr _renderContext;
 
-    ComputePipeline::Ptr _computePipeline;
-    ComputePipeline::Ptr _averagePipeline;
+    HotReloadablePipeline _computePipeline;
+    HotReloadablePipeline _averagePipeline;
     bool _enable = true;
 
     Texture::Ptr _inputHDR;

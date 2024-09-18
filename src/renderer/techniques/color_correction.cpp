@@ -9,11 +9,10 @@
 #include <optick.h>
 
 ColorCorrection::ColorCorrection(RenderContext::Ptr context, Texture::Ptr inputHDR)
-    : _renderContext(context), _inputHDR(inputHDR)
+    : _renderContext(context), _inputHDR(inputHDR), _computePipeline(PipelineType::Compute)
 {
-    ShaderBytecode bytecode;
-    ShaderCompiler::CompileShader("shaders/ColorCorrection/ColorCorrectionCompute.hlsl", "Main", ShaderType::Compute, bytecode);
-    _computePipeline = _renderContext->CreateComputePipeline(bytecode);
+    _computePipeline.AddShaderWatch("shaders/ColorCorrection/ColorCorrectionCompute.hlsl", "Main", ShaderType::Compute);
+    _computePipeline.Build(context);
 
     _correctionParameters = context->CreateBuffer(512, 0, BufferType::Constant, false, "Color Correction Settings CBV");
     _correctionParameters->BuildConstantBuffer();
@@ -43,7 +42,7 @@ void ColorCorrection::Render(Scene& scene, uint32_t width, uint32_t height)
 
         cmdBuf->BeginEvent("Color Correction Pass");
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
-        cmdBuf->BindComputePipeline(_computePipeline);
+        cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
         cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
         cmdBuf->BindComputeConstantBuffer(_correctionParameters, 1);
         cmdBuf->Dispatch(width / 30, height / 30, 1);
@@ -83,4 +82,9 @@ void ColorCorrection::OnUI()
 
         ImGui::TreePop();
     }
+}
+
+void ColorCorrection::Reconstruct()
+{
+    _computePipeline.CheckForRebuild(_renderContext);
 }

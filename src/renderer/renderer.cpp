@@ -155,3 +155,14 @@ void Renderer::Screenshot(Texture::Ptr screenshotTexture, TextureLayout newLayou
     Logger::Info("Saved screenshot at %s", String.c_str());
     delete Result;
 }
+
+void Renderer::Reconstruct()
+{
+    _shadows->Reconstruct();
+    _forward->Reconstruct();
+    _envMapForward->Reconstruct();
+    _colorCorrection->Reconstruct();
+    _autoExposure->Reconstruct();
+    _tonemapping->Reconstruct();
+    _debugRenderer->Reconstruct();
+}

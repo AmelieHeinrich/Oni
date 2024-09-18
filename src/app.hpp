@@ -10,6 +10,7 @@
 #include "core/model.hpp"
 #include "core/camera.hpp"
 #include "core/timer.hpp"
+#include "core/file_watch.hpp"
 
 #include "rhi/render_context.hpp"
 

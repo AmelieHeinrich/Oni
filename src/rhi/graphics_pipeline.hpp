@@ -44,6 +44,7 @@ struct GraphicsPipelineSpecs
     bool DepthEnabled;
     bool CCW = true;
     bool Line = false;
+    bool DepthClipEnable = true;
 
     std::unordered_map<ShaderType, ShaderBytecode> Bytecodes;
 };

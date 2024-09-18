@@ -55,17 +55,13 @@ const float CubeVertices[] = {
 };
 
 EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor, Texture::Ptr inputDepth)
-    : _context(context), _inputColor(inputColor), _inputDepth(inputDepth)
+    : _context(context), _inputColor(inputColor), _inputDepth(inputDepth), _cubeRenderer(PipelineType::Graphics)
 {
     ShaderBytecode cubemapBytecode, prefilterBytecode, irradianceBytecode, brdfBytecode;
     ShaderCompiler::CompileShader("shaders/EquiMap/EquiMapCompute.hlsl", "Main", ShaderType::Compute, cubemapBytecode);
     ShaderCompiler::CompileShader("shaders/Irradiance/IrradianceCompute.hlsl", "Main", ShaderType::Compute, irradianceBytecode);
     ShaderCompiler::CompileShader("shaders/Prefilter/PrefilterCompute.hlsl", "Main", ShaderType::Compute, prefilterBytecode);
     ShaderCompiler::CompileShader("shaders/BRDF/BRDFCompute.hlsl", "Main", ShaderType::Compute, brdfBytecode);
-
-    ShaderBytecode cubemapRendererVertex, cubemapRendererFragment;
-    ShaderCompiler::CompileShader("shaders/EnvMapForward/EnvMapForwardVert.hlsl", "Main", ShaderType::Vertex, cubemapRendererVertex);
-    ShaderCompiler::CompileShader("shaders/EnvMapForward/EnvMapForwardFrag.hlsl", "Main", ShaderType::Fragment, cubemapRendererFragment);
 
     // Create pipelines
     Uploader uploader = context->CreateUploader();
@@ -75,24 +71,24 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _prefilter = context->CreateComputePipeline(prefilterBytecode);
     _brdf = context->CreateComputePipeline(brdfBytecode);
 
-    GraphicsPipelineSpecs specs;
-    specs.Bytecodes[ShaderType::Vertex] = cubemapRendererVertex;
-    specs.Bytecodes[ShaderType::Fragment] = cubemapRendererFragment;
-    specs.Fill = FillMode::Solid;
-    specs.Cull = CullMode::None;
-    specs.DepthEnabled = true;
-    specs.Depth = DepthOperation::LEqual;
-    specs.DepthFormat = TextureFormat::R32Depth;
-    specs.Formats[0] = TextureFormat::RGBA16Unorm;
-    specs.FormatCount = 1;
-    _cubeRenderer = context->CreateGraphicsPipeline(specs);
+    _cubeRenderer.Specs.Fill = FillMode::Solid;
+    _cubeRenderer.Specs.Cull = CullMode::None;
+    _cubeRenderer.Specs.DepthEnabled = true;
+    _cubeRenderer.Specs.Depth = DepthOperation::LEqual;
+    _cubeRenderer.Specs.DepthFormat = TextureFormat::R32Depth;
+    _cubeRenderer.Specs.Formats[0] = TextureFormat::RGBA16Unorm;
+    _cubeRenderer.Specs.FormatCount = 1;
+    
+    _cubeRenderer.AddShaderWatch("shaders/EnvMapForward/EnvMapForwardVert.hlsl", "Main", ShaderType::Vertex);
+    _cubeRenderer.AddShaderWatch("shaders/EnvMapForward/EnvMapForwardFrag.hlsl", "Main", ShaderType::Fragment);
+    _cubeRenderer.Build(_context);
 
     // Create sampler
     _cubeSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, false, 0);
 
     // Load HDRI
     Bitmap image;
-    image.LoadHDR("assets/env/day/symmetrical_garden_02_4k.hdr");
+    image.LoadHDR("assets/env/day/san_giuseppe_bridge_4k.hdr");
 
     Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, false, "HDR Texture");
     hdrTexture->BuildShaderResource();
@@ -200,7 +196,7 @@ void EnvMapForward::Render(Scene& scene, uint32_t width, uint32_t height)
         cmdBuffer->SetViewport(0, 0, width, height);
         cmdBuffer->SetTopology(Topology::TriangleList);
         cmdBuffer->BindRenderTargets({ _inputColor }, _inputDepth);
-        cmdBuffer->BindGraphicsPipeline(_cubeRenderer);
+        cmdBuffer->BindGraphicsPipeline(_cubeRenderer.GraphicsPipeline);
         cmdBuffer->BindGraphicsConstantBuffer(_cubeCBV, 0);
         cmdBuffer->BindGraphicsCubeMap(_map.Environment, 1);
         cmdBuffer->BindGraphicsSampler(_cubeSampler, 2);
@@ -221,4 +217,9 @@ void EnvMapForward::OnUI()
         ImGui::Checkbox("Draw Skybox", &_drawSkybox);
         ImGui::TreePop();
     }
+}
+
+void EnvMapForward::Reconstruct()
+{
+    _cubeRenderer.CheckForRebuild(_context);
 }

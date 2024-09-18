@@ -14,23 +14,19 @@ struct ShadowParam
 };
 
 Shadows::Shadows(RenderContext::Ptr context, ShadowMapResolution resolution)
-    : _context(context), _shadowMapResolution(resolution)
+    : _context(context), _shadowMapResolution(resolution), _shadowPipeline(PipelineType::Graphics)
 {
-    ShaderBytecode shadowVert, shadowPix;
-    ShaderCompiler::CompileShader("shaders/Shadows/ShadowVertex.hlsl", "Main", ShaderType::Vertex, shadowVert);
-    ShaderCompiler::CompileShader("shaders/Shadows/ShadowPixel.hlsl", "Main", ShaderType::Fragment, shadowPix);
+    _shadowPipeline.Specs.Cull = CullMode::Front;
+    _shadowPipeline.Specs.Depth = DepthOperation::Less;
+    _shadowPipeline.Specs.DepthEnabled = true;
+    _shadowPipeline.Specs.DepthClipEnable = false;
+    _shadowPipeline.Specs.DepthFormat = TextureFormat::R32Depth;
+    _shadowPipeline.Specs.Fill = FillMode::Solid;
+    _shadowPipeline.Specs.FormatCount = 0;
 
-    GraphicsPipelineSpecs specs;
-    specs.Bytecodes[ShaderType::Vertex] = shadowVert;
-    specs.Bytecodes[ShaderType::Fragment] = shadowPix;
-    specs.Cull = CullMode::Front;
-    specs.Depth = DepthOperation::Less;
-    specs.DepthEnabled = true;
-    specs.DepthFormat = TextureFormat::R32Depth;
-    specs.Fill = FillMode::Solid;
-    specs.FormatCount = 0;
-
-    _shadowPipeline = context->CreateGraphicsPipeline(specs);
+    _shadowPipeline.AddShaderWatch("shaders/Shadows/ShadowVertex.hlsl", "Main", ShaderType::Vertex);
+    _shadowPipeline.AddShaderWatch("shaders/Shadows/ShadowPixel.hlsl", "Main", ShaderType::Fragment);
+    _shadowPipeline.Build(context);
 
     _shadowMap = context->CreateTexture(uint32_t(resolution), uint32_t(resolution), TextureFormat::R32Typeless, TextureUsage::DepthTarget, false, "Shadow Map");
     _shadowMap->BuildDepthTarget(TextureFormat::R32Depth);
@@ -75,7 +71,7 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
         commandBuffer->SetViewport(0, 0, float(_shadowMapResolution), float(_shadowMapResolution));
         commandBuffer->SetTopology(Topology::TriangleList);
         commandBuffer->BindRenderTargets({}, _shadowMap);
-        commandBuffer->BindGraphicsPipeline(_shadowPipeline);
+        commandBuffer->BindGraphicsPipeline(_shadowPipeline.GraphicsPipeline);
         commandBuffer->BindGraphicsConstantBuffer(_shadowParam[frameIndex], 0);
 
         for (auto& model : scene.Models) {
@@ -98,4 +94,9 @@ void Shadows::OnUI()
         ImGui::Image((ImTextureID)_shadowMap->GetImGuiImage().ptr, ImVec2(256, 256));
         ImGui::TreePop();
     }
+}
+
+void Shadows::Reconstruct()
+{
+    _shadowPipeline.CheckForRebuild(_context, "Shadow");
 }

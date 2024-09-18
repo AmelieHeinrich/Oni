@@ -47,6 +47,9 @@ public:
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
     void Screenshot(Texture::Ptr screenshotTexture = nullptr, TextureLayout newLayout = TextureLayout::ShaderResource);
+    
+    // Perform hot reloads
+    void Reconstruct();
 
     Statistics& GetStats() { return _stats; }
 private:

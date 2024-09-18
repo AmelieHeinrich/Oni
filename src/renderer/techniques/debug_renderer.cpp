@@ -21,22 +21,23 @@ std::shared_ptr<DebugRenderer> DebugRenderer::Get()
 }
 
 DebugRenderer::DebugRenderer(RenderContext::Ptr context, Texture::Ptr output)
+    : LineShader(PipelineType::Graphics), _context(context)
 {
     Context = context;
     Output = output;
 
-    GraphicsPipelineSpecs specs;
-    ShaderCompiler::CompileShader("shaders/DebugRenderer/LineRendererVert.hlsl", "Main", ShaderType::Vertex, specs.Bytecodes[ShaderType::Vertex]);
-    ShaderCompiler::CompileShader("shaders/DebugRenderer/LineRendererFrag.hlsl", "Main", ShaderType::Fragment, specs.Bytecodes[ShaderType::Fragment]);
-    specs.Fill = FillMode::Solid;
-    specs.Cull = CullMode::None;
-    specs.DepthEnabled = false;
-    specs.Depth = DepthOperation::None;
-    specs.DepthFormat = TextureFormat::None;
-    specs.Formats[0] = TextureFormat::RGBA8;
-    specs.FormatCount = 1;
-    specs.Line = true;
-    LineShader = context->CreateGraphicsPipeline(specs);
+    LineShader.Specs.Fill = FillMode::Solid;
+    LineShader.Specs.Cull = CullMode::None;
+    LineShader.Specs.DepthEnabled = false;
+    LineShader.Specs.Depth = DepthOperation::None;
+    LineShader.Specs.DepthFormat = TextureFormat::None;
+    LineShader.Specs.Formats[0] = TextureFormat::RGBA8;
+    LineShader.Specs.FormatCount = 1;
+    LineShader.Specs.Line = true;
+
+    LineShader.AddShaderWatch("shaders/DebugRenderer/LineRendererVert.hlsl", "Main", ShaderType::Vertex);
+    LineShader.AddShaderWatch("shaders/DebugRenderer/LineRendererFrag.hlsl", "Main", ShaderType::Fragment);
+    LineShader.Build(context);
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
         LineTransferBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), 0, BufferType::Constant, false, "Line Transfer Buffer");
@@ -112,7 +113,7 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             cmdBuffer->SetViewport(0, 0, width, height);
             cmdBuffer->SetTopology(Topology::LineList);
             cmdBuffer->BindRenderTargets({ Output }, nullptr);
-            cmdBuffer->BindGraphicsPipeline(LineShader);
+            cmdBuffer->BindGraphicsPipeline(LineShader.GraphicsPipeline);
             cmdBuffer->BindGraphicsConstantBuffer(LineUniformBuffer[frameIndex], 0);
             cmdBuffer->BindVertexBuffer(LineVertexBuffer[frameIndex]);
             cmdBuffer->Draw(vertices.size());
@@ -131,4 +132,9 @@ Texture::Ptr DebugRenderer::GetOutput()
 void DebugRenderer::Reset()
 {
     List.Lines.clear();
+}
+
+void DebugRenderer::Reconstruct()
+{
+    LineShader.CheckForRebuild(_context);
 }

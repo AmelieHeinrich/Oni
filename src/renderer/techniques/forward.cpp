@@ -9,7 +9,7 @@
 #include <optick.h>
 
 Forward::Forward(RenderContext::Ptr context)
-    : _context(context)
+    : _context(context), _pbrPipeline(PipelineType::Graphics)
 {
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
@@ -37,18 +37,17 @@ Forward::Forward(RenderContext::Ptr context)
     _depthBuffer->BuildDepthTarget();
 
     {
-        GraphicsPipelineSpecs specs;
-        specs.FormatCount = 1;
-        specs.Formats[0] = TextureFormat::RGBA16Unorm;
-        specs.DepthFormat = TextureFormat::R32Depth;
-        specs.Depth = DepthOperation::Less;
-        specs.DepthEnabled = true;
-        specs.Cull = CullMode::Front;
-        specs.Fill = FillMode::Solid;
-        ShaderCompiler::CompileShader("shaders/Forward/PBR/PBRVert.hlsl", "Main", ShaderType::Vertex, specs.Bytecodes[ShaderType::Vertex]);
-        ShaderCompiler::CompileShader("shaders/Forward/PBR/PBRFrag.hlsl", "Main", ShaderType::Fragment, specs.Bytecodes[ShaderType::Fragment]);
+        _pbrPipeline.Specs.FormatCount = 1;
+        _pbrPipeline.Specs.Formats[0] = TextureFormat::RGBA16Unorm;
+        _pbrPipeline.Specs.DepthFormat = TextureFormat::R32Depth;
+        _pbrPipeline.Specs.Depth = DepthOperation::Less;
+        _pbrPipeline.Specs.DepthEnabled = true;
+        _pbrPipeline.Specs.Cull = CullMode::Front;
+        _pbrPipeline.Specs.Fill = FillMode::Solid;
 
-        _pbrPipeline = context->CreateGraphicsPipeline(specs);
+        _pbrPipeline.AddShaderWatch("shaders/Forward/PBR/PBRVert.hlsl", "Main", ShaderType::Vertex);
+        _pbrPipeline.AddShaderWatch("shaders/Forward/PBR/PBRFrag.hlsl", "Main", ShaderType::Fragment);
+        _pbrPipeline.Build(context);
     }
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -161,7 +160,7 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->SetTopology(Topology::TriangleList);
         commandBuffer->BindRenderTargets({ _outputImage }, _depthBuffer);
-        commandBuffer->BindGraphicsPipeline(_pbrPipeline);
+        commandBuffer->BindGraphicsPipeline(_pbrPipeline.GraphicsPipeline);
         commandBuffer->BindGraphicsConstantBuffer(_sceneBuffer[frameIndex], 0);
         commandBuffer->BindGraphicsCubeMap(_map.IrradianceMap, 7);
         commandBuffer->BindGraphicsCubeMap(_map.PrefilterMap, 8);
@@ -200,4 +199,9 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
     }
 
     commandBuffer->EndEvent();
+}
+
+void Forward::Reconstruct()
+{
+    _pbrPipeline.CheckForRebuild(_context, "Forward");
 }

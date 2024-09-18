@@ -10,6 +10,8 @@
 
 #include <array>
 
+#include "renderer/hot_reloadable_pipeline.hpp"
+
 struct EnvironmentMap
 {
     CubeMap::Ptr Environment;
@@ -27,6 +29,7 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height);
     void Resize(uint32_t width, uint32_t height, Texture::Ptr inputColor, Texture::Ptr inputDepth);
     void OnUI();
+    void Reconstruct();
 
     EnvironmentMap GetEnvMap() { return _map; }
 private:
@@ -42,7 +45,7 @@ private:
     ComputePipeline::Ptr _prefilter;
     ComputePipeline::Ptr _irradiance;
     ComputePipeline::Ptr _brdf;
-    GraphicsPipeline::Ptr _cubeRenderer;
+    HotReloadablePipeline _cubeRenderer;
 
     Buffer::Ptr _cubeBuffer;
     Buffer::Ptr _cubeCBV;

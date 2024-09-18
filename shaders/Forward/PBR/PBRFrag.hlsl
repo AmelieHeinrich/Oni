@@ -73,7 +73,7 @@ Texture2D BRDF : register(t9);
 Texture2D ShadowMap : register(t10);
 
 SamplerState Sampler : register(s11);
-SamplerState ShadowSampler : register(s12);
+SamplerComparisonState ShadowSampler : register(s12);
 ConstantBuffer<LightData> LightBuffer : register(b13);
 ConstantBuffer<OutputBuffer> OutputData : register(b14);
 
@@ -202,7 +202,7 @@ float ShadowCalculation(FragmentIn Input)
     projectionCoords.xy = projectionCoords.xy * 0.5 + 0.5;
     projectionCoords.y = 1.0 - projectionCoords.y;
 
-    float closestDepth = ShadowMap.Sample(ShadowSampler, projectionCoords.xy).r;
+    float closestDepth = ShadowMap.SampleCmp(ShadowSampler, projectionCoords.xy, 0).r;
     float currentDepth = projectionCoords.z;
 
     float bias = max(0.05 * (1.0 - dot(Input.Normals, LightBuffer.Sun.Direction.xyz)), 0.005);
@@ -214,7 +214,7 @@ float ShadowCalculation(FragmentIn Input)
     float2 texelSize = 1.0 / float2(shadowWidth, shadowHeight);
     for(int x = -1; x <= 1; ++x) {
         for(int y = -1; y <= 1; ++y) {
-            float pcfDepth = ShadowMap.Sample(ShadowSampler, projectionCoords.xy + float2(x, y) * texelSize).r; 
+            float pcfDepth = ShadowMap.SampleCmpLevelZero(ShadowSampler, projectionCoords.xy + float2(x, y) * texelSize, currentDepth).r; 
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.005;
         }    
     }
@@ -285,7 +285,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
         ambient = kD * albedo.xyz * ao;
     }
 
-    ambient *= 0.6;
+    ambient *= 0.5;
 
     float3 color = (ambient + Lo);
     float4 final = float4(0.0, 0.0, 0.0, 0.0);

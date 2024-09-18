@@ -9,6 +9,8 @@
 #include <rhi/render_context.hpp>
 #include <renderer/scene.hpp>
 
+#include "renderer/hot_reloadable_pipeline.hpp"
+
 constexpr uint32_t MAX_LINES = 2048 * 2;
 
 class DebugRenderer
@@ -28,7 +30,8 @@ public:
 
     void Resize(uint32_t width, uint32_t height, Texture::Ptr output);
     void OnUI();
-    
+    void Reconstruct();
+
     void PushLine(glm::vec3 a, glm::vec3 b, glm::vec3 color);
     
     void Flush(Scene& scene, uint32_t width, uint32_t height);
@@ -36,6 +39,7 @@ public:
     
     Texture::Ptr GetOutput();
 private:
+    RenderContext::Ptr _context;
     bool DrawLines = true;
 
     struct DrawList {
@@ -52,7 +56,7 @@ private:
 
     DrawList List;
 
-    GraphicsPipeline::Ptr LineShader;
+    HotReloadablePipeline LineShader;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> LineTransferBuffer;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> LineVertexBuffer;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> LineUniformBuffer;

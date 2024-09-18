@@ -66,7 +66,7 @@ App::App()
 
     //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
-    scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(15.0f));
+    scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(10.0f));
 
     _renderContext->WaitForGPU();
 }
@@ -173,6 +173,8 @@ void App::Run()
                 _renderContext->Finish();
             });
         }
+
+        _renderer->Reconstruct();
 
         DebugRenderer::Get()->Reset();
 

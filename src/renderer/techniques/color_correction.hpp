@@ -8,6 +8,8 @@
 #include <rhi/render_context.hpp>
 #include <renderer/scene.hpp>
 
+#include "renderer/hot_reloadable_pipeline.hpp"
+
 class ColorCorrection
 {
 public:
@@ -17,6 +19,7 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height);
     void Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR);
     void OnUI();
+    void Reconstruct();
 
     Texture::Ptr GetOutput() { return _inputHDR; }
 private:
@@ -41,7 +44,7 @@ private:
 
     RenderContext::Ptr _renderContext;
 
-    ComputePipeline::Ptr _computePipeline;
+    HotReloadablePipeline _computePipeline;
     bool _enable = false;
 
     Texture::Ptr _inputHDR;

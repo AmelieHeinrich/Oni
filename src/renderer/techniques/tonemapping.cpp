@@ -9,7 +9,7 @@
 #include <optick.h>
 
 Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
-    : _renderContext(context), _inputHDR(inputHDR)
+    : _renderContext(context), _inputHDR(inputHDR), _computePipeline(PipelineType::Compute)
 {
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
@@ -19,9 +19,8 @@ Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
     _outputLDR->BuildStorage();
     _outputLDR->BuildRenderTarget();
 
-    ShaderBytecode bytecode;
-    ShaderCompiler::CompileShader("shaders/Tonemapping/TonemappingCompute.hlsl", "Main", ShaderType::Compute, bytecode);
-    _computePipeline = _renderContext->CreateComputePipeline(bytecode);
+    _computePipeline.AddShaderWatch("shaders/Tonemapping/TonemappingCompute.hlsl", "Main", ShaderType::Compute);
+    _computePipeline.Build(context);
 
     _tonemapperSettings = _renderContext->CreateBuffer(256, 0, BufferType::Constant, false, "Tonemapper Settings CBV");
     _tonemapperSettings->BuildConstantBuffer();
@@ -46,7 +45,7 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
     cmdBuf->BeginEvent("Tonemapping Pass");
     cmdBuf->ImageBarrier(_inputHDR, TextureLayout::ShaderResource);
     cmdBuf->ImageBarrier(_outputLDR, TextureLayout::Storage);
-    cmdBuf->BindComputePipeline(_computePipeline);
+    cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
     cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
     cmdBuf->BindComputeStorageTexture(_outputLDR, 1, 0);
     cmdBuf->BindComputeConstantBuffer(_tonemapperSettings, 2);
@@ -74,4 +73,9 @@ void Tonemapping::OnUI()
 
         ImGui::TreePop();
     }
+}
+
+void Tonemapping::Reconstruct()
+{
+    _computePipeline.CheckForRebuild(_renderContext);
 }

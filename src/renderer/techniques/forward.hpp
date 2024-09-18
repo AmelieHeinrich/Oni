@@ -5,8 +5,10 @@
 
 #pragma once
 
-#include <rhi/render_context.hpp>
-#include <renderer/scene.hpp>
+#include "rhi/render_context.hpp"
+
+#include "renderer/scene.hpp"
+#include "renderer/hot_reloadable_pipeline.hpp"
 
 #include "envmap_forward.hpp"
 
@@ -28,6 +30,8 @@ public:
     void Render(Scene& scene, uint32_t width, uint32_t height);
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
+    void Reconstruct();
+
     void ConnectEnvironmentMap(EnvironmentMap& map);
     void ConnectShadowMap(Texture::Ptr texture);
 
@@ -44,7 +48,7 @@ private:
     Texture::Ptr _depthBuffer;
     Texture::Ptr _shadowMap;
 
-    GraphicsPipeline::Ptr _pbrPipeline;
+    HotReloadablePipeline _pbrPipeline;
 
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _sceneBuffer;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _lightBuffer;

@@ -9,17 +9,15 @@
 #include <optick.h>
 
 AutoExposure::AutoExposure(RenderContext::Ptr context, Texture::Ptr inputHDR)
-    : _inputHDR(inputHDR), _renderContext(context)
+    : _inputHDR(inputHDR), _renderContext(context), _computePipeline(PipelineType::Compute), _averagePipeline(PipelineType::Compute)
 {
     {
-        ShaderBytecode bytecode;
-        ShaderCompiler::CompileShader("shaders/AutoExposure/LuminanceHistogram.hlsl", "Main", ShaderType::Compute, bytecode);
-        _computePipeline = _renderContext->CreateComputePipeline(bytecode);
+        _computePipeline.AddShaderWatch("shaders/AutoExposure/LuminanceHistogram.hlsl", "Main", ShaderType::Compute);
+        _computePipeline.Build(context);
     }
     {
-        ShaderBytecode bytecode;
-        ShaderCompiler::CompileShader("shaders/AutoExposure/HistogramAverage.hlsl", "Main", ShaderType::Compute, bytecode);
-        _averagePipeline = _renderContext->CreateComputePipeline(bytecode);
+        _averagePipeline.AddShaderWatch("shaders/AutoExposure/HistogramAverage.hlsl", "Main", ShaderType::Compute);
+        _averagePipeline.Build(context);
     }
 
     _luminanceHistogram = _renderContext->CreateBuffer(256 * 4, 0, BufferType::Storage, false, "Luminance Histogram");
@@ -69,7 +67,7 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             _luminanceHistogramParameters->Unmap(0, 0);
 
             cmdBuf->BeginEvent("AE Histogram Compute Pass");
-            cmdBuf->BindComputePipeline(_computePipeline);
+            cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
             cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
             cmdBuf->BindComputeStorageBuffer(_luminanceHistogram, 1);
             cmdBuf->BindComputeConstantBuffer(_luminanceHistogramParameters, 2);
@@ -103,7 +101,7 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
 
             cmdBuf->BeginEvent("AE Histogram Average Compute Pass");
             cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::Storage);
-            cmdBuf->BindComputePipeline(_averagePipeline);
+            cmdBuf->BindComputePipeline(_averagePipeline.ComputePipeline);
             cmdBuf->BindComputeStorageBuffer(_luminanceHistogram, 0);
             cmdBuf->BindComputeStorageTexture(_luminanceTexture, 1, 0);
             cmdBuf->BindComputeConstantBuffer(_averageParameters, 2);
@@ -128,4 +126,10 @@ void AutoExposure::OnUI()
 
         ImGui::TreePop();
     }
+}
+
+void AutoExposure::Reconstruct()
+{
+    _computePipeline.CheckForRebuild(_renderContext);
+    _averagePipeline.CheckForRebuild(_renderContext);
 }

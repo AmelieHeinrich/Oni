@@ -14,7 +14,7 @@ Sampler::Sampler(Device::Ptr device, DescriptorHeap::Heaps& heaps, SamplerAddres
     SamplerDesc.AddressW = SamplerDesc.AddressV;
     SamplerDesc.Filter = D3D12_FILTER(filter);
     SamplerDesc.MaxAnisotropy = anisotropyLevel;
-    SamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+    SamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_EQUAL;
     SamplerDesc.MinLOD = 0.0f;
     if (mips) {
         SamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
