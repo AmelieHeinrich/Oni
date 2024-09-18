@@ -5,9 +5,10 @@
 
 // Special thanks to https://alextardif.com/HistogramLuminance.html
 
+#include "shaders/Common/Colors.hlsl"
+
 #define NUM_HISTOGRAM_BINS 256
 #define HISTOGRAM_THREADS_PER_DIMENSION 16
-#define EPSILON 0.00001
 
 struct LuminanceHistogramData
 {
@@ -23,16 +24,11 @@ ConstantBuffer<LuminanceHistogramData> Parameters : register(b2);
 
 groupshared uint HistogramShared[NUM_HISTOGRAM_BINS];
 
-float GetLuminance(float3 color)
-{
-    return dot(color, float3(0.2127f, 0.7152f, 0.0722f));
-}
-
 uint HDRToHistogramBin(float3 hdrColor)
 {
-    float luminance = GetLuminance(hdrColor);
+    float luminance = Luminance(hdrColor);
     
-    if (luminance < EPSILON) {
+    if (luminance < Epsilon) {
         return 0;
     }
     

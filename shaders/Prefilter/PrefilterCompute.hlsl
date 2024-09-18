@@ -3,9 +3,7 @@
  * @Create Time: 2024-04-01 00:39:00
  */
 
-static const float PI = 3.141592;
-static const float TwoPI = 2 * PI;
-static const float Epsilon = 0.00001;
+#include "shaders/Common/Math.hlsl"
 
 static const uint NumSamples = 512;
 static const float InvNumSamples = 1.0 / float(NumSamples);

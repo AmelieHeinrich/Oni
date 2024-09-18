@@ -3,7 +3,7 @@
  * @Create Time: 2024-04-01 00:39:25
  */
 
-#define PI 3.14159265359
+#include "shaders/Common/Math.hlsl"
 
 TextureCube EnvironmentMap : register(t0);
 RWTexture2DArray<half4> IrradianceMap : register(u1);

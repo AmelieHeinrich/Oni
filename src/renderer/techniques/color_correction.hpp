@@ -22,20 +22,14 @@ public:
 private:
     struct ColorCorrectionSettings
     {
-        float Exposure = 2.2f;
-        float Temperature = 0.0f;
-        float Tint = 0.0f;
-        uint32_t _Padding4;
-        glm::vec3 Contrast = glm::vec3(1.0f);
-        uint32_t _Padding5;
-        glm::vec3 LinearMidPoint = glm::vec3(0.0f);
-        uint32_t _Padding6;
-        glm::vec3 Brightness = glm::vec3(0.0f);
-        uint32_t _Padding7;
-        glm::vec3 ColorFilter = glm::vec3(1.0f);
-        uint32_t _Padding8;
-        float ColorFilterIntensity = 1.0f;
-        glm::vec3 Saturation = glm::vec3(1.0f);
+        float Exposure = 0.0f;
+        glm::vec3 _Pad0;
+        float Contrast = 0.0f;
+        glm::vec3 _Pad1;
+        glm::vec4 ColorFilter = glm::vec4(1.0f);
+        float HueShift = 0.0f;
+        float Saturation = 0.0f;
+        glm::vec2 _Pad2;
     };
 
     RenderContext::Ptr _renderContext;

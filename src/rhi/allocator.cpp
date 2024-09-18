@@ -8,6 +8,7 @@
 
 #include <core/log.hpp>
 #include <ImGui/imgui.h>
+#include <sstream>
 
 #undef max
 
@@ -107,7 +108,7 @@ void Allocator::OnGUI()
 
     // Right
     ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
-    if (_uiSelected) {
+    if (_uiSelected != nullptr) {
         ImGui::Text("Resource: %s", _uiSelected->Name.c_str());
         ImGui::Separator();
 
@@ -115,12 +116,13 @@ void Allocator::OnGUI()
         if (_uiSelected->Type == GPUResourceType::Texture) {
             ImGui::Text("Texture Size: (%d, %d)", _uiSelected->AttachedTexture->GetWidth(), _uiSelected->AttachedTexture->GetHeight());
             for (int i = 0; i < _uiSelected->AttachedTexture->GetMips(); i++) {
-                char buf[32] = {};
-                sprintf(buf, "Mip %d", i);
-                if (ImGui::TreeNodeEx(buf, ImGuiTreeNodeFlags_Framed)) {
+                std::stringstream ss;
+                ss << "Mip " << i;
+                if (ImGui::TreeNodeEx(ss.str().c_str(), ImGuiTreeNodeFlags_Framed)) {
                     if (_uiSelected->AttachedTexture->_srvs.size() > 0) {
                         if (_uiSelected->AttachedTexture->_srvs[i].Valid && _uiSelected->AttachedTexture->_dsv.Valid != true) {
-                            ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
+                            if (_uiSelected->AttachedTexture->GetState(i) == D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE)
+                                ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
                         }
                     } else {
                         ImGui::TextColored(ImVec4(1, 0, 0, 1), "> Mip preview unavailable");

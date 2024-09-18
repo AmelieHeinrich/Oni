@@ -5,9 +5,10 @@
 
 // Special thanks to https://alextardif.com/HistogramLuminance.html
 
+#include "shaders/Common/Math.hlsl"
+
 #define NUM_HISTOGRAM_BINS 256
 #define HISTOGRAM_AVERAGE_THREADS_PER_DIMENSION 16
-#define EPSILON 0.00001
 
 struct LuminanceAverageData
 {

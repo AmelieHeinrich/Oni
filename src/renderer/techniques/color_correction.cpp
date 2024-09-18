@@ -54,20 +54,19 @@ void ColorCorrection::Resize(uint32_t width, uint32_t height, Texture::Ptr input
 
 void ColorCorrection::OnUI()
 {
-    if (ImGui::TreeNodeEx("Color Correction", ImGuiTreeNodeFlags_Framed))
+    if (ImGui::TreeNodeEx("Color Grading", ImGuiTreeNodeFlags_Framed))
     {
         ImGui::Checkbox("Enable", &_enable);
         ImGui::Separator();
 
-        ImGui::SliderFloat("Exposure", &_settings.Exposure, 0.1f, 5.0f, "%.1f");
-        ImGui::SliderFloat("Temperature", &_settings.Temperature, 0.0f, 1.0f, "%.1f");
-        ImGui::SliderFloat("Tint", &_settings.Tint, 0.0f, 1.0f, "%.1f");
-        ImGui::SliderFloat3("Contrast", glm::value_ptr(_settings.Contrast), 0.0f, 5.0f, "%.1f");
-        ImGui::SliderFloat3("Linear Mid Point", glm::value_ptr(_settings.LinearMidPoint), 0.0f, 5.0f, "%.1f");
-        ImGui::SliderFloat3("Brightness", glm::value_ptr(_settings.Brightness), 0.0f, 5.0f, "%.1f");
-        ImGui::ColorPicker3("Color Filter", glm::value_ptr(_settings.ColorFilter));
-        ImGui::SliderFloat("Color Filter Intensity", &_settings.ColorFilterIntensity, 0.0f, 5.0f, "%.1f");
-        ImGui::SliderFloat3("Saturation", glm::value_ptr(_settings.Saturation), 0.0f, 5.0f, "%.1f");
+        ImGui::SliderFloat("Exposure", &_settings.Exposure, 0.0f, 10.0f, "%.1f");
+        ImGui::SliderFloat("Contrast", &_settings.Contrast, -100.0f, 100.0f, "%.1f");
+        if (ImGui::TreeNodeEx("Color Filter")) {
+            ImGui::ColorPicker3("Color Filter", glm::value_ptr(_settings.ColorFilter), ImGuiColorEditFlags_PickerHueBar);
+            ImGui::TreePop();
+        }
+        ImGui::SliderFloat("Hue Shift", &_settings.HueShift, -180.0f, 180.0f, "%.1f");
+        ImGui::SliderFloat("Saturation", &_settings.Saturation, -100.0f, 100.0f, "%.1f");
 
         ImGui::TreePop();
     }

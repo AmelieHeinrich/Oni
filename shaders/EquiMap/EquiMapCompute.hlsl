@@ -3,8 +3,7 @@
  * @Create Time: 2024-04-01 00:39:47
  */
 
-static const float PI = 3.141592;
-static const float TwoPI = 2 * PI;
+#include "shaders/Common/Math.hlsl"
 
 Texture2D Equi : register(t0);
 RWTexture2DArray<half4> Cube : register(u1);

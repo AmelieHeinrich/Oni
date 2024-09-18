@@ -361,8 +361,8 @@ void RenderContext::GenerateMips(Texture::Ptr texture, CommandBuffer::Ptr cmdBuf
         cmdBuf->BindComputeSampler(_mipmapSampler, 2);
         cmdBuf->BindComputeConstantBuffer(buffers[i], 3);
         cmdBuf->Dispatch(std::max(mipWidth / 8, 1u), std::max(mipHeight / 8, 1u), 1);
+        cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource, i + 1);
     }
-    cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource);
 }
 
 void RenderContext::OnGUI()
@@ -405,7 +405,7 @@ void RenderContext::OnOverlay()
         uint64_t used = stats.Used;
         uint64_t percentage = (used * 100) / total;
 
-        float stupidVRAMPercetange = normalize(stats.Total / stats.Used, 0.0f, 100.0f, 0.0f, 1.0f);
+        float stupidVRAMPercetange = percentage / 100.0f;
 
         std::stringstream ss;
         ss << "VRAM Usage (" << percentage << "%%): " << (((used / 1024.0F) / 1024.0f) / 1024.0f) << "gb/" << (((total / 1024.0F) / 1024.0f) / 1024.0f) << "gb";
@@ -430,7 +430,7 @@ void RenderContext::OnOverlay()
         uint64_t used = pmc.WorkingSetSize;
         uint64_t percentage = (used * 100) / total;
 
-        float stupidRAMPercetange = normalize(percentage, 0.0f, 100.0f, 0.0f, 1.0f);
+        float stupidRAMPercetange = percentage / 100.0f;
 
         std::stringstream ss;
         ss << "RAM Usage (" << percentage << "%%): " << (((used / 1024.0F) / 1024.0f) / 1024.0f) << "gb/" << (((total / 1024.0F) / 1024.0f) / 1024.0f) << "gb";
@@ -449,8 +449,6 @@ void RenderContext::OnOverlay()
 
         uint64_t percentage = status.BatteryLifePercent;
 
-        float stupidBatteryPercetange = normalize(percentage, 0.0f, 100.0f, 0.0f, 1.0f);
-
         std::stringstream ss;
         ss << "Battery (" << percentage << "%%)";
 
@@ -458,7 +456,7 @@ void RenderContext::OnOverlay()
         percentss << percentage << "%";
         
         ImGui::Text(ss.str().c_str());
-        ImGui::ProgressBar(stupidBatteryPercetange, ImVec2(0, 0), percentss.str().c_str());
+        ImGui::ProgressBar(percentage / 100.0f, ImVec2(0, 0), percentss.str().c_str());
     }
 
     ImGui::End();

@@ -3,8 +3,9 @@
  * @Create Time: 2024-03-30 14:53:11
  */
 
+#include "shaders/Common/Math.hlsl"
+
 #define MAX_LIGHTS 512
-#define PI 3.14159265359
 
 #define MODE_DEFAULT 0
 #define MODE_ALBEDO 1

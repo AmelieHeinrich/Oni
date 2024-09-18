@@ -99,6 +99,10 @@ void Logger::Error(const char *fmt, ...)
 
 void Logger::OnUI()
 {
+    if (_Data.LogRecord.size() > 1000) {
+        _Data.LogRecord.erase(_Data.LogRecord.begin());
+    }
+
     ImGui::Begin("Log");
     if (ImGui::Button("Clear")) {
         _Data.LogRecord.clear();
