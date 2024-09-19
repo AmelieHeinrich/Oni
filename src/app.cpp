@@ -24,6 +24,8 @@
 
 #include "renderer/techniques/debug_renderer.hpp"
 
+constexpr int TEST_LIGHT_COUNT = 128;
+
 float random_float(float min, float max)
 {
     float scale = rand() / (float)RAND_MAX; 
@@ -62,11 +64,19 @@ App::App()
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
     Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
+    sponza.Load(_renderContext, "assets/models/sponza/sponza.gltf");
 
-    scene.Models.push_back(platform);
+    //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
-    scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(10.0f));
+    scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(0.0f));
+
+    for (int i = 0; i < TEST_LIGHT_COUNT; i++) {
+        scene.Lights.AddPointLight(PointLight(
+            glm::vec3(random_float(-6.0f, 6.0f), random_float(1.0f, 8.0f), random_float(-6.0f, 6.0f)),
+            glm::vec3(random_float(0.0f, 1.0f), random_float(0.0f, 1.0f), random_float(0.0f, 1.0f)),
+            1.0f
+        ));
+    }
 
     _renderContext->WaitForGPU();
 }

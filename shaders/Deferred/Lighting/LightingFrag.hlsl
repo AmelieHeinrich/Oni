@@ -23,7 +23,6 @@ struct SceneData
     column_major float4x4 CameraMatrix;
     column_major float4x4 CameraProjViewInv;
     column_major float4x4 SunMatrix;
-    column_major float4x4 SunView;
     float4 CameraPosition;
 };
 
@@ -137,7 +136,7 @@ float ShadowCalculation(FragmentData Input)
         for(int y = -1; y <= 1; ++y) {
             float pcfDepth = ShadowMap.SampleCmpLevelZero(ShadowSampler, projectionCoords.xy + float2(x, y) * texelSize, currentDepth).r; 
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.005;
-        }    
+        }
     }
     shadow /= 9.0;
 
@@ -173,7 +172,7 @@ float4 Main(FragmentIn Input) : SV_Target
 
     // Position
     float4 position = GetPositionFromDepth(Input.TexCoords, depth, SceneBuffer.CameraProjViewInv);
-    float4 shadowPosition = mul(SceneBuffer.SunView, position);
+    float4 shadowPosition = mul(SceneBuffer.SunMatrix, position);
 
     // Normals
     float4 normals = Normals.Sample(Sampler, Input.TexCoords);

@@ -200,14 +200,12 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
         glm::mat4 CameraMatrix;
         glm::mat4 CameraProjViewInv;
         glm::mat4 LightMatrix;
-        glm::mat4 LightView;
         glm::vec4 CameraPosition;
     };
     Data data;
     data.CameraMatrix = scene.Camera.Projection() * scene.Camera.View();
     data.CameraProjViewInv = glm::inverse(scene.Camera.Projection() * scene.Camera.View());
     data.LightMatrix = depthProjection * depthView;
-    data.LightView = glm::inverse(depthView);
     data.CameraPosition = glm::vec4(scene.Camera.GetPosition(), 1.0f);
 
     void *pData;
