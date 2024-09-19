@@ -92,7 +92,7 @@ public:
     ~LightSettings() = default;
 
     GPUData GetGPUData() {
-        GPUData data;
+        GPUData data = {};
         data.HasSun = HasSun;
         data.Sun = Sun.GetGPUData();
 
