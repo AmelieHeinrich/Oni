@@ -1,7 +1,8 @@
-/**
- * @Author: Amélie Heinrich
- * @Create Time: 2024-03-30 14:53:11
- */
+//
+// $Notice: Xander Studios @ 2024
+// $Author: Amélie Heinrich
+// $Create Time: 2024-09-19 15:01:31
+//
 
 #include "shaders/Common/Math.hlsl"
 #include "shaders/Common/Lights.hlsl"
@@ -17,14 +18,13 @@
 #define MODE_AMBIENT 7
 #define MODE_POSITION 8
 
-struct FragmentIn
+struct SceneData
 {
-    float4 Position : SV_POSITION;
-    float2 TexCoords : TEXCOORD;
-    float3 Normals: NORMAL;
-    float4 WorldPos : COLOR0;
-    float4 CameraPosition: COLOR1;
-    float4 FragPosLightSpace: COLOR2;
+    column_major float4x4 CameraMatrix;
+    column_major float4x4 CameraProjViewInv;
+    column_major float4x4 SunMatrix;
+    column_major float4x4 SunView;
+    float4 CameraPosition;
 };
 
 struct OutputBuffer
@@ -35,45 +35,37 @@ struct OutputBuffer
     uint _Padding2;
 };
 
-Texture2D Texture : register(t2);
-Texture2D NormalTexture : register(t3);
-Texture2D PBRTexture : register(t4);
-Texture2D EmissiveTexture : register(t5);
-Texture2D AOTexture : register(t6);
-
-TextureCube Irradiance : register(t7);
-TextureCube Prefilter : register(t8);
-Texture2D BRDF : register(t9);
-Texture2D ShadowMap : register(t10);
-
-SamplerState Sampler : register(s11);
-SamplerComparisonState ShadowSampler : register(s12);
-ConstantBuffer<LightData> LightBuffer : register(b13);
-ConstantBuffer<OutputBuffer> OutputData : register(b14);
-
-float3 GetNormalFromMap(FragmentIn Input)
+struct FragmentIn
 {
-    float3 hasNormalTexture = NormalTexture.Sample(Sampler, float2(0.0, 0.0)).rgb;
-    if (hasNormalTexture.r == 1.0 && hasNormalTexture.g == 1.0 && hasNormalTexture.b == 1.0) {
-        return normalize(Input.Normals);
-    }
+    float4 Position : SV_POSITION;
+    float2 TexCoords : TEXCOORD;
+};
 
-    float3 tangentNormal = NormalTexture.Sample(Sampler, Input.TexCoords).rgb * 2.0 - 1.0;
+struct FragmentData
+{
+    float3 Normals;
+    float4 WorldPos;
+    float4 LightPos;
+};
 
-    float3 Q1 = normalize(ddx(Input.Position.xyz));
-    float3 Q2 = normalize(ddy(Input.Position.xyz));
-    float2 ST1 = normalize(ddx(Input.TexCoords.xy));
-    float2 ST2 = normalize(ddy(Input.TexCoords.xy));
+Texture2D DepthBuffer : register(t0);
+Texture2D Normals : register(t1);
+Texture2D AlbedoEmissive : register(t2);
+Texture2D PbrAO : register(t3);
 
-    float3 N = normalize(Input.Normals);
-    float3 T = normalize(Q1 * ST2.y - Q2 * ST1.y);
-    float3 B = -normalize(cross(N, T));
-    float3x3 TBN = float3x3(T, B, N);
+TextureCube Irradiance : register(t4);
+TextureCube Prefilter : register(t5);
+Texture2D BRDF : register(t6);
+Texture2D ShadowMap : register(t7);
 
-    return normalize(mul(tangentNormal, TBN));
-}
+SamplerState Sampler : register(s8);
+SamplerComparisonState ShadowSampler : register(s9);
 
-float3 CalcPointLight(FragmentIn Input, PointLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
+ConstantBuffer<SceneData> SceneBuffer : register(b10);
+ConstantBuffer<LightData> LightBuffer : register(b11);
+ConstantBuffer<OutputBuffer> OutputData : register(b12);
+
+float3 CalcPointLight(FragmentData Input, PointLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
 {
     float3 lightPos = light.Position.xyz;
     float3 lightColor = light.Color.xyz * float3(light.Brightness, light.Brightness, light.Brightness);
@@ -101,7 +93,7 @@ float3 CalcPointLight(FragmentIn Input, PointLight light, float3 V, float3 N, fl
     return (kD * albedo.xyz / PI + specular) * radiance * NdotL;
 }
 
-float3 CalcDirectionalLight(FragmentIn Input, DirectionalLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
+float3 CalcDirectionalLight(FragmentData Input, DirectionalLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
 {
     float3 lightColor = light.Color.xyz;
 
@@ -125,9 +117,9 @@ float3 CalcDirectionalLight(FragmentIn Input, DirectionalLight light, float3 V, 
     return (kD * albedo.xyz / PI + specular) * radiance;
 }
 
-float ShadowCalculation(FragmentIn Input)
+float ShadowCalculation(FragmentData Input)
 {
-    float3 projectionCoords = Input.FragPosLightSpace.xyz / Input.FragPosLightSpace.w;
+    float3 projectionCoords = Input.LightPos.xyz / Input.LightPos.w;
     projectionCoords.xy = projectionCoords.xy * 0.5 + 0.5;
     projectionCoords.y = 1.0 - projectionCoords.y;
 
@@ -155,30 +147,58 @@ float ShadowCalculation(FragmentIn Input)
     return shadow;
 }
 
+float4 GetPositionFromDepth(float2 uv, float depth, column_major float4x4 inverseViewProj)
+{
+    // Don't need to normalize -- directx depth is [0; 1]
+	float z = depth;
+
+    float4 clipSpacePosition = float4(uv * 2.0 - 1.0, z, 1.0);
+    clipSpacePosition.y *= -1.0f;
+
+    float4 viewSpacePosition = mul(inverseViewProj, clipSpacePosition);
+    viewSpacePosition /= viewSpacePosition.w;
+
+    return viewSpacePosition;
+}
+
 static const float MAX_REFLECTION_LOD = 4.0;
 
-float4 Main(FragmentIn Input) : SV_TARGET
+float4 Main(FragmentIn Input) : SV_Target
 {
-    float4 albedo = Texture.Sample(Sampler, Input.TexCoords);
-    if (albedo.a < 0.25)
-        discard;
-    float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords);
-    float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords);
-    float metallic = metallicRoughness.b;
-    float roughness = metallicRoughness.g;
-    float4 aot = AOTexture.Sample(Sampler, Input.TexCoords);
-    float ao = aot.r;
-    float shadow = ShadowCalculation(Input);
+    FragmentData data;
 
-    if (emission.x != 1.0f && emission.y != 1.0f && emission.y != 1.0f) {
-        albedo.xyz += emission.xyz;
-    }
+    // Depth
+    float depth = DepthBuffer.SampleCmp(ShadowSampler, Input.TexCoords, 0.0).r;
+    float shadowDepth = ShadowMap.SampleCmp(ShadowSampler, Input.TexCoords, 0.0).r;
+
+    // Position
+    float4 position = GetPositionFromDepth(Input.TexCoords, depth, SceneBuffer.CameraProjViewInv);
+    float4 shadowPosition = mul(SceneBuffer.SunView, position);
+
+    // Normals
+    float4 normals = Normals.Sample(Sampler, Input.TexCoords);
+
+    data.Normals = normals.rgb;
+    data.WorldPos = position;
+    data.LightPos = shadowPosition;
+
+    // Albedo + Emissive
+    float4 albedo = AlbedoEmissive.Sample(Sampler, Input.TexCoords);
     albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
-    
-    float3 normal = GetNormalFromMap(Input);
 
-    float3 N = normalize(normal);
-    float3 V = normalize(Input.CameraPosition - Input.WorldPos).xyz;
+    // PBR + AO
+    float4 PBRAO = PbrAO.Sample(Sampler, Input.TexCoords);
+    float metallic = PBRAO.r;
+    float roughness = PBRAO.g;
+    float ao = PBRAO.b;
+
+    // Shadow
+    float shadow = ShadowCalculation(data);
+
+    // Do light calcs!
+
+    float3 N = normalize(normals.xyz);
+    float3 V = normalize(SceneBuffer.CameraPosition - position).xyz;
     float3 R = reflect(-V, N);
 
     float3 F0 = float3(0.04, 0.04, 0.04);
@@ -187,10 +207,10 @@ float4 Main(FragmentIn Input) : SV_TARGET
     float3 Lo = float3(0.0, 0.0, 0.0);
 
     for (int i = 0; i < LightBuffer.PointLightCount; i++) {
-        Lo += CalcPointLight(Input, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
+        Lo += CalcPointLight(data, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
     }
     if (LightBuffer.HasSun) {
-        Lo += CalcDirectionalLight(Input, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo) * (1.0 - shadow);
+        Lo += CalcDirectionalLight(data, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo) * (1.0 - shadow);
     }
 
     float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
@@ -217,7 +237,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
     ambient *= 0.5;
 
     float3 color = (ambient + Lo);
-    float4 final = float4(0.0, 0.0, 0.0, 0.0);
+    float4 final = float4(0.0, 0.0, 0.0, 1.0);
 
     switch (OutputData.Mode) {
         case MODE_DEFAULT:
@@ -227,16 +247,16 @@ float4 Main(FragmentIn Input) : SV_TARGET
             final = albedo;
             break;
         case MODE_NORMAL:
-            final = float4(normal, 1.0);
+            final = float4(normals.rgb, 1.0);
             break;
         case MODE_MR:
-            final = metallicRoughness;
+            final = PBRAO;
             break;
         case MODE_AO:
-            final = aot;
+            final = float4(ao, ao, ao, 1.0);
             break;
         case MODE_EMISSIVE:
-            final = emission;
+            final = albedo;
             break;
         case MODE_SPECULAR:
             final = float4(Lo, 1.0);
@@ -245,7 +265,7 @@ float4 Main(FragmentIn Input) : SV_TARGET
             final = float4(ambient, 1.0);
             break;
         case MODE_POSITION:
-            final = Input.WorldPos;
+            final = position;
             break;
     }
 

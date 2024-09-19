@@ -11,6 +11,7 @@
 
 #include "techniques/shadows.hpp"
 #include "techniques/forward.hpp"
+#include "techniques/deferred.hpp"
 #include "techniques/envmap_forward.hpp"
 #include "techniques/color_correction.hpp"
 #include "techniques/auto_exposure.hpp"
@@ -59,7 +60,7 @@ private:
     std::shared_ptr<Texture> _testTexture;
 
     std::shared_ptr<Shadows> _shadows;
-    std::shared_ptr<Forward> _forward;
+    std::shared_ptr<Deferred> _deferred;
     std::shared_ptr<EnvMapForward> _envMapForward;
     std::shared_ptr<ColorCorrection> _colorCorrection;
     std::shared_ptr<AutoExposure> _autoExposure;

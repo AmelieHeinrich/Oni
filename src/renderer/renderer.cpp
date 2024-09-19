@@ -20,17 +20,17 @@ Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
 {
     _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
-    _forward = std::make_shared<Forward>(context);
-    _envMapForward = std::make_shared<EnvMapForward>(context, _forward->GetOutput(), _forward->GetDepthBuffer());
-    _colorCorrection = std::make_shared<ColorCorrection>(context, _forward->GetOutput());
-    _autoExposure = std::make_shared<AutoExposure>(context, _forward->GetOutput());
-    _tonemapping = std::make_shared<Tonemapping>(context, _forward->GetOutput());
+    _deferred = std::make_shared<Deferred>(context);
+    _envMapForward = std::make_shared<EnvMapForward>(context, _deferred->GetOutput(), _deferred->GetDepthBuffer());
+    _colorCorrection = std::make_shared<ColorCorrection>(context, _deferred->GetOutput());
+    _autoExposure = std::make_shared<AutoExposure>(context, _deferred->GetOutput());
+    _tonemapping = std::make_shared<Tonemapping>(context, _deferred->GetOutput());
     _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
 
     DebugRenderer::SetDebugRenderer(_debugRenderer);
 
-    _forward->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
-    _forward->ConnectShadowMap(_shadows->GetOutput());
+    _deferred->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
+    _deferred->ConnectShadowMap(_shadows->GetOutput());
 }
 
 Renderer::~Renderer()
@@ -48,8 +48,8 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         _stats.PushFrameTime("Shadows", [this, &scene, width, height]() {
             _shadows->Render(scene, width, height);
         });
-        _stats.PushFrameTime("Forward", [this, &scene, width, height]() {
-            _forward->Render(scene, width, height);
+        _stats.PushFrameTime("Deferred", [this, &scene, width, height]() {
+            _deferred->Render(scene, width, height);
         });
         _stats.PushFrameTime("Environment Map", [this, &scene, width, height]() {
             _envMapForward->Render(scene, width, height);
@@ -88,11 +88,11 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 void Renderer::Resize(uint32_t width, uint32_t height)
 {
     _shadows->Resize(width, height);
-    _forward->Resize(width, height);
-    _envMapForward->Resize(width, height, _forward->GetOutput(), _forward->GetDepthBuffer());
-    _colorCorrection->Resize(width, height, _forward->GetOutput());
-    _autoExposure->Resize(width, height, _forward->GetOutput());
-    _tonemapping->Resize(width, height, _forward->GetOutput());
+    _deferred->Resize(width, height);
+    _envMapForward->Resize(width, height, _deferred->GetOutput(), _deferred->GetDepthBuffer());
+    _colorCorrection->Resize(width, height, _deferred->GetOutput());
+    _autoExposure->Resize(width, height, _deferred->GetOutput());
+    _tonemapping->Resize(width, height, _deferred->GetOutput());
     _debugRenderer->Resize(width, height, _tonemapping->GetOutput());
 }
 
@@ -101,7 +101,7 @@ void Renderer::OnUI()
     ImGui::Begin("Renderer Settings");
 
     _shadows->OnUI();
-    _forward->OnUI();
+    _deferred->OnUI();
     _envMapForward->OnUI();
     _colorCorrection->OnUI();
     _autoExposure->OnUI();
@@ -159,7 +159,7 @@ void Renderer::Screenshot(Texture::Ptr screenshotTexture, TextureLayout newLayou
 void Renderer::Reconstruct()
 {
     _shadows->Reconstruct();
-    _forward->Reconstruct();
+    _deferred->Reconstruct();
     _envMapForward->Reconstruct();
     _colorCorrection->Reconstruct();
     _autoExposure->Reconstruct();

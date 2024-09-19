@@ -95,8 +95,8 @@ void Forward::OnUI()
         ImGui::Checkbox("Enable IBL", &_ibl);
         ImGui::Checkbox("Visualize Shadows", &_visualizeShadow);
 
-        static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Specular", "Ambient" };
-        ImGui::Combo("Mode", (int*)&_mode, Modes, 8);
+        static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Specular", "Ambient", "Position" };
+        ImGui::Combo("Mode", (int*)&_mode, Modes, 9);
 
         ImGui::TreePop();
     }

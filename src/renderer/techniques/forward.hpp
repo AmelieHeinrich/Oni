@@ -62,6 +62,4 @@ private:
     bool _pbr = true;
     bool _ibl = true;
     bool _draw = true;
-
-    bool _reconstruct = false;
 };

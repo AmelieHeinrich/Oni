@@ -36,8 +36,8 @@ private:
         float Saturation = 0.0f;
         float Temperature = 0.0f;
         float Tint = 0.0f;
-        glm::vec4 Shadows = glm::vec4(0.4f);
-        glm::vec4 Highlights = glm::vec4(0.4f);
+        glm::vec4 Shadows = glm::vec4(0.5f);
+        glm::vec4 Highlights = glm::vec4(0.5f);
         float Balance = 0.0f;
         glm::vec3 _Pad2;
     };
