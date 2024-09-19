@@ -76,11 +76,13 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         OPTICK_GPU_EVENT("Copy to Backbuffer");
 
         _stats.PushFrameTime("Copy to Backbuffer", [this, cmdBuf, backbuffer]() {
+            cmdBuf->BeginEvent("Copy To Backbuffer");
             cmdBuf->ImageBarrier(backbuffer, TextureLayout::CopyDest);
             cmdBuf->ImageBarrier(_debugRenderer->GetOutput(), TextureLayout::CopySource);
             cmdBuf->CopyTextureToTexture(backbuffer, _debugRenderer->GetOutput());
             cmdBuf->ImageBarrier(backbuffer, TextureLayout::Present);
             cmdBuf->ImageBarrier(_debugRenderer->GetOutput(), TextureLayout::ShaderResource);
+            cmdBuf->EndEvent();
         });
     }
 }

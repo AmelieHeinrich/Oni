@@ -193,6 +193,7 @@ void EnvMapForward::Render(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_EVENT("Cube Map Forward");
 
     if (_drawSkybox) {
+        cmdBuffer->BeginEvent("Draw Skybox");
         cmdBuffer->SetViewport(0, 0, width, height);
         cmdBuffer->SetTopology(Topology::TriangleList);
         cmdBuffer->BindRenderTargets({ _inputColor }, _inputDepth);
@@ -202,6 +203,7 @@ void EnvMapForward::Render(Scene& scene, uint32_t width, uint32_t height)
         cmdBuffer->BindGraphicsSampler(_cubeSampler, 2);
         cmdBuffer->BindVertexBuffer(_cubeBuffer);
         cmdBuffer->Draw(36);
+        cmdBuffer->EndEvent();
     }
 }
 

@@ -144,7 +144,7 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
     memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
     _modeBuffer[frameIndex]->Unmap(0, 0);
 
-    commandBuffer->BeginEvent("Forward Pass");
+    commandBuffer->BeginEvent("GBuffer");
     commandBuffer->ImageBarrier(_normals, TextureLayout::RenderTarget);
     commandBuffer->ImageBarrier(_albedoEmission, TextureLayout::RenderTarget);
     commandBuffer->ImageBarrier(_pbrData, TextureLayout::RenderTarget);
@@ -213,7 +213,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
     memcpy(pData, &data, sizeof(Data));
     _sceneBufferGPass[frameIndex]->Unmap(0, 0);
 
-    commandBuffer->BeginEvent("Forward Pass");
+    commandBuffer->BeginEvent("Deferred Lighting");
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
     commandBuffer->ClearRenderTarget(_outputImage, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->BindRenderTargets({ _outputImage }, nullptr);

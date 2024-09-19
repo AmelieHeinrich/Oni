@@ -27,7 +27,7 @@ target("Oni")
         set_symbols("debug")
         set_optimize("none")
         add_links("assimp-vc143-mtd.lib")
-        add_defines("ONI_DEBUG")
+        add_defines("ONI_DEBUG", "USE_PIX")
     end
 
     if is_mode("release") then

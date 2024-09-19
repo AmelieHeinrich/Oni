@@ -24,6 +24,7 @@
 - GPU instancing
 
 ## Post processing
+- Screen Space Ambient Occlusion (SSAO)
 - Ground truth ambient occlusion (GTAO)
 - Screen space global illumination (SSGI)
 - Temporal anti aliasing (TAA)

@@ -24,7 +24,7 @@
 
 #include "renderer/techniques/debug_renderer.hpp"
 
-constexpr int TEST_LIGHT_COUNT = 32;
+constexpr int TEST_LIGHT_COUNT = 128;
 
 float random_float(float min, float max)
 {

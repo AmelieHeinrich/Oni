@@ -51,6 +51,7 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Shadow Pass");
 
+    commandBuffer->BeginEvent("Shadow Pass");
     commandBuffer->ImageBarrier(_shadowMap, TextureLayout::Depth);
     commandBuffer->ClearDepthTarget(_shadowMap);
 
@@ -67,7 +68,6 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
         memcpy(pData, &param, sizeof(ShadowParam));
         _shadowParam[frameIndex]->Unmap(0, 0);
 
-        commandBuffer->BeginEvent("Shadow Pass");
         commandBuffer->SetViewport(0, 0, float(_shadowMapResolution), float(_shadowMapResolution));
         commandBuffer->SetTopology(Topology::TriangleList);
         commandBuffer->BindRenderTargets({}, _shadowMap);
