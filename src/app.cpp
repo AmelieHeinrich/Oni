@@ -122,6 +122,9 @@ void App::Run()
         _window->Update();
         _window->GetSize(width, height);
 
+        glm::vec3 translation = glm::vec3(0.5 * (sin(((time / 1000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
+        scene.Models[1].Primitives[0].Transform = glm::translate(glm::mat4(1.0f), translation);
+
         scene.Camera = _camera;
 
         scene.Lights.Sun.Direction = scene.Lights.SunTransform.GetFrontVector();

@@ -38,7 +38,7 @@ VertexOut Main(VertexIn Input)
 
     float4 pos = float4(Input.Position, 1.0);
     
-    Output.Position = mul(mul(ModelBuffer.Transform, SceneBuffer.CameraMatrix), pos);
+    Output.Position = mul(mul(SceneBuffer.CameraMatrix, ModelBuffer.Transform), pos);
     Output.TexCoords = Input.TexCoords;
     Output.Normals = normalize(float4(mul(transpose(ModelBuffer.Transform), float4(Input.Normals, 1.0))).xyz);
     

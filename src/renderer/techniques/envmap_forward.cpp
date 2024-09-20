@@ -196,6 +196,7 @@ void EnvMapForward::Render(Scene& scene, uint32_t width, uint32_t height)
         cmdBuffer->BeginEvent("Draw Skybox");
         cmdBuffer->SetViewport(0, 0, width, height);
         cmdBuffer->SetTopology(Topology::TriangleList);
+        cmdBuffer->ImageBarrier(_inputColor, TextureLayout::RenderTarget);
         cmdBuffer->BindRenderTargets({ _inputColor }, _inputDepth);
         cmdBuffer->BindGraphicsPipeline(_cubeRenderer.GraphicsPipeline);
         cmdBuffer->BindGraphicsConstantBuffer(_cubeCBV, 0);

@@ -10,7 +10,6 @@
 struct ShadowParam
 {
     glm::mat4 SunMatrix;
-    glm::mat4 Model;
 };
 
 Shadows::Shadows(RenderContext::Ptr context, ShadowMapResolution resolution)
@@ -61,7 +60,6 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
         
         ShadowParam param;
         param.SunMatrix = depthProjection * depthView;
-        param.Model = glm::mat4(1.0f);
 
         void *pData;
         _shadowParam[frameIndex]->Map(0, 0, &pData);
@@ -76,6 +74,22 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
 
         for (auto& model : scene.Models) {
             for (auto& primitive : model.Primitives) {
+                auto material = model.Materials[primitive.MaterialIndex];
+                
+                struct ModelData {
+                    glm::mat4 Transform;
+                    glm::vec4 FlatColor;
+                };
+                ModelData modelData = {
+                    primitive.Transform,
+                    glm::vec4(material.FlatColor, 1.0f)
+                };
+
+                primitive.ModelBuffer[frameIndex]->Map(0, 0, &pData);
+                memcpy(pData, &modelData, sizeof(ModelData));
+                primitive.ModelBuffer[frameIndex]->Unmap(0, 0);
+
+                commandBuffer->BindGraphicsConstantBuffer(primitive.ModelBuffer[frameIndex], 1);
                 commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
                 commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
                 commandBuffer->DrawIndexed(primitive.IndexCount);

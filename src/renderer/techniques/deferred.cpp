@@ -164,9 +164,22 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _blackTexture;
                 Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
+                struct ModelData {
+                    glm::mat4 Transform;
+                    glm::vec4 FlatColor;
+                };
+                ModelData modelData = {
+                    primitive.Transform,
+                    glm::vec4(material.FlatColor, 1.0f)
+                };
+
+                primitive.ModelBuffer[frameIndex]->Map(0, 0, &pData);
+                memcpy(pData, &modelData, sizeof(ModelData));
+                primitive.ModelBuffer[frameIndex]->Unmap(0, 0);
+
                 commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
                 commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
-                commandBuffer->BindGraphicsConstantBuffer(primitive.ModelBuffer, 1);
+                commandBuffer->BindGraphicsConstantBuffer(primitive.ModelBuffer[frameIndex], 1);
                 commandBuffer->BindGraphicsShaderResource(albedo, 2);
                 commandBuffer->BindGraphicsShaderResource(normal, 3);
                 commandBuffer->BindGraphicsShaderResource(pbr, 4);

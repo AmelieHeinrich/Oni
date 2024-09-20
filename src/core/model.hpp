@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <array>
 #include <glm/glm.hpp>
 
 #include "rhi/render_context.hpp"
@@ -55,7 +56,7 @@ struct Primitive
 {
     Buffer::Ptr VertexBuffer;
     Buffer::Ptr IndexBuffer;
-    Buffer::Ptr ModelBuffer;
+    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> ModelBuffer;
 
     uint32_t VertexCount;
     uint32_t IndexCount;
