@@ -22,6 +22,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
     _deferred = std::make_shared<Deferred>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _deferred->GetOutput(), _deferred->GetDepthBuffer());
+    _bloom = std::make_shared<Bloom>(context, _deferred->GetOutput());
     _colorCorrection = std::make_shared<ColorCorrection>(context, _deferred->GetOutput());
     _autoExposure = std::make_shared<AutoExposure>(context, _deferred->GetOutput());
     _tonemapping = std::make_shared<Tonemapping>(context, _deferred->GetOutput());

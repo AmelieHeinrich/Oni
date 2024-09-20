@@ -31,13 +31,22 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 
 ### Techniques
 
+- Point lights
+- Directional lights
+
 - Forward shading
-- PBR lighting model and materials
-- IBL
+- Deferred rendering :
+    - Depth Buffer R32Typeless
+    - Normals RGBA16Float
+    - Albedo + Emissive RGBA8Unorm
+    - PBR + AO RGBA8Unorm
+
+- PBR lighting and materials
+
 - Environment mapping
-- Point, directional lights
+- IBL
+
 - Shadow mapping (directional)
-- Deferred rendering
 
 ### Post Processing
 - Color grading
