@@ -55,6 +55,9 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         _stats.PushFrameTime("Environment Map", [this, &scene, width, height]() {
             _envMapForward->Render(scene, width, height);
         });
+        _stats.PushFrameTime("Bloom", [this, &scene, width, height]() {
+            _bloom->Render(scene, width, height);
+        });
         _stats.PushFrameTime("Color Correction", [this, &scene, width, height]() {
             _colorCorrection->Render(scene, width, height);
         });
@@ -93,6 +96,7 @@ void Renderer::Resize(uint32_t width, uint32_t height)
     _shadows->Resize(width, height);
     _deferred->Resize(width, height);
     _envMapForward->Resize(width, height, _deferred->GetOutput(), _deferred->GetDepthBuffer());
+    _bloom->Resize(width, height, _deferred->GetOutput());
     _colorCorrection->Resize(width, height, _deferred->GetOutput());
     _autoExposure->Resize(width, height, _deferred->GetOutput());
     _tonemapping->Resize(width, height, _deferred->GetOutput());
@@ -106,6 +110,7 @@ void Renderer::OnUI()
     _shadows->OnUI();
     _deferred->OnUI();
     _envMapForward->OnUI();
+    _bloom->OnUI();
     _colorCorrection->OnUI();
     _autoExposure->OnUI();
     _tonemapping->OnUI();
@@ -164,6 +169,7 @@ void Renderer::Reconstruct()
     _shadows->Reconstruct();
     _deferred->Reconstruct();
     _envMapForward->Reconstruct();
+    _bloom->Reconstruct();
     _colorCorrection->Reconstruct();
     _autoExposure->Reconstruct();
     _tonemapping->Reconstruct();

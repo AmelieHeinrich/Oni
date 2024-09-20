@@ -53,6 +53,7 @@ Deferred::Deferred(RenderContext::Ptr context)
     _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, false, "Deferred Output");
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
+    _outputImage->BuildStorage();
 
     _depthBuffer = context->CreateTexture(width, height, TextureFormat::R32Typeless, TextureUsage::DepthTarget, false, "Deferred Depth Buffer");
     _depthBuffer->BuildDepthTarget(TextureFormat::R32Depth);
