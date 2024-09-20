@@ -82,7 +82,7 @@ Deferred::Deferred(RenderContext::Ptr context)
         _lightingPipeline.Specs.Cull = CullMode::None;
         _lightingPipeline.Specs.Fill = FillMode::Solid;
 
-        _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingVert.hlsl", "Main", ShaderType::Vertex);
+        _lightingPipeline.AddShaderWatch("shaders/Fullscreen/QuadVert.hlsl", "Main", ShaderType::Vertex);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingFrag.hlsl", "Main", ShaderType::Fragment);
         _lightingPipeline.Build(context);
     }

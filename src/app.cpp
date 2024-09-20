@@ -48,7 +48,7 @@ App::App()
     // Compress every model texture
     //TextureCompressor::TraverseDirectory("assets/textures/", TextureCompressorFormat::BC1);
 
-    _window = std::make_shared<Window>(1920 + 16, 1080 + 39, "ONI");
+    _window = std::make_shared<Window>(1920 + 16, 1080 + 38, "ONI");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
         _renderer->Resize(width, height);
@@ -64,9 +64,9 @@ App::App()
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
     Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/sponza/sponza.gltf");
+    sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
 
-    //scene.Models.push_back(platform);
+    scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
     scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
 

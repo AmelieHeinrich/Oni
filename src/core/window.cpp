@@ -65,6 +65,7 @@ void Window::GetSize(uint32_t& width, uint32_t& height)
     GetClientRect(_hwnd, &ClientRect);
     width = ClientRect.right - ClientRect.left;
     height = ClientRect.bottom - ClientRect.top;
+    height -= 1;
 }
 
 LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

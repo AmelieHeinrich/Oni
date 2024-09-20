@@ -29,7 +29,9 @@ private:
     void Upsample(Scene& scene, uint32_t width, uint32_t height);
     void Composite(Scene& scene, uint32_t width, uint32_t height);
 
-    int MIP_COUNT = 5;
+    Texture::Ptr _output;
+
+    int MIP_COUNT = 8;
 
     struct BloomMip
     {
@@ -43,7 +45,7 @@ private:
 
     RenderContext::Ptr _context;
     float _filterRadius = 0.005f;
-    float _bloomStrenght = 0.04f;
+    float _bloomStrenght = 0.30f;
 
     bool _enable = true;
 
@@ -52,5 +54,8 @@ private:
     HotReloadablePipeline _compositePipeline;
 
     std::vector<BloomMip> _mipChain;
-    Sampler::Ptr _sampler;
+    
+    Sampler::Ptr _linearClamp;
+    Sampler::Ptr _linearBorder;
+    Sampler::Ptr _pointClamp;
 };

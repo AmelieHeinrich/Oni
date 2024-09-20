@@ -75,6 +75,8 @@ void Allocator::OnGUI()
     ImGui::BeginChild("left pane", ImVec2(150, 0), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Border);
     if (ImGui::TreeNodeEx("Textures", ImGuiTreeNodeFlags_Framed)) {
         for (auto& resource : _allocations) {
+            if (!resource)
+                continue;
             if (resource->Type == GPUResourceType::Texture) {
                 if (ImGui::Selectable(resource->Name.c_str())) {
                     _uiSelected = resource;
@@ -85,6 +87,8 @@ void Allocator::OnGUI()
     }
     if (ImGui::TreeNodeEx("Buffers", ImGuiTreeNodeFlags_Framed)) {
         for (auto& resource : _allocations) {
+            if (!resource)
+                continue;
             if (resource->Type == GPUResourceType::Buffer) {
                 if (ImGui::Selectable(resource->Name.c_str())) {
                     _uiSelected = resource;
@@ -95,6 +99,8 @@ void Allocator::OnGUI()
     }
     if (ImGui::TreeNodeEx("Cube Maps", ImGuiTreeNodeFlags_Framed)) {
         for (auto& resource : _allocations) {
+            if (!resource)
+                continue;
             if (resource->Type == GPUResourceType::CubeMap) {
                 if (ImGui::Selectable(resource->Name.c_str())) {
                     _uiSelected = resource;
@@ -114,21 +120,23 @@ void Allocator::OnGUI()
 
         // Textures
         if (_uiSelected->Type == GPUResourceType::Texture) {
-            ImGui::Text("Texture Size: (%d, %d)", _uiSelected->AttachedTexture->GetWidth(), _uiSelected->AttachedTexture->GetHeight());
-            for (int i = 0; i < _uiSelected->AttachedTexture->GetMips(); i++) {
-                std::stringstream ss;
-                ss << "Mip " << i;
-                if (ImGui::TreeNodeEx(ss.str().c_str(), ImGuiTreeNodeFlags_Framed)) {
-                    if (_uiSelected->AttachedTexture->_srvs.size() > 0) {
-                        if (_uiSelected->AttachedTexture->_srvs[i].Valid && _uiSelected->AttachedTexture->_dsv.Valid != true) {
-                            if (_uiSelected->AttachedTexture->GetState(i) == D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE)
-                                ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
+            if (_uiSelected->AttachedTexture) {
+                ImGui::Text("Texture Size: (%d, %d)", _uiSelected->AttachedTexture->GetWidth(), _uiSelected->AttachedTexture->GetHeight());
+                for (int i = 0; i < _uiSelected->AttachedTexture->GetMips(); i++) {
+                    std::stringstream ss;
+                    ss << "Mip " << i;
+                    if (ImGui::TreeNodeEx(ss.str().c_str(), ImGuiTreeNodeFlags_Framed)) {
+                        if (_uiSelected->AttachedTexture->_srvs.size() > 0) {
+                            if (_uiSelected->AttachedTexture->_srvs[i].Valid && _uiSelected->AttachedTexture->_dsv.Valid != true) {
+                                if (_uiSelected->AttachedTexture->GetState(i) == D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE)
+                                    ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
+                            }
+                        } else {
+                            ImGui::TextColored(ImVec4(1, 0, 0, 1), "> Mip preview unavailable");
                         }
-                    } else {
-                        ImGui::TextColored(ImVec4(1, 0, 0, 1), "> Mip preview unavailable");
+                        ImGui::TreePop();
                     }
-                    ImGui::TreePop();
-                }
+                }   
             }
         }
     }

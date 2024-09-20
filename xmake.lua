@@ -13,7 +13,7 @@ target("Oni")
     add_files("src/**.cpp")
     add_includedirs("src", "ext", "ext/PIX/include", "ext/optick/", "ext/nvtt")
     add_deps("D3D12MA", "ImGui", "stb", "optick", "ImGuizmo")
-    add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE")
+    add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", "USE_PIX")
 
     add_linkdirs("ext/assimp/bin")
     add_linkdirs("ext/PIX/lib")
@@ -27,7 +27,7 @@ target("Oni")
         set_symbols("debug")
         set_optimize("none")
         add_links("assimp-vc143-mtd.lib")
-        add_defines("ONI_DEBUG", "USE_PIX")
+        add_defines("ONI_DEBUG")
     end
 
     if is_mode("release") then

@@ -49,7 +49,7 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
     cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
     cmdBuf->BindComputeStorageTexture(_outputLDR, 1, 0);
     cmdBuf->BindComputeConstantBuffer(_tonemapperSettings, 2);
-    cmdBuf->Dispatch(width / 30, height / 30, 1);    
+    cmdBuf->Dispatch(width / 32, height / 32, 1);    
     cmdBuf->EndEvent();
 }
 
