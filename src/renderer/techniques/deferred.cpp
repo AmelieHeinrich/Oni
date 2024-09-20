@@ -7,7 +7,7 @@
 #include "deferred.hpp"
 
 Deferred::Deferred(RenderContext::Ptr context)
-    : _context(context), _gbufferPipeline(PipelineType::Graphics), _lightingPipeline(PipelineType::Graphics)
+    : _context(context), _gbufferPipeline(PipelineType::Graphics), _lightingPipeline(PipelineType::Compute)
 {
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
@@ -76,14 +76,7 @@ Deferred::Deferred(RenderContext::Ptr context)
     }
     
     {
-        _lightingPipeline.Specs.FormatCount = 1;
-        _lightingPipeline.Specs.Formats[0] = TextureFormat::RGBA16Unorm;
-        _lightingPipeline.Specs.DepthEnabled = false;
-        _lightingPipeline.Specs.Cull = CullMode::None;
-        _lightingPipeline.Specs.Fill = FillMode::Solid;
-
-        _lightingPipeline.AddShaderWatch("shaders/Fullscreen/QuadVert.hlsl", "Main", ShaderType::Vertex);
-        _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingFrag.hlsl", "Main", ShaderType::Fragment);
+        _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
         _lightingPipeline.Build(context);
     }
 
@@ -215,30 +208,28 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
     _sceneBufferGPass[frameIndex]->Unmap(0, 0);
 
     commandBuffer->BeginEvent("Deferred Lighting");
-    commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
-    commandBuffer->ClearRenderTarget(_outputImage, 0.0f, 0.0f, 0.0f, 1.0f);
-    commandBuffer->BindRenderTargets({ _outputImage }, nullptr);
+    commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
     if (_draw) {
         commandBuffer->SetViewport(0, 0, width, height);
 
-        commandBuffer->SetTopology(Topology::TriangleList);
-        commandBuffer->BindGraphicsPipeline(_lightingPipeline.GraphicsPipeline);
+        commandBuffer->BindComputePipeline(_lightingPipeline.ComputePipeline);
 
-        commandBuffer->BindGraphicsShaderResource(_depthBuffer, 0);
-        commandBuffer->BindGraphicsShaderResource(_normals, 1);
-        commandBuffer->BindGraphicsShaderResource(_albedoEmission, 2);
-        commandBuffer->BindGraphicsShaderResource(_pbrData, 3);
-        commandBuffer->BindGraphicsCubeMap(_map.IrradianceMap, 4);
-        commandBuffer->BindGraphicsCubeMap(_map.PrefilterMap, 5);
-        commandBuffer->BindGraphicsShaderResource(_map.BRDF, 6);
-        commandBuffer->BindGraphicsShaderResource(_shadowMap, 7);
-        commandBuffer->BindGraphicsSampler(_sampler, 8),
-        commandBuffer->BindGraphicsSampler(_shadowSampler, 9);
-        commandBuffer->BindGraphicsConstantBuffer(_sceneBufferGPass[frameIndex], 10);
-        commandBuffer->BindGraphicsConstantBuffer(_lightBuffer[frameIndex], 11);
-        commandBuffer->BindGraphicsConstantBuffer(_modeBuffer[frameIndex], 12);
+        commandBuffer->BindComputeShaderResource(_depthBuffer, 0);
+        commandBuffer->BindComputeShaderResource(_normals, 1);
+        commandBuffer->BindComputeShaderResource(_albedoEmission, 2);
+        commandBuffer->BindComputeShaderResource(_pbrData, 3);
+        commandBuffer->BindComputeCubeMapShaderResource(_map.IrradianceMap, 4);
+        commandBuffer->BindComputeCubeMapShaderResource(_map.PrefilterMap, 5);
+        commandBuffer->BindComputeShaderResource(_map.BRDF, 6);
+        commandBuffer->BindComputeShaderResource(_shadowMap, 7);
+        commandBuffer->BindComputeSampler(_sampler, 8),
+        commandBuffer->BindComputeSampler(_shadowSampler, 9);
+        commandBuffer->BindComputeConstantBuffer(_sceneBufferGPass[frameIndex], 10);
+        commandBuffer->BindComputeConstantBuffer(_lightBuffer[frameIndex], 11);
+        commandBuffer->BindComputeConstantBuffer(_modeBuffer[frameIndex], 12);
+        commandBuffer->BindComputeStorageTexture(_outputImage, 13);
         
-        commandBuffer->Draw(6);
+        commandBuffer->Dispatch(width / 8, height / 8, 1);
     }
     commandBuffer->EndEvent();
 }

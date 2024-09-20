@@ -42,7 +42,7 @@ Texture2D HDRTexture : register(t0);
 RWTexture2D<float4> LDRTexture : register(u1);
 ConstantBuffer<TonemapperSettings> Settings : register(b2);
 
-[numthreads(32, 32, 1)]
+[numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
     uint Width, Height;

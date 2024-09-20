@@ -114,7 +114,7 @@ float3 ColorGradeSplitToning(float3 color)
 	return PositivePow(color, 2.2);
 }
 
-[numthreads(32, 32, 1)]
+[numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
     uint Width, Height;
