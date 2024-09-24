@@ -31,6 +31,7 @@ public:
     }
     ~HotReloadablePipeline();
 
+    void ReflectRootSignature(bool reflect);
     void AddShaderWatch(const std::string& path, const std::string& entryPoint, ShaderType type);
     ShaderBytecode GetBytecode(ShaderType type);
 
@@ -38,11 +39,15 @@ public:
     void CheckForRebuild(RenderContext::Ptr context, const std::string &name = "");
 
     GraphicsPipelineSpecs Specs;
+    RootSignatureBuildInfo SignatureInfo;
+
     GraphicsPipeline::Ptr GraphicsPipeline;
     ComputePipeline::Ptr ComputePipeline;
+    RootSignature::Ptr Signature;
 
 private:
     PipelineType _type;
+    bool _reflectRootSignature = true;
 
     struct ShaderWatch
     {

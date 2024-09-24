@@ -24,7 +24,7 @@
 
 #include "renderer/techniques/debug_renderer.hpp"
 
-constexpr int TEST_LIGHT_COUNT = 32;
+constexpr int TEST_LIGHT_COUNT = 0;
 
 float random_float(float min, float max)
 {
@@ -68,7 +68,7 @@ App::App()
 
     scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
-    scene.Lights.SetSun(glm::vec3(0.0f, 18.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
+    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
 
     for (int i = 0; i < TEST_LIGHT_COUNT; i++) {
         scene.Lights.AddPointLight(PointLight(

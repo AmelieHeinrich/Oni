@@ -6,6 +6,7 @@
 #pragma once
 
 #include "device.hpp"
+#include "root_signature.hpp"
 
 #include <core/shader_bytecode.hpp>
 
@@ -14,12 +15,12 @@ class ComputePipeline
 public:
     using Ptr = std::shared_ptr<ComputePipeline>;
 
-    ComputePipeline(Device::Ptr device, ShaderBytecode& bytecode);
+    ComputePipeline(Device::Ptr device, ShaderBytecode& bytecode, RootSignature::Ptr rootSignature = nullptr);
     ~ComputePipeline();
 
     ID3D12PipelineState* GetPipeline() { return _pipeline; }
-    ID3D12RootSignature* GetRootSignature() { return _rootSignature; }
+    RootSignature::Ptr GetSignature() { return _signature; }
 private:
     ID3D12PipelineState* _pipeline;
-    ID3D12RootSignature* _rootSignature;
+    RootSignature::Ptr _signature;
 };

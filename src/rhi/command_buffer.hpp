@@ -68,6 +68,9 @@ public:
     void BindComputeStorageBuffer(Buffer::Ptr buffer, int index);
     void BindComputeSampler(Sampler::Ptr sampler, int index);
 
+    void PushConstantsGraphics(const void *data, uint32_t size, int index);
+    void PushConstantsCompute(const void *data, uint32_t size, int index);
+
     void Draw(int vertexCount);
     void DrawIndexed(int indexCount);
     void Dispatch(int x, int y, int z);

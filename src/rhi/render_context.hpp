@@ -51,11 +51,13 @@ public:
 
     Buffer::Ptr CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback, const std::string& name = "Buffer");
     GraphicsPipeline::Ptr CreateGraphicsPipeline(GraphicsPipelineSpecs& specs);
-    ComputePipeline::Ptr CreateComputePipeline(ShaderBytecode& shader);
+    ComputePipeline::Ptr CreateComputePipeline(ShaderBytecode& shader, RootSignature::Ptr rootSignature = nullptr);
     Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
     Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
     CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name = "Cube Map");
     CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type, bool close = true);
+    RootSignature::Ptr CreateRootSignature();
+    RootSignature::Ptr CreateRootSignature(RootSignatureBuildInfo& info);
     
     Uploader CreateUploader();
     void FlushUploader(Uploader& uploader, CommandBuffer::Ptr commandBuffer);
@@ -93,6 +95,7 @@ private:
 
     DescriptorHeap::Descriptor _fontDescriptor;
 
+    RootSignature::Ptr _mipmapSignature;
     ComputePipeline::Ptr _mipmapPipeline;
     Buffer::Ptr _mipmapBuffer;
     Sampler::Ptr _mipmapSampler;

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "texture.hpp"
+#include "root_signature.hpp"
 
 #include <core/shader_bytecode.hpp>
 #include <unordered_map>
@@ -47,6 +48,7 @@ struct GraphicsPipelineSpecs
     bool DepthClipEnable = true;
 
     std::unordered_map<ShaderType, ShaderBytecode> Bytecodes;
+    RootSignature::Ptr Signature = nullptr;
 };
 
 class GraphicsPipeline
@@ -58,8 +60,8 @@ public:
     ~GraphicsPipeline();
 
     ID3D12PipelineState* GetPipeline() { return _pipeline; }
-    ID3D12RootSignature* GetRootSignature() { return _rootSignature; }
+    RootSignature::Ptr GetSignature() { return _signature; }
 private:
     ID3D12PipelineState* _pipeline;
-    ID3D12RootSignature* _rootSignature;
+    RootSignature::Ptr _signature;
 };

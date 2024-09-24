@@ -57,12 +57,13 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - Simple scene editor to add/move lights around
 - Debug renderer (lines)
 - Log window
-- Shader hot reloading
+- Shader hot reloading & reflection
 - Texture compression (can be generated, not loaded in engine yet)
 
 ## WIP
 
 - Motion blur
+- Emission mask
 
 ## Screenshots
 

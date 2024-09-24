@@ -87,7 +87,10 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     ShaderBytecode bytecode;
     ShaderCompiler::CompileShader("shaders/MipMaps/GenerateCompute.hlsl", "Main", ShaderType::Compute, bytecode);
 
-    _mipmapPipeline = CreateComputePipeline(bytecode);
+    _mipmapSignature = CreateRootSignature();
+    _mipmapSignature->ReflectFromComputeShader(bytecode);
+    
+    _mipmapPipeline = CreateComputePipeline(bytecode, _mipmapSignature);
     _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, true, 0);
 
     WaitForGPU();
@@ -177,9 +180,9 @@ GraphicsPipeline::Ptr RenderContext::CreateGraphicsPipeline(GraphicsPipelineSpec
     return std::make_shared<GraphicsPipeline>(_device, specs);
 }
 
-ComputePipeline::Ptr RenderContext::CreateComputePipeline(ShaderBytecode& shader)
+ComputePipeline::Ptr RenderContext::CreateComputePipeline(ShaderBytecode& shader, RootSignature::Ptr rootSignature)
 {
-    return std::make_shared<ComputePipeline>(_device, shader);
+    return std::make_shared<ComputePipeline>(_device, shader, rootSignature);
 }
 
 Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name)
@@ -200,6 +203,16 @@ CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, Textu
 CommandBuffer::Ptr RenderContext::CreateCommandBuffer(CommandQueueType type, bool close)
 {
     return std::make_shared<CommandBuffer>(_device, _heaps, type, close);
+}
+
+RootSignature::Ptr RenderContext::CreateRootSignature()
+{
+    return std::make_shared<RootSignature>(_device);
+}
+
+RootSignature::Ptr RenderContext::CreateRootSignature(RootSignatureBuildInfo& info)
+{
+    return std::make_shared<RootSignature>(_device, info);
 }
 
 Uploader RenderContext::CreateUploader()

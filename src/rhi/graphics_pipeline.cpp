@@ -5,36 +5,7 @@
 
 #include "graphics_pipeline.hpp"
 
-#include <dxcapi.h>
-#include <d3d12shader.h>
-#include <vector>
-#include <array>
-#include <algorithm>
-
-#include <core/log.hpp>
-
-ID3D12ShaderReflection* GetReflection(ShaderBytecode& bytecode, D3D12_SHADER_DESC *desc)
-{
-    IDxcUtils* pUtils;
-    DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
-    
-    DxcBuffer ShaderBuffer = {};
-    ShaderBuffer.Ptr = bytecode.bytecode.data();
-    ShaderBuffer.Size = bytecode.bytecode.size() * sizeof(uint32_t);
-    ID3D12ShaderReflection* pReflection;
-    HRESULT Result = pUtils->CreateReflection(&ShaderBuffer, IID_PPV_ARGS(&pReflection));
-    if (FAILED(Result)) {
-        Logger::Error("Failed to get reflection from shader");
-    }
-    pReflection->GetDesc(desc);
-    pUtils->Release();
-    return pReflection;
-}
-
-bool CompareShaderInput(const D3D12_SHADER_INPUT_BIND_DESC& A, const D3D12_SHADER_INPUT_BIND_DESC& B)
-{
-    return A.BindPoint < B.BindPoint;
-}
+#include "core/log.hpp"
 
 GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs& specs)
 {
@@ -42,91 +13,10 @@ GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs&
     ShaderBytecode& fragmentBytecode = specs.Bytecodes[ShaderType::Fragment];
 
     D3D12_SHADER_DESC VertexDesc = {};
-    D3D12_SHADER_DESC PixelDesc = {};
+    ID3D12ShaderReflection* pVertexReflection = RootSignature::GetReflection(vertexBytecode, &VertexDesc);
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> InputElementDescs;
     std::vector<std::string> InputElementSemanticNames;
-
-    std::array<D3D12_ROOT_PARAMETER, 64> Parameters = {};
-    int ParameterCount = 0;
-
-    std::array<D3D12_DESCRIPTOR_RANGE, 64> Ranges = {};
-    int RangeCount = 0;
-
-    std::array<D3D12_SHADER_INPUT_BIND_DESC, 64> ShaderBinds = {};
-    int BindCount = 0;
-
-    ID3D12ShaderReflection* pVertexReflection = GetReflection(vertexBytecode, &VertexDesc);
-    ID3D12ShaderReflection* pPixelReflection = GetReflection(fragmentBytecode, &PixelDesc);
-
-    for (int BoundResourceIndex = 0; BoundResourceIndex < VertexDesc.BoundResources; BoundResourceIndex++) {
-        D3D12_SHADER_INPUT_BIND_DESC ShaderInputBindDesc = {};
-        pVertexReflection->GetResourceBindingDesc(BoundResourceIndex, &ShaderInputBindDesc);
-        ShaderBinds[BindCount] = ShaderInputBindDesc;
-        BindCount++;
-    }
-
-    for (int BoundResourceIndex = 0; BoundResourceIndex < PixelDesc.BoundResources; BoundResourceIndex++) {
-        D3D12_SHADER_INPUT_BIND_DESC ShaderInputBindDesc = {};
-        pPixelReflection->GetResourceBindingDesc(BoundResourceIndex, &ShaderInputBindDesc);
-        ShaderBinds[BindCount] = ShaderInputBindDesc;
-        BindCount++;
-    }
-
-    std::sort(ShaderBinds.begin(), ShaderBinds.begin() + BindCount, CompareShaderInput);
-
-    for (int ShaderBindIndex = 0; ShaderBindIndex < BindCount; ShaderBindIndex++) {
-        D3D12_SHADER_INPUT_BIND_DESC ShaderInputBindDesc = ShaderBinds[ShaderBindIndex];
-
-        D3D12_ROOT_PARAMETER RootParameter = {};
-        RootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-
-        D3D12_DESCRIPTOR_RANGE Range = {};
-        Range.NumDescriptors = 1;
-        Range.BaseShaderRegister = ShaderInputBindDesc.BindPoint;
-
-        switch (ShaderInputBindDesc.Type) {
-            case D3D_SIT_SAMPLER:
-                Range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-                break;
-            case D3D_SIT_TEXTURE:
-                Range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-                break;
-            case D3D_SIT_UAV_RWTYPED:
-                Range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-                break;
-            case D3D_SIT_CBUFFER:
-                Range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-                break;
-        }
-
-        Ranges[RangeCount] = Range;
-
-        RootParameter.DescriptorTable.NumDescriptorRanges = 1;
-        RootParameter.DescriptorTable.pDescriptorRanges = &Ranges[RangeCount];
-        RootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        Parameters[ParameterCount] = RootParameter;
-
-        ParameterCount++;
-        RangeCount++;
-    }
-
-    D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc = {};
-    RootSignatureDesc.NumParameters = ParameterCount;
-    RootSignatureDesc.pParameters = Parameters.data();
-    RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-    ID3DBlob* pRootSignatureBlob;
-    ID3DBlob* pErrorBlob;
-    D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, &pRootSignatureBlob, &pErrorBlob);
-    if (pErrorBlob) {
-        Logger::Error("D3D12 Root Signature error! %s", pErrorBlob->GetBufferPointer());
-    }
-    HRESULT Result = devicePtr->GetDevice()->CreateRootSignature(0, pRootSignatureBlob->GetBufferPointer(), pRootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&_rootSignature));
-    if (FAILED(Result)) {
-        Logger::Error("Failed to create root signature!");
-    }
-    pRootSignatureBlob->Release();
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc = {};
     Desc.VS.pShaderBytecode = vertexBytecode.bytecode.data();
@@ -207,19 +97,19 @@ GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs&
     }
     Desc.InputLayout.pInputElementDescs = InputElementDescs.data();
     Desc.InputLayout.NumElements = static_cast<uint32_t>(InputElementDescs.size());
-    Desc.pRootSignature = _rootSignature;
+    if (specs.Signature) {
+        Desc.pRootSignature = specs.Signature->GetSignature();
+        _signature = specs.Signature;
+    }
 
-    Result = devicePtr->GetDevice()->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(&_pipeline));
+    HRESULT Result = devicePtr->GetDevice()->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(&_pipeline));
     if (FAILED(Result)) {
         Logger::Error("D3D12: Failed creating D3D12 graphics pipeline!");
         return;
     }
-    pPixelReflection->Release();
-    pVertexReflection->Release();
 }
 
 GraphicsPipeline::~GraphicsPipeline()
 {
-    _rootSignature->Release();
     _pipeline->Release();
 }

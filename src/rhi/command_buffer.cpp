@@ -241,7 +241,7 @@ void CommandBuffer::BindIndexBuffer(Buffer::Ptr buffer)
 void CommandBuffer::BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline)
 {
     _commandList->SetPipelineState(pipeline->GetPipeline());
-    _commandList->SetGraphicsRootSignature(pipeline->GetRootSignature());
+    _commandList->SetGraphicsRootSignature(pipeline->GetSignature()->GetSignature());
 }
 
 void CommandBuffer::BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index)
@@ -267,7 +267,7 @@ void CommandBuffer::BindGraphicsCubeMap(CubeMap::Ptr cubemap, int index)
 void CommandBuffer::BindComputePipeline(ComputePipeline::Ptr pipeline)
 {
     _commandList->SetPipelineState(pipeline->GetPipeline());
-    _commandList->SetComputeRootSignature(pipeline->GetRootSignature());
+    _commandList->SetComputeRootSignature(pipeline->GetSignature()->GetSignature());
 }
 
 void CommandBuffer::BindComputeShaderResource(Texture::Ptr texture, int index, int mip)
@@ -303,6 +303,16 @@ void CommandBuffer::BindComputeStorageBuffer(Buffer::Ptr buffer, int index)
 void CommandBuffer::BindComputeSampler(Sampler::Ptr sampler, int index)
 {
     _commandList->SetComputeRootDescriptorTable(index, sampler->GetDescriptor().GPU);
+}
+
+void CommandBuffer::PushConstantsGraphics(const void *data, uint32_t size, int index)
+{
+    _commandList->SetGraphicsRoot32BitConstants(index, size / 8, data, 0);
+}
+
+void CommandBuffer::PushConstantsCompute(const void *data, uint32_t size, int index)
+{
+    _commandList->SetComputeRoot32BitConstants(index, size / 8, data, 0);
 }
 
 void CommandBuffer::Draw(int vertexCount)

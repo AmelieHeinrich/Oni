@@ -239,9 +239,11 @@ void Model::ProcessNode(RenderContext::Ptr renderContext, aiNode *node, const ai
 void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
 {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_FlipWindingOrder | aiProcess_CalcTangentSpace | aiProcess_PreTransformVertices | aiProcess_GenBoundingBoxes | aiProcess_GenSmoothNormals | aiProcess_OptimizeMeshes);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_FlipWindingOrder | aiProcess_PreTransformVertices);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         Logger::Error("Failed to load model at path %s", path.c_str());
+    } else {
+        Logger::Info("Loading %s...", path.c_str());
     }
     Directory = path.substr(0, path.find_last_of('/'));
     ProcessNode(renderContext, scene->mRootNode, scene);

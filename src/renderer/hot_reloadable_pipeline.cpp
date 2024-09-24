@@ -13,6 +13,11 @@ HotReloadablePipeline::~HotReloadablePipeline()
     _shaders.clear();
 }
 
+void HotReloadablePipeline::ReflectRootSignature(bool reflect)
+{
+    _reflectRootSignature = reflect;
+}
+
 void HotReloadablePipeline::AddShaderWatch(const std::string& path, const std::string& entryPoint, ShaderType type)
 {
     ShaderWatch watch;
@@ -31,14 +36,29 @@ ShaderBytecode HotReloadablePipeline::GetBytecode(ShaderType type)
 
 void HotReloadablePipeline::Build(RenderContext::Ptr context)
 {
+    Signature.reset();
+
     switch (_type) {
         case PipelineType::Compute: {
-            ComputePipeline = context->CreateComputePipeline(GetBytecode(ShaderType::Compute));
+            if (_reflectRootSignature) {
+                Signature = context->CreateRootSignature();
+                Signature->ReflectFromComputeShader(GetBytecode(ShaderType::Compute));
+            } else {
+                Signature = context->CreateRootSignature(SignatureInfo);
+            }
+            ComputePipeline = context->CreateComputePipeline(GetBytecode(ShaderType::Compute), Signature);
             break;
         }
         case PipelineType::Graphics: {
+            if (_reflectRootSignature) {
+                Signature = context->CreateRootSignature();
+                Signature->ReflectFromGraphicsShader(GetBytecode(ShaderType::Vertex), GetBytecode(ShaderType::Fragment));
+            } else {
+                Signature = context->CreateRootSignature(SignatureInfo);
+            }
             Specs.Bytecodes[ShaderType::Vertex] = GetBytecode(ShaderType::Vertex);
             Specs.Bytecodes[ShaderType::Fragment] = GetBytecode(ShaderType::Fragment);
+            Specs.Signature = Signature;
             GraphicsPipeline = context->CreateGraphicsPipeline(Specs);
             break;
         }

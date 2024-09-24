@@ -111,7 +111,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     uploader.CopyHostToDeviceLocal((void*)CubeVertices, sizeof(CubeVertices), _cubeBuffer);
 
     // Run everything
-    context->FlushUploader(uploader);;
+    context->FlushUploader(uploader);
 
     std::array<Buffer::Ptr, 5> prefilterBuffers;
     for (auto& buffer : prefilterBuffers) {
