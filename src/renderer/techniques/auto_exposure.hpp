@@ -34,8 +34,6 @@ private:
     Texture::Ptr _luminanceTexture;
 
     Buffer::Ptr _luminanceHistogram;
-    Buffer::Ptr _luminanceHistogramParameters;
-    Buffer::Ptr _averageParameters;
 
     float _minLogLuminance = -10.0f;
     float _luminanceRange = 12.0f;

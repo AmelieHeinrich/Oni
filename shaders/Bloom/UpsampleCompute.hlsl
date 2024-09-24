@@ -14,18 +14,19 @@
 struct Parameters
 {
     float FilterRadius;
-    float3 _Pad0;
+    uint MipN;
+	uint LinearSampler;
+	uint MipNMinusOne;
 };
 
-Texture2D MipN : register(t0);
-
-SamplerState LinearSampler : register(s1);
-
-RWTexture2D<float3> MipNMinusOne : register(u2);
-ConstantBuffer<Parameters> Settings : register(b3);
+ConstantBuffer<Parameters> Settings : register(b0);
 
 float3 Upsample(uint3 ThreadID)
 {
+	Texture2D MipN = ResourceDescriptorHeap[Settings.MipN];
+	SamplerState LinearSampler = SamplerDescriptorHeap[Settings.LinearSampler];
+	RWTexture2D<float3> MipNMinusOne = ResourceDescriptorHeap[Settings.MipNMinusOne];
+
     int width, height;
     MipNMinusOne.GetDimensions(width, height);
 
@@ -48,5 +49,9 @@ float3 Upsample(uint3 ThreadID)
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
+	Texture2D MipN = ResourceDescriptorHeap[Settings.MipN];
+	SamplerState LinearSampler = SamplerDescriptorHeap[Settings.LinearSampler];
+	RWTexture2D<float3> MipNMinusOne = ResourceDescriptorHeap[Settings.MipNMinusOne];
+
     MipNMinusOne[ThreadID.xy] = Upsample(ThreadID);
 }

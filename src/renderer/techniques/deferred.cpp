@@ -24,10 +24,10 @@ Deferred::Deferred(RenderContext::Ptr context)
     _pbrData->BuildRenderTarget();
     _pbrData->BuildShaderResource();
 
-    _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "White Texture");
+    _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "[DEFERRED] White Texture");
     _whiteTexture->BuildShaderResource();
 
-    _blackTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "Black Texture");
+    _blackTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "[DEFERRED] Black Texture");
     _blackTexture->BuildShaderResource();
 
     Uploader uploader = context->CreateUploader();
@@ -50,12 +50,12 @@ Deferred::Deferred(RenderContext::Ptr context)
 
     _context->FlushUploader(uploader);
 
-    _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, false, "Deferred Output");
+    _outputImage = context->CreateTexture(width, height, TextureFormat::RGBA16Unorm, TextureUsage::RenderTarget, false, "[DEFERRED] Deferred Output");
     _outputImage->BuildRenderTarget();
     _outputImage->BuildShaderResource();
     _outputImage->BuildStorage();
 
-    _depthBuffer = context->CreateTexture(width, height, TextureFormat::R32Typeless, TextureUsage::DepthTarget, false, "Deferred Depth Buffer");
+    _depthBuffer = context->CreateTexture(width, height, TextureFormat::R32Typeless, TextureUsage::DepthTarget, false, "[DEFERRED] Deferred Depth Buffer");
     _depthBuffer->BuildDepthTarget(TextureFormat::R32Depth);
     _depthBuffer->BuildShaderResource(TextureFormat::R32Float);
 
@@ -70,27 +70,34 @@ Deferred::Deferred(RenderContext::Ptr context)
         _gbufferPipeline.Specs.Cull = CullMode::Front;
         _gbufferPipeline.Specs.Fill = FillMode::Solid;
 
+        _gbufferPipeline.SignatureInfo = {
+            { RootSignatureEntry::PushConstants },
+            (sizeof(glm::mat4) * 2) + (sizeof(uint32_t) * 8)
+        };
+        _gbufferPipeline.ReflectRootSignature(false);
         _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferVert.hlsl", "Main", ShaderType::Vertex);
         _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
         _gbufferPipeline.Build(context);
     }
     
     {
+        _lightingPipeline.SignatureInfo = {
+            { RootSignatureEntry::PushConstants },
+            (sizeof(uint32_t) * 14)
+        };
+        _lightingPipeline.ReflectRootSignature(false);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
         _lightingPipeline.Build(context);
     }
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        _sceneBufferGPass[i] = context->CreateBuffer(512, 0, BufferType::Constant, false, "Scene Buffer CBV");
-        _sceneBufferGPass[i]->BuildConstantBuffer();
-
-        _sceneBufferLight[i] = context->CreateBuffer(1024, 0, BufferType::Constant, false, "Scene Buffer CBV");
+        _sceneBufferLight[i] = context->CreateBuffer(1024, 0, BufferType::Constant, false, "[DEFERRED] Scene Buffer CBV");
         _sceneBufferLight[i]->BuildConstantBuffer();
     
-        _lightBuffer[i] = context->CreateBuffer(24832, 0, BufferType::Constant, false, "Light Buffer CBV");
+        _lightBuffer[i] = context->CreateBuffer(24832, 0, BufferType::Constant, false, "[DEFERRED] Light Buffer CBV");
         _lightBuffer[i]->BuildConstantBuffer();
 
-        _modeBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Mode Buffer CBV");
+        _modeBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "[DEFERRED] Mode Buffer CBV");
         _modeBuffer[i]->BuildConstantBuffer();
     }
 
@@ -114,30 +121,6 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
     glm::mat4 depthProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 0.05f, 50.0f);
     glm::mat4 depthView = glm::lookAt(scene.Lights.SunTransform.Position, scene.Lights.SunTransform.Position - scene.Lights.SunTransform.GetFrontVector(), glm::vec3(0.0f, 1.0f, 0.0f));
 
-    struct Data {
-        glm::mat4 CameraMatrix;
-    };
-    Data data;
-    if (!_visualizeShadow) {
-        data.CameraMatrix = scene.Camera.Projection() * scene.Camera.View();
-    } else {
-        data.CameraMatrix = depthProjection * depthView;
-    }
-
-    void *pData;
-    _sceneBufferGPass[frameIndex]->Map(0, 0, &pData);
-    memcpy(pData, &data, sizeof(Data));
-    _sceneBufferGPass[frameIndex]->Unmap(0, 0);
-
-    _lightBuffer[frameIndex]->Map(0, 0, &pData);
-    memcpy(pData, &scene.Lights.GetGPUData(), sizeof(LightSettings::GPUData));
-    _lightBuffer[frameIndex]->Unmap(0, 0);
-
-    glm::ivec4 mode(_mode, _ibl, 0, 0);
-    _modeBuffer[frameIndex]->Map(0, 0, &pData);
-    memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
-    _modeBuffer[frameIndex]->Unmap(0, 0);
-
     commandBuffer->BeginEvent("GBuffer");
     commandBuffer->ImageBarrier(_normals, TextureLayout::RenderTarget);
     commandBuffer->ImageBarrier(_albedoEmission, TextureLayout::RenderTarget);
@@ -151,8 +134,6 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
         commandBuffer->SetTopology(Topology::TriangleList);
         commandBuffer->BindRenderTargets({ _normals, _albedoEmission, _pbrData }, _depthBuffer);
         commandBuffer->BindGraphicsPipeline(_gbufferPipeline.GraphicsPipeline);
-        commandBuffer->BindGraphicsConstantBuffer(_sceneBufferGPass[frameIndex], 0);
-        commandBuffer->BindGraphicsSampler(_sampler, 7);
 
         for (auto model : scene.Models) {
             for (auto primitive : model.Primitives) {
@@ -164,27 +145,35 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _blackTexture;
                 Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
-                struct ModelData {
-                    glm::mat4 Transform;
-                    glm::vec4 FlatColor;
+                struct Data {
+                    glm::mat4 CameraMatrix;
+                    glm::mat4 ModelMatrix;
+                
+                    uint32_t AlbedoTexture;
+                    uint32_t NormalTexture; 
+                    uint32_t PBRTexture;
+                    uint32_t EmissiveTexture;
+                    uint32_t AOTexture;
+                    uint32_t Sampler;
+                    glm::ivec2 _Pad0;
                 };
-                ModelData modelData = {
-                    primitive.Transform,
-                    glm::vec4(material.FlatColor, 1.0f)
-                };
-
-                primitive.ModelBuffer[frameIndex]->Map(0, 0, &pData);
-                memcpy(pData, &modelData, sizeof(ModelData));
-                primitive.ModelBuffer[frameIndex]->Unmap(0, 0);
+                Data data;
+                if (!_visualizeShadow) {
+                    data.CameraMatrix = scene.Camera.Projection() * scene.Camera.View();
+                } else {
+                    data.CameraMatrix = depthProjection * depthView;
+                }
+                data.ModelMatrix = primitive.Transform;
+                data.AlbedoTexture = albedo->SRV();
+                data.NormalTexture = normal->SRV();
+                data.PBRTexture = pbr->SRV();
+                data.EmissiveTexture = emissive->SRV();
+                data.AOTexture = ao->SRV();
+                data.Sampler = _sampler->BindlesssSampler();
 
                 commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
                 commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
-                commandBuffer->BindGraphicsConstantBuffer(primitive.ModelBuffer[frameIndex], 1);
-                commandBuffer->BindGraphicsShaderResource(albedo, 2);
-                commandBuffer->BindGraphicsShaderResource(normal, 3);
-                commandBuffer->BindGraphicsShaderResource(pbr, 4);
-                commandBuffer->BindGraphicsShaderResource(emissive, 5);
-                commandBuffer->BindGraphicsShaderResource(ao, 6);
+                commandBuffer->PushConstantsGraphics(&data, sizeof(data), 0);
                 commandBuffer->DrawIndexed(primitive.IndexCount);
             }
         }
@@ -216,32 +205,58 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
     data.CameraPosition = glm::vec4(scene.Camera.GetPosition(), 1.0f);
 
     void *pData;
-    _sceneBufferGPass[frameIndex]->Map(0, 0, &pData);
+    _sceneBufferLight[frameIndex]->Map(0, 0, &pData);
     memcpy(pData, &data, sizeof(Data));
-    _sceneBufferGPass[frameIndex]->Unmap(0, 0);
+    _sceneBufferLight[frameIndex]->Unmap(0, 0);
+
+    _lightBuffer[frameIndex]->Map(0, 0, &pData);
+    memcpy(pData, &scene.Lights.GetGPUData(), sizeof(LightSettings::GPUData));
+    _lightBuffer[frameIndex]->Unmap(0, 0);
+
+    glm::ivec4 mode(_mode, _ibl, 0, 0);
+    _modeBuffer[frameIndex]->Map(0, 0, &pData);
+    memcpy(pData, glm::value_ptr(mode), sizeof(glm::ivec4));
+    _modeBuffer[frameIndex]->Unmap(0, 0);
 
     commandBuffer->BeginEvent("Deferred Lighting");
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
     if (_draw) {
+        struct Constants {
+            uint32_t DepthBuffer;
+            uint32_t Normals;
+            uint32_t AlbedoEmissive;
+            uint32_t PbrAO;
+            uint32_t Irradiance;
+            uint32_t Prefilter;
+            uint32_t BRDF;
+            uint32_t ShadowMap;
+            uint32_t Sampler;
+            uint32_t ShadowSampler;
+            uint32_t SceneBuffer;
+            uint32_t LightBuffer;
+            uint32_t OutputData;
+            uint32_t HDRBuffer;
+        };
+        Constants constants = {
+            _depthBuffer->SRV(),
+            _normals->SRV(),
+            _albedoEmission->SRV(),
+            _pbrData->SRV(),
+            _map.IrradianceMap->SRV(),
+            _map.PrefilterMap->SRV(),
+            _map.BRDF->SRV(),
+            _shadowMap->SRV(),
+            _sampler->BindlesssSampler(),
+            _shadowSampler->BindlesssSampler(),
+            _sceneBufferLight[frameIndex]->CBV(),
+            _lightBuffer[frameIndex]->CBV(),
+            _modeBuffer[frameIndex]->CBV(),
+            _outputImage->SRV()
+        };
+
         commandBuffer->SetViewport(0, 0, width, height);
-
         commandBuffer->BindComputePipeline(_lightingPipeline.ComputePipeline);
-
-        commandBuffer->BindComputeShaderResource(_depthBuffer, 0);
-        commandBuffer->BindComputeShaderResource(_normals, 1);
-        commandBuffer->BindComputeShaderResource(_albedoEmission, 2);
-        commandBuffer->BindComputeShaderResource(_pbrData, 3);
-        commandBuffer->BindComputeCubeMapShaderResource(_map.IrradianceMap, 4);
-        commandBuffer->BindComputeCubeMapShaderResource(_map.PrefilterMap, 5);
-        commandBuffer->BindComputeShaderResource(_map.BRDF, 6);
-        commandBuffer->BindComputeShaderResource(_shadowMap, 7);
-        commandBuffer->BindComputeSampler(_sampler, 8),
-        commandBuffer->BindComputeSampler(_shadowSampler, 9);
-        commandBuffer->BindComputeConstantBuffer(_sceneBufferGPass[frameIndex], 10);
-        commandBuffer->BindComputeConstantBuffer(_lightBuffer[frameIndex], 11);
-        commandBuffer->BindComputeConstantBuffer(_modeBuffer[frameIndex], 12);
-        commandBuffer->BindComputeStorageTexture(_outputImage, 13);
-        
+        commandBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
         commandBuffer->Dispatch(width / 8, height / 8, 1);
     }
     commandBuffer->EndEvent();

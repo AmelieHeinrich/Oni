@@ -12,15 +12,16 @@
 
 struct LuminanceHistogramData
 {
+    uint HDRTexture;
+    uint LuminanceHistogram;
+
     uint inputWidth;
     uint inputHeight;
     float minLogLuminance;
     float oneOverLogLuminanceRange;
 };
 
-Texture2D HDRTexture : register(t0);
-RWByteAddressBuffer LuminanceHistogram : register(u1);
-ConstantBuffer<LuminanceHistogramData> Parameters : register(b2);
+ConstantBuffer<LuminanceHistogramData> Parameters : register(b0);
 
 groupshared uint HistogramShared[NUM_HISTOGRAM_BINS];
 
@@ -39,6 +40,9 @@ uint HDRToHistogramBin(float3 hdrColor)
 [numthreads(HISTOGRAM_THREADS_PER_DIMENSION, HISTOGRAM_THREADS_PER_DIMENSION, 1)]
 void Main(uint groupIndex : SV_GroupIndex, uint3 threadId : SV_DispatchThreadID)
 {
+    Texture2D HDRTexture = ResourceDescriptorHeap[Parameters.HDRTexture];
+    RWByteAddressBuffer LuminanceHistogram = ResourceDescriptorHeap[Parameters.LuminanceHistogram];
+
     HistogramShared[groupIndex] = 0;
     
     GroupMemoryBarrierWithGroupSync();

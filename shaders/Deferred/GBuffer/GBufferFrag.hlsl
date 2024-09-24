@@ -18,16 +18,27 @@ struct FragmentOut
     float4 PbrAO : SV_TARGET2;
 };
 
-Texture2D AlbedoTexture : register(t2);
-Texture2D NormalTexture : register(t3);
-Texture2D PBRTexture : register(t4);
-Texture2D EmissiveTexture : register(t5);
-Texture2D AOTexture : register(t6);
+struct SceneData
+{
+    column_major float4x4 CameraMatrix;
+    column_major float4x4 Transform;
 
-SamplerState Sampler : register(s7);
+    uint AlbedoTexture;
+    uint NormalTexture; 
+    uint PBRTexture;
+    uint EmissiveTexture;
+    uint AOTexture;
+    uint Sampler;
+    uint2 _Pad0;
+};
+
+ConstantBuffer<SceneData> Settings : register(b0);
 
 float3 GetNormalFromMap(FragmentIn Input)
 {
+    Texture2D NormalTexture = ResourceDescriptorHeap[Settings.NormalTexture];
+    SamplerState Sampler = SamplerDescriptorHeap[Settings.Sampler];
+
     float3 hasNormalTexture = NormalTexture.Sample(Sampler, float2(0.0, 0.0)).rgb;
     if (hasNormalTexture.r == 1.0 && hasNormalTexture.g == 1.0 && hasNormalTexture.b == 1.0) {
         return normalize(Input.Normals);
@@ -50,6 +61,13 @@ float3 GetNormalFromMap(FragmentIn Input)
 
 FragmentOut Main(FragmentIn Input)
 {
+    Texture2D AlbedoTexture = ResourceDescriptorHeap[Settings.AlbedoTexture];
+    Texture2D NormalTexture = ResourceDescriptorHeap[Settings.NormalTexture];
+    Texture2D PBRTexture = ResourceDescriptorHeap[Settings.PBRTexture];
+    Texture2D EmissiveTexture = ResourceDescriptorHeap[Settings.EmissiveTexture];
+    Texture2D AOTexture = ResourceDescriptorHeap[Settings.AOTexture];
+    SamplerState Sampler = SamplerDescriptorHeap[Settings.Sampler];
+
     float4 albedo = AlbedoTexture.Sample(Sampler, Input.TexCoords);
     float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords);
     float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords);

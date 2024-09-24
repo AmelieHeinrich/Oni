@@ -97,7 +97,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, false, "HDR Texture");
     hdrTexture->BuildShaderResource();
 
-    _cubeBuffer = context->CreateBuffer(sizeof(CubeVertices), sizeof(glm::vec3), BufferType::Vertex, false, "Cube Buffer");
+    _cubeBuffer = context->CreateBuffer(sizeof(CubeVertices), sizeof(glm::vec3), BufferType::Vertex, false, "[ENVMAP] Cube Buffer");
 
     Uploader uploader = context->CreateUploader();
     uploader.CopyHostToDeviceTexture(image, hdrTexture);
@@ -105,10 +105,10 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     context->FlushUploader(uploader);
 
     // Create textures
-    _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "Environment Map");
-    _map.IrradianceMap = context->CreateCubeMap(128, 128, TextureFormat::RGBA16Unorm, "Irradiance Map");
-    _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "Prefilter Map");
-    _map.BRDF = context->CreateTexture(512, 512, TextureFormat::RG16Float, TextureUsage::Storage, false, "BRDF");
+    _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "[ENVMAP] Environment Map");
+    _map.IrradianceMap = context->CreateCubeMap(128, 128, TextureFormat::RGBA16Unorm, "[ENVMAP] Irradiance Map");
+    _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "[ENVMAP] Prefilter Map");
+    _map.BRDF = context->CreateTexture(512, 512, TextureFormat::RG16Float, TextureUsage::Storage, false, "[ENVMAP] BRDF");
     _map.BRDF->BuildShaderResource();
     _map.BRDF->BuildStorage();
 

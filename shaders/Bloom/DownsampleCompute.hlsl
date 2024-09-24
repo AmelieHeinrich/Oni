@@ -13,10 +13,14 @@
 
 #define KARIS_AVERAGE 0
 
-Texture2D InputHDR : register(t0);
-SamplerState InputSampler : register(s1);
+struct Constants
+{
+	uint InputHDR;
+	uint InputSampler;
+	uint Downsampled;
+};
 
-RWTexture2D<float3> Downsampled : register(u2);
+ConstantBuffer<Constants> Settings : register(b0);
 
 float3 ComputePartialAverage(float3 v0, float3 v1, float3 v2, float3 v3)
 {
@@ -33,6 +37,10 @@ float3 ComputePartialAverage(float3 v0, float3 v1, float3 v2, float3 v3)
 
 float3 Downsample(uint3 ThreadID)
 {
+	Texture2D InputHDR = ResourceDescriptorHeap[Settings.InputHDR];
+	SamplerState InputSampler = SamplerDescriptorHeap[Settings.InputSampler];
+	RWTexture2D<float3> Downsampled = SamplerDescriptorHeap[Settings.Downsampled];
+
     int width, height;
     Downsampled.GetDimensions(width, height);
 
@@ -66,5 +74,9 @@ float3 Downsample(uint3 ThreadID)
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
+	Texture2D InputHDR = ResourceDescriptorHeap[Settings.InputHDR];
+	SamplerState InputSampler = SamplerDescriptorHeap[Settings.InputSampler];
+	RWTexture2D<float3> Downsampled = SamplerDescriptorHeap[Settings.Downsampled];
+
     Downsampled[ThreadID.xy] = Downsample(ThreadID);
 }

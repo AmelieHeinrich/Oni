@@ -35,15 +35,18 @@ DebugRenderer::DebugRenderer(RenderContext::Ptr context, Texture::Ptr output)
     LineShader.Specs.FormatCount = 1;
     LineShader.Specs.Line = true;
 
+    LineShader.SignatureInfo = {
+        { RootSignatureEntry::PushConstants },
+        sizeof(glm::mat4)
+    };
+    LineShader.ReflectRootSignature(false);
     LineShader.AddShaderWatch("shaders/DebugRenderer/LineRendererVert.hlsl", "Main", ShaderType::Vertex);
     LineShader.AddShaderWatch("shaders/DebugRenderer/LineRendererFrag.hlsl", "Main", ShaderType::Fragment);
     LineShader.Build(context);
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        LineTransferBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), 0, BufferType::Constant, false, "Line Transfer Buffer");
-        LineVertexBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), sizeof(LineVertex), BufferType::Vertex, false, "Line Vertex Buffer");
-        LineUniformBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Line Uniform Buffer");
-        LineUniformBuffer[i]->BuildConstantBuffer();
+        LineTransferBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), 0, BufferType::Constant, false, "[DEBUG] Line Transfer Buffer");
+        LineVertexBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), sizeof(LineVertex), BufferType::Vertex, false, "[DEBUG] Line Vertex Buffer");
     }
 }
 
@@ -98,10 +101,6 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             glm::mat4 mvp = scene.Camera.Projection() * scene.Camera.View();
 
             void *pData;
-            LineUniformBuffer[frameIndex]->Map(0, 0, &pData);
-            memcpy(pData, glm::value_ptr(mvp), sizeof(glm::mat4));
-            LineUniformBuffer[frameIndex]->Unmap(0, 0);
-
             LineTransferBuffer[frameIndex]->Map(0, 0, &pData);
             memcpy(pData, vertices.data(), sizeof(LineVertex) * vertices.size());
             LineTransferBuffer[frameIndex]->Unmap(0, 0);
@@ -114,7 +113,7 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             cmdBuffer->SetTopology(Topology::LineList);
             cmdBuffer->BindRenderTargets({ Output }, nullptr);
             cmdBuffer->BindGraphicsPipeline(LineShader.GraphicsPipeline);
-            cmdBuffer->BindGraphicsConstantBuffer(LineUniformBuffer[frameIndex], 0);
+            cmdBuffer->PushConstantsGraphics(glm::value_ptr(mvp), sizeof(glm::mat4), 0);
             cmdBuffer->BindVertexBuffer(LineVertexBuffer[frameIndex]);
             cmdBuffer->Draw(vertices.size());
         }

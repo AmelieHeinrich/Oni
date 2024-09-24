@@ -51,7 +51,6 @@ private:
     HotReloadablePipeline _gbufferPipeline;
     HotReloadablePipeline _lightingPipeline;
 
-    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _sceneBufferGPass;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _sceneBufferLight;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _lightBuffer;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _modeBuffer;

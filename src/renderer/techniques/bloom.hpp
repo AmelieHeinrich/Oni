@@ -38,10 +38,7 @@ private:
         glm::vec2 Size;
         glm::ivec2 IntSize;
         Texture::Ptr RenderTarget;
-        std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> DownsampleParameters;
     };
-    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> UpsampleParameters;
-    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> CompositeParameters;
 
     RenderContext::Ptr _context;
     float _filterRadius = 0.005f;

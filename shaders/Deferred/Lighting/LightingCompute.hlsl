@@ -42,24 +42,28 @@ struct FragmentData
     float4 LightPos;
 };
 
-Texture2D DepthBuffer : register(t0);
-Texture2D Normals : register(t1);
-Texture2D AlbedoEmissive : register(t2);
-Texture2D PbrAO : register(t3);
+struct Constants
+{
+    uint DepthBuffer;
+    uint Normals;
+    uint AlbedoEmissive;
+    uint PbrAO;
 
-TextureCube Irradiance : register(t4);
-TextureCube Prefilter : register(t5);
-Texture2D BRDF : register(t6);
-Texture2D ShadowMap : register(t7);
+    uint Irradiance;
+    uint Prefilter;
+    uint BRDF;
+    uint ShadowMap;
 
-SamplerState Sampler : register(s8);
-SamplerComparisonState ShadowSampler : register(s9);
+    uint Sampler;
+    uint ShadowSampler;
 
-ConstantBuffer<SceneData> SceneBuffer : register(b10);
-ConstantBuffer<LightData> LightBuffer : register(b11);
-ConstantBuffer<OutputBuffer> OutputData : register(b12);
+    uint SceneBuffer;
+    uint LightBuffer;
+    uint OutputData;
+    uint HDRBuffer;
+};
 
-RWTexture2D<float4> HDRBuffer : register(u13);
+ConstantBuffer<Constants> Settings : register(b0);
 
 float3 CalcPointLight(FragmentData Input, PointLight light, float3 V, float3 N, float3 F0, float roughness, float metallic, float4 albedo)
 {
@@ -113,7 +117,7 @@ float3 CalcDirectionalLight(FragmentData Input, DirectionalLight light, float3 V
     return (kD * albedo.xyz / PI + specular) * radiance;
 }
 
-float ShadowCalculation(FragmentData Input)
+float ShadowCalculation(FragmentData Input, Texture2D ShadowMap, SamplerComparisonState ShadowSampler, LightData LightBuffer)
 {
     float3 projectionCoords = Input.LightPos.xyz / Input.LightPos.w;
     projectionCoords.xy = projectionCoords.xy * 0.5 + 0.5;
@@ -162,6 +166,24 @@ static const float MAX_REFLECTION_LOD = 4.0;
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID) 
 {
+    // Reconstruct all textures
+    Texture2D DepthBuffer = ResourceDescriptorHeap[Settings.DepthBuffer];
+    Texture2D Normals = ResourceDescriptorHeap[Settings.Normals];
+    Texture2D AlbedoEmissive = ResourceDescriptorHeap[Settings.AlbedoEmissive];
+    Texture2D PbrAO = ResourceDescriptorHeap[Settings.PbrAO];
+    TextureCube Irradiance = ResourceDescriptorHeap[Settings.Irradiance];
+    TextureCube Prefilter = ResourceDescriptorHeap[Settings.Prefilter];
+    Texture2D BRDF = ResourceDescriptorHeap[Settings.BRDF];
+    Texture2D ShadowMap = ResourceDescriptorHeap[Settings.ShadowMap];
+    SamplerState Sampler = SamplerDescriptorHeap[Settings.Sampler];
+    SamplerComparisonState ShadowSampler = SamplerDescriptorHeap[Settings.ShadowSampler];
+    ConstantBuffer<SceneData> SceneBuffer = ResourceDescriptorHeap[Settings.SceneBuffer];
+    ConstantBuffer<LightData> LightBuffer = ResourceDescriptorHeap[Settings.LightBuffer];
+    ConstantBuffer<OutputBuffer> OutputData = ResourceDescriptorHeap[Settings.OutputData];
+    RWTexture2D<float4> HDRBuffer = ResourceDescriptorHeap[Settings.HDRBuffer];
+
+    // Start
+
     int width, height;
     HDRBuffer.GetDimensions(width, height);
 
@@ -194,7 +216,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     float ao = PBRAO.b;
 
     // Shadow
-    float shadow = ShadowCalculation(data);
+    float shadow = ShadowCalculation(data, ShadowMap, ShadowSampler, LightBuffer);
 
     // Do light calcs!
 

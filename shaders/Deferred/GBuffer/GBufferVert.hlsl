@@ -21,16 +21,17 @@ struct VertexOut
 struct SceneData
 {
     column_major float4x4 CameraMatrix;
-};
-
-struct ModelData
-{
     column_major float4x4 Transform;
-    float4 FlatColor;
+
+    uint AlbedoTexture;
+    uint NormalTexture; 
+    uint PBRTexture;
+    uint EmissiveTexture;
+    uint AOTexture;
+    uint Sampler;
 };
 
-ConstantBuffer<SceneData> SceneBuffer : register(b0);
-ConstantBuffer<ModelData> ModelBuffer : register(b1);
+ConstantBuffer<SceneData> Settings : register(b0);
 
 VertexOut Main(VertexIn Input)
 {
@@ -38,9 +39,9 @@ VertexOut Main(VertexIn Input)
 
     float4 pos = float4(Input.Position, 1.0);
     
-    Output.Position = mul(mul(SceneBuffer.CameraMatrix, ModelBuffer.Transform), pos);
+    Output.Position = mul(mul(Settings.CameraMatrix, Settings.Transform), pos);
     Output.TexCoords = Input.TexCoords;
-    Output.Normals = normalize(float4(mul(transpose(ModelBuffer.Transform), float4(Input.Normals, 1.0))).xyz);
+    Output.Normals = normalize(float4(mul(transpose(Settings.Transform), float4(Input.Normals, 1.0))).xyz);
     
     return Output;
 }

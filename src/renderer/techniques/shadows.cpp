@@ -33,7 +33,7 @@ Shadows::Shadows(RenderContext::Ptr context, ShadowMapResolution resolution)
     _shadowPipeline.AddShaderWatch("shaders/Shadows/ShadowPixel.hlsl", "Main", ShaderType::Fragment);
     _shadowPipeline.Build(context);
 
-    _shadowMap = context->CreateTexture(uint32_t(resolution), uint32_t(resolution), TextureFormat::R32Typeless, TextureUsage::DepthTarget, false, "Shadow Map");
+    _shadowMap = context->CreateTexture(uint32_t(resolution), uint32_t(resolution), TextureFormat::R32Typeless, TextureUsage::DepthTarget, false, "[SHADOW] Shadow Map");
     _shadowMap->BuildDepthTarget(TextureFormat::R32Depth);
     _shadowMap->BuildShaderResource(TextureFormat::R32Float);
 }

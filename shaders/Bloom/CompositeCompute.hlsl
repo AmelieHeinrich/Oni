@@ -8,19 +8,21 @@
 
 struct Parameters
 {
+    uint Input;
+    uint InputSampler;
+    uint OutputHDR;
     float BloomStrength;
-    float3 _Pad0;
 };
 
-Texture2D<float3> Input : register(t0);
-SamplerState InputSampler : register(s1);
-
-RWTexture2D<float4> OutputHDR : register(u2);
-ConstantBuffer<Parameters> Settings : register(b3);
+ConstantBuffer<Parameters> Settings : register(b0);
 
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
+    Texture2D<float3> Input = ResourceDescriptorHeap[Settings.Input];
+    SamplerState InputSampler = SamplerDescriptorHeap[Settings.InputSampler];
+    RWTexture2D<float4> OutputHDR = ResourceDescriptorHeap[Settings.OutputHDR];
+
     uint width, height;
     OutputHDR.GetDimensions(width, height);
 

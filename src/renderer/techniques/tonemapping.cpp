@@ -14,7 +14,7 @@ Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
 
-    _outputLDR = _renderContext->CreateTexture(width, height, TextureFormat::RGBA8, TextureUsage::RenderTarget, false, "Tonemapping LDR Output");
+    _outputLDR = _renderContext->CreateTexture(width, height, TextureFormat::RGBA8, TextureUsage::RenderTarget, false, "[TONEMAPPING] Tonemapping LDR Output");
     _outputLDR->BuildShaderResource();
     _outputLDR->BuildStorage();
     _outputLDR->BuildRenderTarget();
