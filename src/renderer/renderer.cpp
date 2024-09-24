@@ -22,6 +22,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
     _deferred = std::make_shared<Deferred>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _deferred->GetOutput(), _deferred->GetDepthBuffer());
+    _chromaticAberration = std::make_shared<ChromaticAberration>(context, _deferred->GetOutput());
     _bloom = std::make_shared<Bloom>(context, _deferred->GetOutput());
     _colorCorrection = std::make_shared<ColorCorrection>(context, _deferred->GetOutput());
     _autoExposure = std::make_shared<AutoExposure>(context, _deferred->GetOutput());
@@ -54,6 +55,9 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         });
         _stats.PushFrameTime("Environment Map", [this, &scene, width, height]() {
             _envMapForward->Render(scene, width, height);
+        });
+        _stats.PushFrameTime("Chromatic Aberration", [this, &scene, width, height]() {
+            _chromaticAberration->Render(scene, width, height);
         });
         _stats.PushFrameTime("Bloom", [this, &scene, width, height]() {
             _bloom->Render(scene, width, height);
@@ -96,6 +100,7 @@ void Renderer::Resize(uint32_t width, uint32_t height)
     _shadows->Resize(width, height);
     _deferred->Resize(width, height);
     _envMapForward->Resize(width, height, _deferred->GetOutput(), _deferred->GetDepthBuffer());
+    _chromaticAberration->Resize(width, height, _deferred->GetOutput());
     _bloom->Resize(width, height, _deferred->GetOutput());
     _colorCorrection->Resize(width, height, _deferred->GetOutput());
     _autoExposure->Resize(width, height, _deferred->GetOutput());
@@ -110,6 +115,7 @@ void Renderer::OnUI()
     _shadows->OnUI();
     _deferred->OnUI();
     _envMapForward->OnUI();
+    _chromaticAberration->OnUI();
     _bloom->OnUI();
     _colorCorrection->OnUI();
     _autoExposure->OnUI();
@@ -169,6 +175,7 @@ void Renderer::Reconstruct()
     _shadows->Reconstruct();
     _deferred->Reconstruct();
     _envMapForward->Reconstruct();
+    _chromaticAberration->Reconstruct();
     _bloom->Reconstruct();
     _colorCorrection->Reconstruct();
     _autoExposure->Reconstruct();
