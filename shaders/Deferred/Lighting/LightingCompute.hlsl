@@ -270,7 +270,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = albedo;
             break;
         case MODE_NORMAL:
-            final = float4(normals.rgb, 1.0);
+            final = float4(normals.rgb * 0.5 + 0.5, 1.0);
             break;
         case MODE_MR:
             final = PBRAO;

@@ -64,9 +64,9 @@ App::App()
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
     Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
+    sponza.Load(_renderContext, "assets/models/suntemple/SunTemple.gltf");
 
-    scene.Models.push_back(platform);
+    //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
     scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
 
