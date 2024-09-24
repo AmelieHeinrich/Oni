@@ -18,7 +18,7 @@
 
 enum class RootSignatureEntry
 {
-    PushConstants,
+    PushConstants = 999,
     CBV = D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
     SRV = D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
     UAV = D3D12_DESCRIPTOR_RANGE_TYPE_UAV,

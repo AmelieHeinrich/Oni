@@ -307,12 +307,12 @@ void CommandBuffer::BindComputeSampler(Sampler::Ptr sampler, int index)
 
 void CommandBuffer::PushConstantsGraphics(const void *data, uint32_t size, int index)
 {
-    _commandList->SetGraphicsRoot32BitConstants(index, size / 8, data, 0);
+    _commandList->SetGraphicsRoot32BitConstants(index, size / 4, data, 0);
 }
 
 void CommandBuffer::PushConstantsCompute(const void *data, uint32_t size, int index)
 {
-    _commandList->SetComputeRoot32BitConstants(index, size / 8, data, 0);
+    _commandList->SetComputeRoot32BitConstants(index, size / 4, data, 0);
 }
 
 void CommandBuffer::Draw(int vertexCount)

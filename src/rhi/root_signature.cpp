@@ -54,7 +54,7 @@ RootSignature::RootSignature(Device::Ptr device, const RootSignatureBuildInfo& b
             parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
             parameter.Constants.ShaderRegister = i;
             parameter.Constants.RegisterSpace = 0;
-            parameter.Constants.Num32BitValues = buildInfo.PushConstantSize / 8;
+            parameter.Constants.Num32BitValues = buildInfo.PushConstantSize / 4;
         } else {
             parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
             parameter.DescriptorTable.NumDescriptorRanges = 1;

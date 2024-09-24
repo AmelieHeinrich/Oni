@@ -19,8 +19,8 @@ ComputePipeline::ComputePipeline(Device::Ptr device, ShaderBytecode& bytecode, R
     desc.CS.pShaderBytecode = bytecode.bytecode.data();
     desc.CS.BytecodeLength = bytecode.bytecode.size() * sizeof(uint32_t);
     if (rootSignature) {
-        desc.pRootSignature = rootSignature->GetSignature();
         _signature = rootSignature;
+        desc.pRootSignature = rootSignature->GetSignature();
     } else {
         _signature = std::make_shared<RootSignature>(device);
         _signature->ReflectFromComputeShader(bytecode);

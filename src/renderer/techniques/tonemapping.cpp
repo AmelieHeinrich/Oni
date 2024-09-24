@@ -19,11 +19,16 @@ Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
     _outputLDR->BuildStorage();
     _outputLDR->BuildRenderTarget();
 
+    _computePipeline.SignatureInfo.Entries = {
+        RootSignatureEntry::SRV,
+        RootSignatureEntry::UAV,
+        RootSignatureEntry::PushConstants
+    };
+    _computePipeline.SignatureInfo.PushConstantSize = sizeof(glm::ivec4);
+
+    _computePipeline.ReflectRootSignature(false);
     _computePipeline.AddShaderWatch("shaders/Tonemapping/TonemappingCompute.hlsl", "Main", ShaderType::Compute);
     _computePipeline.Build(context);
-
-    _tonemapperSettings = _renderContext->CreateBuffer(256, 0, BufferType::Constant, false, "Tonemapper Settings CBV");
-    _tonemapperSettings->BuildConstantBuffer();
 }
 
 Tonemapping::~Tonemapping()
@@ -37,18 +42,13 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
     OPTICK_GPU_EVENT("Tonemapping PostFX");
 
-    void *pData;
-    _tonemapperSettings->Map(0, 0, &pData);
-    memcpy(pData, glm::value_ptr(glm::ivec4(_tonemapper, 0, 0, 0)), sizeof(glm::ivec4));
-    _tonemapperSettings->Unmap(0, 0);
-
     cmdBuf->BeginEvent("Tonemapping Pass");
     cmdBuf->ImageBarrier(_inputHDR, TextureLayout::ShaderResource);
     cmdBuf->ImageBarrier(_outputLDR, TextureLayout::Storage);
     cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
     cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
     cmdBuf->BindComputeStorageTexture(_outputLDR, 1, 0);
-    cmdBuf->BindComputeConstantBuffer(_tonemapperSettings, 2);
+    cmdBuf->PushConstantsCompute(glm::value_ptr(glm::ivec4(_tonemapper, 0, 0, 0)), sizeof(glm::ivec4), 2);
     cmdBuf->Dispatch(width / 8, height / 8, 1);    
     cmdBuf->EndEvent();
 }

@@ -26,7 +26,6 @@ private:
     RenderContext::Ptr _renderContext;
 
     HotReloadablePipeline _computePipeline;
-    Buffer::Ptr _tonemapperSettings;
 
     Texture::Ptr _inputHDR;
     Texture::Ptr _outputLDR;
