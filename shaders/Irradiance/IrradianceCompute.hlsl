@@ -5,9 +5,14 @@
 
 #include "shaders/Common/Math.hlsl"
 
-TextureCube EnvironmentMap : register(t0);
-RWTexture2DArray<half4> IrradianceMap : register(u1);
-SamplerState CubeSampler : register(s2);
+struct Constants
+{
+    uint EnvironmentMap;
+    uint IrradianceMap;
+    uint CubeSampler;
+};
+
+ConstantBuffer<Constants> Settings : register(b0);
 
 static const float3 ViewPos = float3(0, 0, 0);
 
@@ -45,7 +50,12 @@ float3 ToLocalDirection(float2 uv, int face) {
     return (mul(view, float4(UVToQuadPos(uv), 1, 0))).xyz;
 }
 
-float3 calculate_irradiance(float3 local_direction) {
+float3 CalculateIrradiance(float3 local_direction)
+{
+    TextureCube EnvironmentMap = ResourceDescriptorHeap[Settings.EnvironmentMap];
+    RWTexture2DArray<half4> IrradianceMap = ResourceDescriptorHeap[Settings.IrradianceMap];
+    SamplerState CubeSampler = SamplerDescriptorHeap[Settings.CubeSampler];
+
     float3 normal = normalize(local_direction);
     float3 irradiance = float3(0.0, 0.0, 0.0);
 
@@ -73,6 +83,10 @@ float3 calculate_irradiance(float3 local_direction) {
 [numthreads(32, 32, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
+    TextureCube EnvironmentMap = ResourceDescriptorHeap[Settings.EnvironmentMap];
+    RWTexture2DArray<half4> IrradianceMap = ResourceDescriptorHeap[Settings.IrradianceMap];
+    SamplerState CubeSampler = SamplerDescriptorHeap[Settings.CubeSampler];
+
 	int faceWidth, faceHeight, whatever;
 	IrradianceMap.GetDimensions(faceWidth, faceHeight, whatever);
 
@@ -82,6 +96,6 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 	float3 LocalDirection = normalize(ToLocalDirection(UV, ThreadID.z));
 	LocalDirection.y = -LocalDirection.y;
 
-	float4 Color = float4(calculate_irradiance(LocalDirection), 1);
+	float4 Color = float4(CalculateIrradiance(LocalDirection), 1);
 	IrradianceMap[ThreadID] = Color;
 }

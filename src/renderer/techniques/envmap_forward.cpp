@@ -64,12 +64,10 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     ShaderCompiler::CompileShader("shaders/BRDF/BRDFCompute.hlsl", "Main", ShaderType::Compute, brdfBytecode);
 
     // Create pipelines
-    Uploader uploader = context->CreateUploader();
-
-    _envToCube = context->CreateComputePipeline(cubemapBytecode);
-    _irradiance = context->CreateComputePipeline(irradianceBytecode);
-    _prefilter = context->CreateComputePipeline(prefilterBytecode);
-    _brdf = context->CreateComputePipeline(brdfBytecode);
+    _envToCube = context->CreateComputePipeline(cubemapBytecode, _context->CreateDefaultRootSignature(sizeof(glm::ivec3)));
+    _irradiance = context->CreateComputePipeline(irradianceBytecode, _context->CreateDefaultRootSignature(sizeof(glm::ivec3)));
+    _prefilter = context->CreateComputePipeline(prefilterBytecode, _context->CreateDefaultRootSignature(sizeof(glm::vec4)));
+    _brdf = context->CreateComputePipeline(brdfBytecode, _context->CreateDefaultRootSignature(sizeof(uint32_t)));
 
     _cubeRenderer.Specs.Fill = FillMode::Solid;
     _cubeRenderer.Specs.Cull = CullMode::None;
@@ -79,6 +77,12 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _cubeRenderer.Specs.Formats[0] = TextureFormat::RGBA16Unorm;
     _cubeRenderer.Specs.FormatCount = 1;
     
+    _cubeRenderer.SignatureInfo = {
+        { RootSignatureEntry::PushConstants },
+        sizeof(glm::ivec4) + sizeof(glm::mat4)
+    };
+
+    _cubeRenderer.ReflectRootSignature(false);
     _cubeRenderer.AddShaderWatch("shaders/EnvMapForward/EnvMapForwardVert.hlsl", "Main", ShaderType::Vertex);
     _cubeRenderer.AddShaderWatch("shaders/EnvMapForward/EnvMapForwardFrag.hlsl", "Main", ShaderType::Fragment);
     _cubeRenderer.Build(_context);
@@ -93,7 +97,12 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, false, "HDR Texture");
     hdrTexture->BuildShaderResource();
 
+    _cubeBuffer = context->CreateBuffer(sizeof(CubeVertices), sizeof(glm::vec3), BufferType::Vertex, false, "Cube Buffer");
+
+    Uploader uploader = context->CreateUploader();
     uploader.CopyHostToDeviceTexture(image, hdrTexture);
+    uploader.CopyHostToDeviceLocal((void*)CubeVertices, sizeof(CubeVertices), _cubeBuffer);
+    context->FlushUploader(uploader);
 
     // Create textures
     _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "Environment Map");
@@ -103,22 +112,6 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _map.BRDF->BuildShaderResource();
     _map.BRDF->BuildStorage();
 
-    // Create geometry
-    _cubeBuffer = context->CreateBuffer(sizeof(CubeVertices), sizeof(glm::vec3), BufferType::Vertex, false, "Cube Buffer");
-    _cubeCBV = context->CreateBuffer(256, 0, BufferType::Constant, false, "Cube Map CBV");
-    _cubeCBV->BuildConstantBuffer();
-
-    uploader.CopyHostToDeviceLocal((void*)CubeVertices, sizeof(CubeVertices), _cubeBuffer);
-
-    // Run everything
-    context->FlushUploader(uploader);
-
-    std::array<Buffer::Ptr, 5> prefilterBuffers;
-    for (auto& buffer : prefilterBuffers) {
-        buffer = _context->CreateBuffer(256, 0, BufferType::Constant, false, "Prefilter Buffer");
-        buffer->BuildConstantBuffer();
-    }
-
     float startTime = clock();
 
     CommandBuffer::Ptr cmdBuffer = context->CreateCommandBuffer(CommandQueueType::Graphics, false);
@@ -126,42 +119,42 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     // Equi to cubemap
     cmdBuffer->Begin(false);
     cmdBuffer->BindComputePipeline(_envToCube);
-    cmdBuffer->BindComputeShaderResource(hdrTexture, 0, 0);
-    cmdBuffer->BindComputeCubeMapStorage(_map.Environment, 1, 0);
-    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
+    cmdBuffer->PushConstantsCompute(glm::value_ptr(glm::ivec3(hdrTexture->SRV(), _map.Environment->UAV(), _cubeSampler->BindlesssSampler())), sizeof(glm::ivec3), 0);
     cmdBuffer->Dispatch(512 / 32, 512 / 32, 6);
 
     // Irradiance
     cmdBuffer->BindComputePipeline(_irradiance);
-    cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
-    cmdBuffer->BindComputeCubeMapStorage(_map.IrradianceMap, 1, 0);
-    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
+    cmdBuffer->PushConstantsCompute(glm::value_ptr(glm::ivec3(_map.Environment->SRV(), _map.IrradianceMap->UAV(0), _cubeSampler->BindlesssSampler())), sizeof(glm::ivec3), 0);
     cmdBuffer->Dispatch(128 / 32, 128 / 32, 6);
 
     // Prefilter
     cmdBuffer->BindComputePipeline(_prefilter);
-    cmdBuffer->BindComputeCubeMapShaderResource(_map.Environment, 0);
-    cmdBuffer->BindComputeSampler(_cubeSampler, 2);
     for (int i = 0; i < 5; i++) {
         int width = (int)(512.0f * pow(0.5f, i));
         int height = (int)(512.0f * pow(0.5f, i));
         float roughness = (float)i / (float)(5 - 1);
 
-        glm::vec4 roughnessVec(roughness, 0.0f, 0.0f, 0.0f);
+        struct PushConstant {
+            uint32_t EnvMap;
+            uint32_t PrefilterMap;
+            uint32_t Sampler;
+            float Roughness;
+        };
+        PushConstant constants = {
+            _map.Environment->SRV(),
+            _map.PrefilterMap->UAV(i),
+            _cubeSampler->BindlesssSampler(),
+            roughness
+        };
 
-        void *pData;
-        prefilterBuffers[i]->Map(0, 0, &pData);
-        memcpy(pData, glm::value_ptr(roughnessVec), sizeof(glm::vec4));
-        prefilterBuffers[i]->Unmap(0, 0);
-
-        cmdBuffer->BindComputeCubeMapStorage(_map.PrefilterMap, 1, i);
-        cmdBuffer->BindComputeConstantBuffer(prefilterBuffers[i], 3);
+        cmdBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
         cmdBuffer->Dispatch(width / 32, height / 32, 6);
     }
 
     // BRDF
+    uint32_t lut = _map.BRDF->UAV();
     cmdBuffer->BindComputePipeline(_brdf);
-    cmdBuffer->BindComputeStorageTexture(_map.BRDF, 0, 0);
+    cmdBuffer->PushConstantsCompute(&lut, sizeof(uint32_t), 0);
     cmdBuffer->Dispatch(512 / 32, 512 / 32, 1);
     cmdBuffer->ImageBarrier(_map.BRDF, TextureLayout::ShaderResource);
 
@@ -182,26 +175,32 @@ void EnvMapForward::Render(Scene& scene, uint32_t width, uint32_t height)
 {
     glm::mat4 mvp = scene.Camera.Projection() * glm::mat4(glm::mat3(scene.Camera.View())) * glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f));
 
-    void *pData;
-    _cubeCBV->Map(0, 0, &pData);
-    memcpy(pData, glm::value_ptr(mvp), sizeof(glm::mat4));
-    _cubeCBV->Unmap(0, 0);
-
     CommandBuffer::Ptr cmdBuffer = _context->GetCurrentCommandBuffer();
 
     OPTICK_GPU_CONTEXT(cmdBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Cube Map Forward");
 
     if (_drawSkybox) {
+        struct Constants {
+            uint32_t Environment;
+            uint32_t Sampler;
+            glm::vec2 _Pad0;
+            glm::mat4 MVP;
+        };
+        Constants constants = {
+            _map.Environment->SRV(),
+            _cubeSampler->BindlesssSampler(),
+            glm::vec2(0.0f),
+            mvp
+        };
+
         cmdBuffer->BeginEvent("Draw Skybox");
         cmdBuffer->SetViewport(0, 0, width, height);
         cmdBuffer->SetTopology(Topology::TriangleList);
         cmdBuffer->ImageBarrier(_inputColor, TextureLayout::RenderTarget);
         cmdBuffer->BindRenderTargets({ _inputColor }, _inputDepth);
         cmdBuffer->BindGraphicsPipeline(_cubeRenderer.GraphicsPipeline);
-        cmdBuffer->BindGraphicsConstantBuffer(_cubeCBV, 0);
-        cmdBuffer->BindGraphicsCubeMap(_map.Environment, 1);
-        cmdBuffer->BindGraphicsSampler(_cubeSampler, 2);
+        cmdBuffer->PushConstantsGraphics(&constants, sizeof(constants), 0);
         cmdBuffer->BindVertexBuffer(_cubeBuffer);
         cmdBuffer->Draw(36);
         cmdBuffer->EndEvent();

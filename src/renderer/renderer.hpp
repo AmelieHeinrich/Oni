@@ -10,7 +10,6 @@
 #include "core/timer.hpp"
 
 #include "techniques/shadows.hpp"
-#include "techniques/forward.hpp"
 #include "techniques/deferred.hpp"
 #include "techniques/envmap_forward.hpp"
 #include "techniques/bloom.hpp"

@@ -11,11 +11,14 @@
 ColorCorrection::ColorCorrection(RenderContext::Ptr context, Texture::Ptr inputHDR)
     : _renderContext(context), _inputHDR(inputHDR), _computePipeline(PipelineType::Compute)
 {
+    _computePipeline.SignatureInfo.Entries = {
+        RootSignatureEntry::PushConstants
+    };
+    _computePipeline.SignatureInfo.PushConstantSize = sizeof(_settings);
+
+    _computePipeline.ReflectRootSignature(false);
     _computePipeline.AddShaderWatch("shaders/ColorCorrection/ColorCorrectionCompute.hlsl", "Main", ShaderType::Compute);
     _computePipeline.Build(context);
-
-    _correctionParameters = context->CreateBuffer(512, 0, BufferType::Constant, false, "Color Correction Settings CBV");
-    _correctionParameters->BuildConstantBuffer();
 }
 
 ColorCorrection::~ColorCorrection()
@@ -35,16 +38,12 @@ void ColorCorrection::Render(Scene& scene, uint32_t width, uint32_t height)
         splitColor.a = _settings.Balance * 0.01f;
         _settings.Shadows = splitColor;
 
-        void *pData;
-        _correctionParameters->Map(0, 0, &pData);
-        memcpy(pData, &_settings, sizeof(ColorCorrectionSettings));
-        _correctionParameters->Unmap(0, 0);
+        _settings.InputHDR = _inputHDR->UAV();
 
         cmdBuf->BeginEvent("Color Correction Pass");
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
         cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
-        cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
-        cmdBuf->BindComputeConstantBuffer(_correctionParameters, 1);
+        cmdBuf->PushConstantsCompute(&_settings, sizeof(_settings), 0);
         cmdBuf->Dispatch(width / 8, height / 8, 1);
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::RenderTarget);
         cmdBuf->EndEvent();

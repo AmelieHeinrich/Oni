@@ -44,6 +44,9 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - IBL
 - Shadow mapping (directional)
 
+### GPU Driven Rendering
+- Bindless resources via SM6.6
+
 ### Post Processing
 - Color grading
 - Tonemapping
@@ -62,8 +65,8 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 
 ## WIP
 
-- Motion blur
-- Emission mask
+- Bindless
+- Chromatic abberation
 
 ## Screenshots
 

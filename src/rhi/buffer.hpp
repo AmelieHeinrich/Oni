@@ -35,6 +35,12 @@ public:
     void Unmap(int start, int end);
 
     void SetState(D3D12_RESOURCE_STATES eState) { _state = eState; }
+
+    uint32_t CBV() { return _cbv.HeapIndex; }
+    uint32_t UAV() { return _uav.HeapIndex; }
+
+    // TODO: SRVs for StructuredBuffer (used in raytracing and a bunch of other stuff iirc)
+    // uint32_t SRV() { return _cbv.HeapIndex; }
 private:
     friend class CommandBuffer;
 

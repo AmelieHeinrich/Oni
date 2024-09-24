@@ -5,17 +5,23 @@
 
 struct Parameters
 {
+	uint SrcTexture;
+	uint DstTexture;
+	uint BilinearClamp;
+	uint _Pad0;
 	float4 MipSize;
 };
 
-Texture2D<float4> SrcTexture : register(t0);
-RWTexture2D<float4> DstTexture : register(u1);
-SamplerState BilinearClamp : register(s2);
-ConstantBuffer<Parameters> Mips : register(b3);
+ConstantBuffer<Parameters> Mips : register(b0);
 
 [numthreads(8, 8, 1)]
 void Main(uint3 DTid : SV_DispatchThreadID)
 {
+	// Load bindings
+	Texture2D<float4> SrcTexture = ResourceDescriptorHeap[Mips.SrcTexture];
+	RWTexture2D<float4> DstTexture = ResourceDescriptorHeap[Mips.DstTexture];
+	SamplerState BilinearClamp = SamplerDescriptorHeap[Mips.BilinearClamp];
+
 	//DTid is the thread ID * the values from numthreads above and in this case correspond to the pixels location in number of pixels.
 	//As a result texcoords (in 0-1 range) will point at the center between the 4 pixels used for the mipmap.
 	float2 texcoords = (1.0f / Mips.MipSize.xy) * (DTid.xy + 0.5);

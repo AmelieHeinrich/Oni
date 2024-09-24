@@ -22,6 +22,8 @@ public:
 
     GPUResource& GetResource() { return *_resource; }
 
+    uint32_t SRV() { return _srv.HeapIndex; }
+    uint32_t UAV(uint32_t mip = 0) {return _uavs[mip].HeapIndex; }
 private:
     friend class CommandBuffer;
 

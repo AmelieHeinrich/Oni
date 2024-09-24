@@ -30,5 +30,5 @@ private:
     Texture::Ptr _inputHDR;
     Texture::Ptr _outputLDR;
 
-    int _tonemapper = 0;
+    uint32_t _tonemapper = 0;
 };

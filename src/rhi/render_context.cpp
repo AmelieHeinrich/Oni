@@ -87,10 +87,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     ShaderBytecode bytecode;
     ShaderCompiler::CompileShader("shaders/MipMaps/GenerateCompute.hlsl", "Main", ShaderType::Compute, bytecode);
 
-    _mipmapSignature = CreateRootSignature();
-    _mipmapSignature->ReflectFromComputeShader(bytecode);
-    
-    _mipmapPipeline = CreateComputePipeline(bytecode, _mipmapSignature);
+    _mipmapPipeline = CreateComputePipeline(bytecode, CreateDefaultRootSignature(sizeof(glm::vec4) * 2));
     _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, true, 0);
 
     WaitForGPU();
@@ -309,33 +306,32 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
 {
     texture->BuildStorage();
 
-    std::vector<Buffer::Ptr> buffers;
-    buffers.resize(texture->GetMips());
     CommandBuffer::Ptr cmdBuf = CreateCommandBuffer(CommandQueueType::Graphics, false);
-
-    for (int i = 0; i < texture->GetMips(); i++) {
-        buffers[i] = CreateBuffer(256, 0, BufferType::Constant, false, "Mipmap Buffer " + std::to_string(i));
-        buffers[i]->BuildConstantBuffer();
-    }
 
     cmdBuf->Begin(false);
     cmdBuf->BindComputePipeline(_mipmapPipeline);
     for (int i = 0; i < texture->GetMips() - 1; i++) {
         uint32_t mipWidth = (texture->GetWidth() * std::pow(0.5f, i + 1));
         uint32_t mipHeight = (texture->GetHeight() * std::pow(0.5f, i + 1));
-        glm::vec4 data(mipWidth, mipHeight, 0, 0);
-
-        void *pData;
-        buffers[i]->Map(0, 0, &pData);
-        memcpy(pData, glm::value_ptr(data), sizeof(data));
-        buffers[i]->Unmap(0, 0);
+        
+        struct PushConstants {
+            uint32_t SrcTexture;
+            uint32_t DstTexture;
+            uint32_t BilinearClamp;
+            uint32_t Pad0;
+            glm::vec4 MipSize;
+        };
+        PushConstants constants = {
+            texture->SRV(i),
+            texture->UAV(i + 1),
+            _mipmapSampler->BindlesssSampler(),
+            0,
+            glm::vec4(mipWidth, mipHeight, 0, 0)
+        };
 
         cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource, i);
         cmdBuf->ImageBarrier(texture, TextureLayout::Storage, i + 1);
-        cmdBuf->BindComputeShaderResource(texture, 0, i);
-        cmdBuf->BindComputeStorageTexture(texture, 1, i + 1);
-        cmdBuf->BindComputeSampler(_mipmapSampler, 2);
-        cmdBuf->BindComputeConstantBuffer(buffers[i], 3);
+        cmdBuf->PushConstantsCompute(&constants, sizeof(constants), 0);
         cmdBuf->Dispatch(std::max(mipWidth / 8, 1u), std::max(mipHeight / 8, 1u), 1);
     }
     cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource);
@@ -376,6 +372,14 @@ void RenderContext::GenerateMips(Texture::Ptr texture, CommandBuffer::Ptr cmdBuf
         cmdBuf->Dispatch(std::max(mipWidth / 8, 1u), std::max(mipHeight / 8, 1u), 1);
         cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource, i + 1);
     }
+}
+
+RootSignature::Ptr RenderContext::CreateDefaultRootSignature(uint32_t pushConstantSize)
+{
+    return CreateRootSignature(RootSignatureBuildInfo {
+        { RootSignatureEntry::PushConstants },
+        pushConstantSize
+    });
 }
 
 void RenderContext::OnGUI()

@@ -56,8 +56,10 @@ public:
     Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
     CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name = "Cube Map");
     CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type, bool close = true);
+    
     RootSignature::Ptr CreateRootSignature();
     RootSignature::Ptr CreateRootSignature(RootSignatureBuildInfo& info);
+    RootSignature::Ptr CreateDefaultRootSignature(uint32_t pushConstantSize);
     
     Uploader CreateUploader();
     void FlushUploader(Uploader& uploader, CommandBuffer::Ptr commandBuffer);
@@ -95,7 +97,6 @@ private:
 
     DescriptorHeap::Descriptor _fontDescriptor;
 
-    RootSignature::Ptr _mipmapSignature;
     ComputePipeline::Ptr _mipmapPipeline;
     Buffer::Ptr _mipmapBuffer;
     Sampler::Ptr _mipmapSampler;

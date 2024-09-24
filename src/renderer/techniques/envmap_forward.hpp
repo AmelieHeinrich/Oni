@@ -48,6 +48,5 @@ private:
     HotReloadablePipeline _cubeRenderer;
 
     Buffer::Ptr _cubeBuffer;
-    Buffer::Ptr _cubeCBV;
     bool _drawSkybox = true;
 };

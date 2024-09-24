@@ -66,7 +66,9 @@ RootSignature::RootSignature(Device::Ptr device, const RootSignatureBuildInfo& b
     D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc = {};
     RootSignatureDesc.NumParameters = Parameters.size();
     RootSignatureDesc.pParameters = Parameters.data();
-    RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+                            | D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
+                            | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
     ID3DBlob* pRootSignatureBlob;
     ID3DBlob* pErrorBlob;

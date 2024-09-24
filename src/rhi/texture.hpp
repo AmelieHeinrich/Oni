@@ -76,6 +76,9 @@ public:
     int GetWidth() { return _width; }
     int GetHeight() { return _height; }
     int GetMips() { return _mipLevels; }
+
+    uint32_t SRV(uint32_t mip = 0) { return _srvs[mip].HeapIndex; }
+    uint32_t UAV(uint32_t mip = 0) { return _uavs[mip].HeapIndex; }
 private:
     friend class SwapChain;
     friend class CommandBuffer;

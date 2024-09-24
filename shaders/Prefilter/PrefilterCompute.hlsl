@@ -10,13 +10,13 @@ static const float InvNumSamples = 1.0 / float(NumSamples);
 
 struct PrefilterMapSettings
 {
-	float4 Roughness;
+    uint EnvironmentMap;
+    uint PrefilterMap;
+    uint CubeSampler;
+    float Roughness;
 };
 
-TextureCube EnvironmentMap : register(t0);
-RWTexture2DArray<half4> PrefilterMap : register(u1);
-SamplerState CubeSampler : register(s2);
-ConstantBuffer<PrefilterMapSettings> PrefilterSettings : register(b3);
+ConstantBuffer<PrefilterMapSettings> PrefilterSettings : register(b0);
 
 float3 CubeToWorld(int3 cubeCoord, float2 cubeSize)
 {
@@ -124,6 +124,10 @@ float3 SSBImportance(float2 Xi, float3 N, float roughness)
 [numthreads(32, 32, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
+    TextureCube EnvironmentMap = ResourceDescriptorHeap[PrefilterSettings.EnvironmentMap];
+    RWTexture2DArray<half4> PrefilterMap = ResourceDescriptorHeap[PrefilterSettings.PrefilterMap];
+    SamplerState CubeSampler = ResourceDescriptorHeap[PrefilterSettings.CubeSampler];
+
 	const uint SAMPLE_COUNT = 1;
 	
 	float enviWidth, enviHeight;

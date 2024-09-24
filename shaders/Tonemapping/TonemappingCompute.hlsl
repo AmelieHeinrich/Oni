@@ -7,14 +7,6 @@
 #define TONEMAPPER_FILMIC 1
 #define TONEMAPPER_RBDH 2
 
-struct TonemapperSettings
-{
-    int Tonemapper;
-    uint _Padding0;
-    uint _Padding1;
-    uint _Padding2;
-};
-
 float3 ACESFilm(float3 X)
 {
     float A = 2.51f;
@@ -38,13 +30,22 @@ float3 RomBinDaHouse(float3 X)
 	return X;
 }
 
-Texture2D HDRTexture : register(t0);
-RWTexture2D<float4> LDRTexture : register(u1);
-ConstantBuffer<TonemapperSettings> Settings : register(b2);
+struct TonemapperSettings
+{
+    uint Tonemapper;
+    uint InputIndex;
+    uint OutputIndex;
+    uint _Pad0;
+};
+
+ConstantBuffer<TonemapperSettings> Settings : register(b0);
 
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
+    Texture2D HDRTexture = ResourceDescriptorHeap[Settings.InputIndex];
+    RWTexture2D<float4> LDRTexture = ResourceDescriptorHeap[Settings.OutputIndex];
+
     uint Width, Height;
     HDRTexture.GetDimensions(Width, Height);
 

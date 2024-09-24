@@ -8,7 +8,12 @@
 static const uint NumSamples = 1024;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
-RWTexture2D<half2> LUT : register(u0);
+struct Constants
+{
+	uint LUT;
+};
+
+ConstantBuffer<Constants> Settings : register(b0);
 
 float2 sampleHammersley(uint i)
 {
@@ -42,6 +47,8 @@ float gaSchlickGGX_IBL(float cosLi, float cosLo, float roughness)
 [numthreads(32, 32, 1)]
 void Main(uint2 ThreadID : SV_DispatchThreadID)
 {
+	RWTexture2D<half2> LUT = ResourceDescriptorHeap[Settings.LUT];
+
 	// Get output LUT dimensions.
 	float outputWidth, outputHeight;
 	LUT.GetDimensions(outputWidth, outputHeight);

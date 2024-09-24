@@ -20,8 +20,6 @@ Tonemapping::Tonemapping(RenderContext::Ptr context, Texture::Ptr inputHDR)
     _outputLDR->BuildRenderTarget();
 
     _computePipeline.SignatureInfo.Entries = {
-        RootSignatureEntry::SRV,
-        RootSignatureEntry::UAV,
         RootSignatureEntry::PushConstants
     };
     _computePipeline.SignatureInfo.PushConstantSize = sizeof(glm::ivec4);
@@ -39,6 +37,19 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
 
+    struct PushConstants {
+        uint32_t Mode;
+        uint32_t HDRTexture;
+        uint32_t LDRTexture;
+        uint32_t _Pad0;
+    };
+    PushConstants constants = {
+        _tonemapper,
+        _inputHDR->SRV(),
+        _outputLDR->UAV(),
+        0
+    };
+
     OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
     OPTICK_GPU_EVENT("Tonemapping PostFX");
 
@@ -46,10 +57,8 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
     cmdBuf->ImageBarrier(_inputHDR, TextureLayout::ShaderResource);
     cmdBuf->ImageBarrier(_outputLDR, TextureLayout::Storage);
     cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
-    cmdBuf->BindComputeShaderResource(_inputHDR, 0, 0);
-    cmdBuf->BindComputeStorageTexture(_outputLDR, 1, 0);
-    cmdBuf->PushConstantsCompute(glm::value_ptr(glm::ivec4(_tonemapper, 0, 0, 0)), sizeof(glm::ivec4), 2);
-    cmdBuf->Dispatch(width / 8, height / 8, 1);    
+    cmdBuf->PushConstantsCompute(&constants, sizeof(PushConstants), 0);
+    cmdBuf->Dispatch(width / 8, height / 8, 1);
     cmdBuf->EndEvent();
 }
 

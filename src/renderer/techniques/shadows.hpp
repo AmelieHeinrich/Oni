@@ -43,12 +43,10 @@ public:
 private:
     RenderContext::Ptr _context;
 
-    ShadowMapResolution _shadowMapResolution;
-
     HotReloadablePipeline _shadowPipeline;
 
+    ShadowMapResolution _shadowMapResolution;
     Texture::Ptr _shadowMap;
     
-    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _shadowParam;
     bool _renderShadows = true;
 };

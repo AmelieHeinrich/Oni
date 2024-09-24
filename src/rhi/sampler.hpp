@@ -32,6 +32,8 @@ public:
     ~Sampler();
 
     DescriptorHeap::Descriptor GetDescriptor() { return _descriptor; }
+
+    uint32_t BindlesssSampler() { return _descriptor.HeapIndex; }
 private:
     DescriptorHeap::Descriptor _descriptor;
     DescriptorHeap::Heaps _heaps;

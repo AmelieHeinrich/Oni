@@ -10,8 +10,9 @@
 
 struct RendererSettings
 {
+    uint InputHDR;
     float Exposure;
-    float3 _Pad;
+    float2 _Pad;
     
     float Contrast;
     float3 _Pad1;
@@ -30,8 +31,7 @@ struct RendererSettings
     float3 _Pad2;
 };
 
-RWTexture2D<float4> Texture : register(u0);
-ConstantBuffer<RendererSettings> Settings : register(b1);
+ConstantBuffer<RendererSettings> Settings : register(b0);
 
 float3 ColorGradeWhiteBalance(float3 col) 
 {
@@ -117,6 +117,8 @@ float3 ColorGradeSplitToning(float3 color)
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
+    RWTexture2D<float4> Texture = ResourceDescriptorHeap[Settings.InputHDR];
+
     uint Width, Height;
     Texture.GetDimensions(Width, Height);
 

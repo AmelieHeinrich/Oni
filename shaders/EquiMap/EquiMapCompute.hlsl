@@ -5,12 +5,22 @@
 
 #include "shaders/Common/Math.hlsl"
 
-Texture2D Equi : register(t0);
-RWTexture2DArray<half4> Cube : register(u1);
-SamplerState CubeSampler : register(s2);
-
-float3 GetSamplingVector(uint3 ThreadID)
+struct Constants
 {
+	uint Equi;
+	uint Cube;
+	uint CubeSampler;
+};
+
+ConstantBuffer<Constants> Settings : register(b0);
+
+[numthreads(32, 32, 1)]
+void Main(uint3 ThreadID : SV_DispatchThreadID)
+{
+	Texture2D Equi = ResourceDescriptorHeap[Settings.Equi];
+	RWTexture2DArray<half4> Cube = ResourceDescriptorHeap[Settings.Cube];
+	SamplerState CubeSampler = SamplerDescriptorHeap[Settings.CubeSampler];
+
 	float outputWidth, outputHeight, outputDepth;
 	Cube.GetDimensions(outputWidth, outputHeight, outputDepth);
 
@@ -28,13 +38,7 @@ float3 GetSamplingVector(uint3 ThreadID)
 		case 4: ret = float3( uv.x,  uv.y,  1.0); break;
 		case 5: ret = float3(-uv.x,  uv.y, -1.0); break;
 	}
-    return normalize(ret);
-}
-
-[numthreads(32, 32, 1)]
-void Main(uint3 ThreadID : SV_DispatchThreadID)
-{
-	float3 v = GetSamplingVector(ThreadID);
+    float3 v = normalize(ret);
 	
 	// Convert Cartesian direction vector to spherical coordinates.
 	float phi   = atan2(v.z, v.x);

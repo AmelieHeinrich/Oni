@@ -27,8 +27,9 @@ private:
     // TODO(ame): LUT?
     struct ColorCorrectionSettings
     {
+        uint32_t InputHDR;
         float Exposure = 0.0f;
-        glm::vec3 _Pad0;
+        glm::vec2 _Pad0;
         float Contrast = 0.0f;
         glm::vec3 _Pad1;
         glm::vec4 ColorFilter = glm::vec4(1.0f);
@@ -48,6 +49,5 @@ private:
     bool _enable = false;
 
     Texture::Ptr _inputHDR;
-    Buffer::Ptr _correctionParameters;
     ColorCorrectionSettings _settings;
 };
