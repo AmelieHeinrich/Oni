@@ -18,6 +18,7 @@
 #define MODE_SPECULAR 6
 #define MODE_AMBIENT 7
 #define MODE_POSITION 8
+#define MODE_VELOCITY 9
 
 struct SceneData
 {
@@ -48,6 +49,7 @@ struct Constants
     uint Normals;
     uint AlbedoEmissive;
     uint PbrAO;
+    uint Velocity;
 
     uint Irradiance;
     uint Prefilter;
@@ -171,6 +173,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     Texture2D Normals = ResourceDescriptorHeap[Settings.Normals];
     Texture2D AlbedoEmissive = ResourceDescriptorHeap[Settings.AlbedoEmissive];
     Texture2D PbrAO = ResourceDescriptorHeap[Settings.PbrAO];
+    Texture2D<float2> Velocity = ResourceDescriptorHeap[Settings.Velocity];
     TextureCube Irradiance = ResourceDescriptorHeap[Settings.Irradiance];
     TextureCube Prefilter = ResourceDescriptorHeap[Settings.Prefilter];
     Texture2D BRDF = ResourceDescriptorHeap[Settings.BRDF];
@@ -217,6 +220,9 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 
     // Shadow
     float shadow = ShadowCalculation(data, ShadowMap, ShadowSampler, LightBuffer);
+
+    // Velocity
+    float2 velocity = Velocity.Sample(Sampler, TexCoords);
 
     // Do light calcs!
 
@@ -289,6 +295,9 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             break;
         case MODE_POSITION:
             final = position;
+            break;
+        case MODE_VELOCITY:
+            final = float4(velocity, 0.0, 1.0);
             break;
     }
 

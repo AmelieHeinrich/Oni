@@ -181,11 +181,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
 
     struct ModelData {
         glm::mat4 Transform;
-        glm::vec4 FlatColor;
+        glm::mat4 PrevTransform;
     };
     ModelData temp;
     temp.Transform = out.Transform;
-    temp.FlatColor = glm::vec4(meshMaterial.FlatColor, 1.0f);
+    temp.PrevTransform = out.Transform;
 
     VertexCount += out.VertexCount;
     IndexCount += out.IndexCount;

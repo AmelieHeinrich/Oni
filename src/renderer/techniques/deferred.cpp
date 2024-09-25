@@ -24,6 +24,10 @@ Deferred::Deferred(RenderContext::Ptr context)
     _pbrData->BuildRenderTarget();
     _pbrData->BuildShaderResource();
 
+    _velocityBuffer = _context->CreateTexture(width, height, TextureFormat::RG16Float, TextureUsage::RenderTarget, false, "[GBUFFER] Velocity buffer");
+    _velocityBuffer->BuildRenderTarget();
+    _velocityBuffer->BuildShaderResource();
+
     _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "[DEFERRED] White Texture");
     _whiteTexture->BuildShaderResource();
 
@@ -60,10 +64,11 @@ Deferred::Deferred(RenderContext::Ptr context)
     _depthBuffer->BuildShaderResource(TextureFormat::R32Float);
 
     {
-        _gbufferPipeline.Specs.FormatCount = 3;
+        _gbufferPipeline.Specs.FormatCount = 4;
         _gbufferPipeline.Specs.Formats[0] = TextureFormat::RGBA16Float;
         _gbufferPipeline.Specs.Formats[1] = TextureFormat::RGBA8;
         _gbufferPipeline.Specs.Formats[2] = TextureFormat::RGBA8;
+        _gbufferPipeline.Specs.Formats[3] = TextureFormat::RG16Float;
         _gbufferPipeline.Specs.DepthFormat = TextureFormat::R32Depth;
         _gbufferPipeline.Specs.Depth = DepthOperation::Less;
         _gbufferPipeline.Specs.DepthEnabled = true;
@@ -72,7 +77,7 @@ Deferred::Deferred(RenderContext::Ptr context)
 
         _gbufferPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            (sizeof(glm::mat4) * 2) + (sizeof(uint32_t) * 8)
+            (sizeof(uint32_t) * 7)
         };
         _gbufferPipeline.ReflectRootSignature(false);
         _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferVert.hlsl", "Main", ShaderType::Vertex);
@@ -83,7 +88,7 @@ Deferred::Deferred(RenderContext::Ptr context)
     {
         _lightingPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            (sizeof(uint32_t) * 14)
+            (sizeof(uint32_t) * 16)
         };
         _lightingPipeline.ReflectRootSignature(false);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
@@ -125,14 +130,16 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->ImageBarrier(_normals, TextureLayout::RenderTarget);
     commandBuffer->ImageBarrier(_albedoEmission, TextureLayout::RenderTarget);
     commandBuffer->ImageBarrier(_pbrData, TextureLayout::RenderTarget);
+    commandBuffer->ImageBarrier(_velocityBuffer, TextureLayout::RenderTarget);
     commandBuffer->ClearRenderTarget(_normals, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_albedoEmission, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);
+    commandBuffer->ClearRenderTarget(_velocityBuffer, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearDepthTarget(_depthBuffer);
     if (_draw) {
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->SetTopology(Topology::TriangleList);
-        commandBuffer->BindRenderTargets({ _normals, _albedoEmission, _pbrData }, _depthBuffer);
+        commandBuffer->BindRenderTargets({ _normals, _albedoEmission, _pbrData, _velocityBuffer }, _depthBuffer);
         commandBuffer->BindGraphicsPipeline(_gbufferPipeline.GraphicsPipeline);
 
         for (auto model : scene.Models) {
@@ -145,25 +152,38 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _blackTexture;
                 Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
-                struct Data {
+                struct ModelUpload {
                     glm::mat4 CameraMatrix;
-                    glm::mat4 ModelMatrix;
-                
+                    glm::mat4 PrevCameraMatrix;
+                    glm::mat4 Transform;
+                    glm::mat4 PrevTransform;
+                };
+                ModelUpload matrices = {
+                    scene.Camera.Projection() * scene.Camera.View(),
+                    scene.PrevViewProj,
+                    primitive.Transform,
+                    primitive.PrevTransform
+                };
+                if (_visualizeShadow) {
+                    matrices.CameraMatrix = depthProjection * depthView;
+                }
+
+                void *pData;
+                primitive.ModelBuffer[frameIndex]->Map(0, 0, &pData);
+                memcpy(pData, &matrices, sizeof(matrices));
+                primitive.ModelBuffer[frameIndex]->Unmap(0, 0);
+
+                struct Data {
+                    uint32_t ModelBuffer;
                     uint32_t AlbedoTexture;
                     uint32_t NormalTexture; 
                     uint32_t PBRTexture;
                     uint32_t EmissiveTexture;
                     uint32_t AOTexture;
                     uint32_t Sampler;
-                    glm::ivec2 _Pad0;
                 };
                 Data data;
-                if (!_visualizeShadow) {
-                    data.CameraMatrix = scene.Camera.Projection() * scene.Camera.View();
-                } else {
-                    data.CameraMatrix = depthProjection * depthView;
-                }
-                data.ModelMatrix = primitive.Transform;
+                data.ModelBuffer = primitive.ModelBuffer[frameIndex]->CBV();
                 data.AlbedoTexture = albedo->SRV();
                 data.NormalTexture = normal->SRV();
                 data.PBRTexture = pbr->SRV();
@@ -226,6 +246,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             uint32_t Normals;
             uint32_t AlbedoEmissive;
             uint32_t PbrAO;
+            uint32_t Velocity;
             uint32_t Irradiance;
             uint32_t Prefilter;
             uint32_t BRDF;
@@ -242,6 +263,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             _normals->SRV(),
             _albedoEmission->SRV(),
             _pbrData->SRV(),
+            _velocityBuffer->SRV(),
             _map.IrradianceMap->SRV(),
             _map.PrefilterMap->SRV(),
             _map.BRDF->SRV(),
@@ -304,8 +326,8 @@ void Deferred::OnUI()
         ImGui::Checkbox("Enable IBL", &_ibl);
         ImGui::Checkbox("Visualize Shadows", &_visualizeShadow);
 
-        static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Specular", "Ambient", "Position" };
-        ImGui::Combo("Mode", (int*)&_mode, Modes, 9, 9);
+        static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Specular", "Ambient", "Position", "Velocity" };
+        ImGui::Combo("Mode", (int*)&_mode, Modes, 10, 10);
 
         ImGui::TreePop();
     }

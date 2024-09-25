@@ -14,15 +14,22 @@ struct VertexIn
 struct VertexOut
 {
     float4 Position : SV_POSITION;
+    float4 PrevPosition : POSITION1;
     float2 TexCoords : TEXCOORD;
     float3 Normals: NORMAL;
 };
 
-struct SceneData
+struct ModelMatrices
 {
     column_major float4x4 CameraMatrix;
+    column_major float4x4 PrevCameraMatrix;
     column_major float4x4 Transform;
+    column_major float4x4 PrevTransform;
+};
 
+struct SceneData
+{
+    uint ModelBuffer;
     uint AlbedoTexture;
     uint NormalTexture; 
     uint PBRTexture;
@@ -35,13 +42,16 @@ ConstantBuffer<SceneData> Settings : register(b0);
 
 VertexOut Main(VertexIn Input)
 {
+    ConstantBuffer<ModelMatrices> Matrices = ResourceDescriptorHeap[Settings.ModelBuffer];
+
     VertexOut Output = (VertexOut)0;
 
     float4 pos = float4(Input.Position, 1.0);
     
-    Output.Position = mul(mul(Settings.CameraMatrix, Settings.Transform), pos);
+    Output.Position = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos);
+    Output.PrevPosition = mul(mul(Matrices.PrevCameraMatrix, Matrices.PrevTransform), pos);
     Output.TexCoords = Input.TexCoords;
-    Output.Normals = normalize(float4(mul(transpose(Settings.Transform), float4(Input.Normals, 1.0))).xyz);
+    Output.Normals = normalize(float4(mul(transpose(Matrices.Transform), float4(Input.Normals, 1.0))).xyz);
     
     return Output;
 }

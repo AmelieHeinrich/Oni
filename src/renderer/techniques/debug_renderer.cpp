@@ -21,7 +21,7 @@ std::shared_ptr<DebugRenderer> DebugRenderer::Get()
 }
 
 DebugRenderer::DebugRenderer(RenderContext::Ptr context, Texture::Ptr output)
-    : LineShader(PipelineType::Graphics), _context(context)
+    : LineShader(PipelineType::Graphics), _context(context), MotionShader(PipelineType::Compute)
 {
     Context = context;
     Output = output;
@@ -48,6 +48,16 @@ DebugRenderer::DebugRenderer(RenderContext::Ptr context, Texture::Ptr output)
         LineTransferBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), 0, BufferType::Constant, false, "[DEBUG] Line Transfer Buffer");
         LineVertexBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), sizeof(LineVertex), BufferType::Vertex, false, "[DEBUG] Line Vertex Buffer");
     }
+
+    MotionShader.SignatureInfo = {
+        { RootSignatureEntry::PushConstants },
+        sizeof(uint32_t) * 3
+    };
+    MotionShader.ReflectRootSignature(false);
+    MotionShader.AddShaderWatch("shaders/DebugRenderer/MotionVisualizerCompute.hlsl", "Main", ShaderType::Compute);
+    MotionShader.Build(context);
+
+    NearestSampler = context->CreateSampler(SamplerAddress::Border, SamplerFilter::Nearest, false, 0);
 }
 
 void DebugRenderer::Resize(uint32_t width, uint32_t height, Texture::Ptr output)
@@ -59,6 +69,7 @@ void DebugRenderer::OnUI()
 {
     if (ImGui::TreeNodeEx("Debug Renderer", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Draw Lines", &DrawLines);
+        ImGui::Checkbox("Visualize Motion Vectors", &DrawMotion);
         ImGui::Text("Line Count: %d", List.Lines.size());
         ImGui::TreePop();
     }
@@ -109,6 +120,7 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             uploader.CopyBufferToBuffer(LineTransferBuffer[frameIndex], LineVertexBuffer[frameIndex]);
             Context->FlushUploader(uploader, cmdBuffer);
 
+            cmdBuffer->BeginEvent("Lines");
             cmdBuffer->SetViewport(0, 0, width, height);
             cmdBuffer->SetTopology(Topology::LineList);
             cmdBuffer->BindRenderTargets({ Output }, nullptr);
@@ -116,6 +128,29 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             cmdBuffer->PushConstantsGraphics(glm::value_ptr(mvp), sizeof(glm::mat4), 0);
             cmdBuffer->BindVertexBuffer(LineVertexBuffer[frameIndex]);
             cmdBuffer->Draw(vertices.size());
+            cmdBuffer->EndEvent();
+        }
+    }
+    if (DrawMotion) {
+        if (VelocityBuffer) {
+            struct Constants {
+                uint32_t Velocity;
+                uint32_t Output;
+                uint32_t LinearSampler;
+            };
+            Constants constants = {
+                VelocityBuffer->SRV(),
+                Output->UAV(),
+                NearestSampler->BindlesssSampler()
+            };
+
+            cmdBuffer->BeginEvent("Motion Visualizer");
+            cmdBuffer->ImageBarrier(VelocityBuffer, TextureLayout::ShaderResource);
+            cmdBuffer->ImageBarrier(Output, TextureLayout::Storage);
+            cmdBuffer->BindComputePipeline(MotionShader.ComputePipeline);
+            cmdBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
+            cmdBuffer->Dispatch(width / 8, height / 8, 1);
+            cmdBuffer->EndEvent();
         }
     }
 
@@ -133,7 +168,13 @@ void DebugRenderer::Reset()
     List.Lines.clear();
 }
 
+void DebugRenderer::SetVelocityBuffer(Texture::Ptr texture)
+{
+    VelocityBuffer = texture;
+}
+
 void DebugRenderer::Reconstruct()
 {
     LineShader.CheckForRebuild(_context);
+    MotionShader.CheckForRebuild(_context);
 }

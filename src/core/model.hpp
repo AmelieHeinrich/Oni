@@ -62,6 +62,7 @@ struct Primitive
     uint32_t IndexCount;
     uint32_t MaterialIndex;
 
+    glm::mat4 PrevTransform;
     glm::mat4 Transform;
     AABB BoundingBox;
 };

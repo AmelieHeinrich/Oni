@@ -37,10 +37,13 @@ public:
     void Flush(Scene& scene, uint32_t width, uint32_t height);
     void Reset();
     
+    void SetVelocityBuffer(Texture::Ptr texture);
+
     Texture::Ptr GetOutput();
 private:
     RenderContext::Ptr _context;
     bool DrawLines = true;
+    bool DrawMotion = false;
 
     struct DrawList {
         std::vector<DebugRenderer::Line> Lines;
@@ -53,8 +56,12 @@ private:
 
     RenderContext::Ptr Context;
     Texture::Ptr Output;
+    Texture::Ptr VelocityBuffer;
 
     DrawList List;
+
+    HotReloadablePipeline MotionShader;
+    Sampler::Ptr NearestSampler;
 
     HotReloadablePipeline LineShader;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> LineTransferBuffer;

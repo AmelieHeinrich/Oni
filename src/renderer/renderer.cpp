@@ -33,6 +33,8 @@ Renderer::Renderer(RenderContext::Ptr context)
 
     _deferred->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
     _deferred->ConnectShadowMap(_shadows->GetOutput());
+
+    _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());
 }
 
 Renderer::~Renderer()

@@ -7,6 +7,7 @@
 struct FragmentIn
 {
     float4 Position : SV_POSITION;
+    float4 PrevPosition : POSITION1;
     float2 TexCoords : TEXCOORD;
     float3 Normals: NORMAL;
 };
@@ -16,20 +17,18 @@ struct FragmentOut
     float4 Normals : SV_TARGET0;
     float4 AlbedoEmissive : SV_TARGET1;
     float4 PbrAO : SV_TARGET2;
+    float2 Velocity: SV_TARGET3;
 };
 
 struct SceneData
 {
-    column_major float4x4 CameraMatrix;
-    column_major float4x4 Transform;
-
+    uint ModelBuffer;
     uint AlbedoTexture;
     uint NormalTexture; 
     uint PBRTexture;
     uint EmissiveTexture;
     uint AOTexture;
     uint Sampler;
-    uint2 _Pad0;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);
@@ -78,9 +77,13 @@ FragmentOut Main(FragmentIn Input)
 
     FragmentOut output = (FragmentOut)0;
     
+    float2 motionVector = (Input.PrevPosition.xy / Input.PrevPosition.w) - (Input.Position.xy / Input.Position.w);
+    motionVector *= float2(-0.5, -0.5);
+
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
     output.AlbedoEmissive = float4(albedo.rgb + emission.rgb, 1.0f);
     output.PbrAO = float4(float3(metallic, roughness, ao), 1.0f);
+    output.Velocity = motionVector;
 
     return output;
 }
