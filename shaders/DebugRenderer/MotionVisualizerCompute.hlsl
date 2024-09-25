@@ -99,16 +99,8 @@ float2 Field(uint2 ThreadID)
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
-    Texture2D<float2> Velocity = ResourceDescriptorHeap[Settings.Velocity];
     RWTexture2D<float4> OutputHDR = ResourceDescriptorHeap[Settings.OutputHDR];
-    SamplerState NearestSampler = SamplerDescriptorHeap[Settings.NearestSampler];
 
-    int width, height;
-    Velocity.GetDimensions(width, height);
-
-    float2 texelSize = 1.0 / float2(width, height);
-    float2 UVs = TexelToUV(ThreadID.xy, texelSize);
-
-    float4 FragColor = (1.0 - Arrow(UVs, Field(ArrowTileCenterCoord(UVs)) * ARROW_TILE_SIZE * 0.4)) * float4(Field(UVs) * 0.5 + 0.5, 0.5, 1.0);
+    float4 FragColor = (1.0 - Arrow(ThreadID.xy, Field(ArrowTileCenterCoord(ThreadID.xy)) * ARROW_TILE_SIZE * 0.4)) * float4(Field(ThreadID.xy) * 0.5 + 0.5, 0.5, 1.0);
     OutputHDR[ThreadID.xy] = FragColor;
 }

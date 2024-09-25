@@ -66,7 +66,7 @@ App::App()
     Model sponza = {};
     sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
 
-    scene.Models.push_back(platform);
+    //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
     scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
 
@@ -112,6 +112,16 @@ void App::Run()
         float dt = (time - _lastFrame) / 1000.0f;
         _lastFrame = time;
 
+        glm::vec3 translation = glm::vec3(4.0 * (sin(((time / 1000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
+        scene.Models[0].Primitives[0].Transform = glm::translate(glm::mat4(1.0f), translation);
+
+        for (auto& model : scene.Models) {
+            for (auto& primitive : model.Primitives) {
+                primitive.PrevTransform = primitive.Transform;
+            }
+        }
+        scene.PrevViewProj = scene.Camera.Projection() * scene.Camera.View();
+
         _camera.Update(_updateFrustum);
 
         if (ImGui::IsKeyPressed(ImGuiKey_F1)) {
@@ -121,9 +131,6 @@ void App::Run()
         uint32_t width, height;
         _window->Update();
         _window->GetSize(width, height);
-
-        glm::vec3 translation = glm::vec3(0.5 * (sin(((time / 1000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
-        scene.Models[1].Primitives[0].Transform = glm::translate(glm::mat4(1.0f), translation);
 
         scene.Camera = _camera;
 
@@ -187,13 +194,6 @@ void App::Run()
                 _renderContext->Present(_vsync);
                 _renderContext->Finish();
             });
-
-            for (auto& model : scene.Models) {
-                for (auto& primitive : model.Primitives) {
-                    primitive.PrevTransform = primitive.Transform;
-                }
-            }
-            scene.PrevViewProj = scene.Camera.Projection() * scene.Camera.View();
         }
 
         _renderer->Reconstruct();

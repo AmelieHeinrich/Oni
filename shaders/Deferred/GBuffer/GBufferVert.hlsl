@@ -14,7 +14,7 @@ struct VertexIn
 struct VertexOut
 {
     float4 Position : SV_POSITION;
-    float4 PrevPosition : POSITION1;
+    float4 PrevPosition : COLOR0;
     float2 TexCoords : TEXCOORD;
     float3 Normals: NORMAL;
 };

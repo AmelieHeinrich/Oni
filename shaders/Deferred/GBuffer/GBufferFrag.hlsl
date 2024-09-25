@@ -7,7 +7,7 @@
 struct FragmentIn
 {
     float4 Position : SV_POSITION;
-    float4 PrevPosition : POSITION1;
+    float4 PrevPosition : COLOR0;
     float2 TexCoords : TEXCOORD;
     float3 Normals: NORMAL;
 };
@@ -77,13 +77,13 @@ FragmentOut Main(FragmentIn Input)
 
     FragmentOut output = (FragmentOut)0;
     
-    float2 motionVector = (Input.PrevPosition.xy / Input.PrevPosition.w) - (Input.Position.xy / Input.Position.w);
-    motionVector *= float2(-0.5, -0.5);
+    float2 oldPos = Input.PrevPosition.xy / Input.PrevPosition.w;
+    float2 newPos = Input.Position.xy / Input.Position.w;
 
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
     output.AlbedoEmissive = float4(albedo.rgb + emission.rgb, 1.0f);
     output.PbrAO = float4(float3(metallic, roughness, ao), 1.0f);
-    output.Velocity = motionVector;
+    output.Velocity = newPos - oldPos;
 
     return output;
 }

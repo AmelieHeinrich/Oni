@@ -116,11 +116,8 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             memcpy(pData, vertices.data(), sizeof(LineVertex) * vertices.size());
             LineTransferBuffer[frameIndex]->Unmap(0, 0);
 
-            Uploader uploader = Context->CreateUploader();
-            uploader.CopyBufferToBuffer(LineTransferBuffer[frameIndex], LineVertexBuffer[frameIndex]);
-            Context->FlushUploader(uploader, cmdBuffer);
-
-            cmdBuffer->BeginEvent("Lines");
+            cmdBuffer->BeginEvent("Lines", 200, 200, 200);
+            cmdBuffer->CopyBufferToBuffer(LineVertexBuffer[frameIndex], LineTransferBuffer[frameIndex]);
             cmdBuffer->SetViewport(0, 0, width, height);
             cmdBuffer->SetTopology(Topology::LineList);
             cmdBuffer->BindRenderTargets({ Output }, nullptr);
@@ -144,7 +141,7 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
                 NearestSampler->BindlesssSampler()
             };
 
-            cmdBuffer->BeginEvent("Motion Visualizer");
+            cmdBuffer->BeginEvent("Motion Visualizer", 200, 200, 200);
             cmdBuffer->ImageBarrier(VelocityBuffer, TextureLayout::ShaderResource);
             cmdBuffer->ImageBarrier(Output, TextureLayout::Storage);
             cmdBuffer->BindComputePipeline(MotionShader.ComputePipeline);
