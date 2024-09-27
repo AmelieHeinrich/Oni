@@ -24,7 +24,7 @@
 
 #include "renderer/techniques/debug_renderer.hpp"
 
-constexpr int TEST_LIGHT_COUNT = 0;
+constexpr int TEST_LIGHT_COUNT = 32;
 
 float random_float(float min, float max)
 {
@@ -64,7 +64,7 @@ App::App()
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
     Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/suntemple/SunTemple.gltf");
+    sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
 
     //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
