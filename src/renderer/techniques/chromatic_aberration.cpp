@@ -60,5 +60,5 @@ void ChromaticAberration::OnUI()
 
 void ChromaticAberration::Reconstruct()
 {
-    _computePipeline.CheckForRebuild(_renderContext);
+    _computePipeline.CheckForRebuild(_renderContext, "Chromatic Aberration");
 }

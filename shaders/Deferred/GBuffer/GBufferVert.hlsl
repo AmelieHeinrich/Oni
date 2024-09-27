@@ -38,8 +38,7 @@ struct SceneData
     uint AOTexture;
     uint Sampler;
     uint _Pad0;
-    float2 PrevJitter;
-    float2 CurrJitter;
+    float2 Jitter;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);
@@ -52,7 +51,7 @@ VertexOut Main(VertexIn Input)
 
     float4 pos = float4(Input.Position, 1.0);
     
-    Output.Position = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos);
+    Output.Position = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos) + float4(Settings.Jitter, 0.0, 0.0);
     Output.PrevPosition = mul(mul(Matrices.PrevCameraMatrix, Matrices.PrevTransform), pos);
     Output.CurrPosition = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos);
     Output.TexCoords = float4(Input.TexCoords, 0.0, 0.0);

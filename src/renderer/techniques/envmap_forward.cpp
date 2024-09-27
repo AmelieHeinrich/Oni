@@ -223,5 +223,5 @@ void EnvMapForward::OnUI()
 
 void EnvMapForward::Reconstruct()
 {
-    _cubeRenderer.CheckForRebuild(_context);
+    _cubeRenderer.CheckForRebuild(_context, "Environment Map");
 }

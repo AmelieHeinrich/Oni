@@ -127,6 +127,6 @@ void AutoExposure::OnUI()
 
 void AutoExposure::Reconstruct()
 {
-    _computePipeline.CheckForRebuild(_renderContext);
-    _averagePipeline.CheckForRebuild(_renderContext);
+    _computePipeline.CheckForRebuild(_renderContext, "AE Histogram Compute");
+    _averagePipeline.CheckForRebuild(_renderContext, "AE Histogram Average");
 }

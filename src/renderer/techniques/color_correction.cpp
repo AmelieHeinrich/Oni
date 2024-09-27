@@ -85,5 +85,5 @@ void ColorCorrection::OnUI()
 
 void ColorCorrection::Reconstruct()
 {
-    _computePipeline.CheckForRebuild(_renderContext);
+    _computePipeline.CheckForRebuild(_renderContext, "Color Correction");
 }

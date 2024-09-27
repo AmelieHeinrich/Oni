@@ -195,10 +195,13 @@ void Renderer::Reconstruct()
     _shadows->Reconstruct();
     _deferred->Reconstruct();
     _envMapForward->Reconstruct();
+
+    _taa->Reconstruct();
     _chromaticAberration->Reconstruct();
     _bloom->Reconstruct();
     _colorCorrection->Reconstruct();
     _autoExposure->Reconstruct();
     _tonemapping->Reconstruct();
+
     _debugRenderer->Reconstruct();
 }

@@ -88,5 +88,5 @@ void Tonemapping::OnUI()
 
 void Tonemapping::Reconstruct()
 {
-    _computePipeline.CheckForRebuild(_renderContext);
+    _computePipeline.CheckForRebuild(_renderContext, "Tonemapping");
 }

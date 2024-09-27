@@ -33,8 +33,7 @@ struct SceneData
     uint AOTexture;
     uint Sampler;
     uint _Pad0;
-    float2 PrevJitter;
-    float2 CurrJitter;
+    float2 Jitter;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);
@@ -90,12 +89,10 @@ FragmentOut Main(FragmentIn Input)
 
     FragmentOut output = (FragmentOut)0;
     
-    float2 cancelJitter = Settings.PrevJitter - Settings.CurrJitter;
     float2 oldPos = Input.PrevPosition.xy / Input.PrevPosition.w;
     float2 newPos = Input.CurrPosition.xy / Input.CurrPosition.w;
-    
-    float2 positionDifference = (oldPos - newPos) + cancelJitter;
-    positionDifference.xy *= float2(-1.0f, 1.0f);
+    float2 positionDifference = (oldPos - newPos);
+    positionDifference *= float2(-1.0f, 1.0f);
 
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
     output.AlbedoEmissive = float4(albedo.rgb + emission.rgb, 1.0f);

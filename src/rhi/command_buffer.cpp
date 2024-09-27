@@ -136,7 +136,7 @@ void CommandBuffer::ImageBarrierBatch(const std::vector<Barrier>& barrier)
         pushBarrier.Transition.Subresource = barrier[i].Subresource;
 
         if (pushBarrier.Transition.StateBefore == pushBarrier.Transition.StateAfter)
-            return;
+            continue;
 
         barrierList.push_back(pushBarrier);
     

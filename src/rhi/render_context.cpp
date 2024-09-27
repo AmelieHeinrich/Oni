@@ -329,8 +329,10 @@ void RenderContext::GenerateMips(Texture::Ptr texture)
             glm::vec4(mipWidth, mipHeight, 0, 0)
         };
 
-        cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource, i);
-        cmdBuf->ImageBarrier(texture, TextureLayout::Storage, i + 1);
+        cmdBuf->ImageBarrierBatch({
+            { texture, TextureLayout::ShaderResource, i },
+            { texture, TextureLayout::Storage, i + 1 }
+        });
         cmdBuf->PushConstantsCompute(&constants, sizeof(constants), 0);
         cmdBuf->Dispatch(std::max(mipWidth / 8, 1u), std::max(mipHeight / 8, 1u), 1);
     }

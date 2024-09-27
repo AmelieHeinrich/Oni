@@ -100,5 +100,5 @@ void Shadows::OnUI()
 
 void Shadows::Reconstruct()
 {
-    _shadowPipeline.CheckForRebuild(_context, "Shadow");
+    _shadowPipeline.CheckForRebuild(_context, "Shadows");
 }

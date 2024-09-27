@@ -175,6 +175,6 @@ void DebugRenderer::SetVelocityBuffer(Texture::Ptr texture)
 
 void DebugRenderer::Reconstruct()
 {
-    LineShader.CheckForRebuild(_context);
-    MotionShader.CheckForRebuild(_context);
+    LineShader.CheckForRebuild(_context, "Line Shader");
+    MotionShader.CheckForRebuild(_context, "Motion Visualization");
 }

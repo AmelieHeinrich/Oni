@@ -215,7 +215,7 @@ void Bloom::OnUI()
 
 void Bloom::Reconstruct()
 {
-    _downsamplePipeline.CheckForRebuild(_context);
-    _upsamplePipeline.CheckForRebuild(_context);
-    _compositePipeline.CheckForRebuild(_context);
+    _downsamplePipeline.CheckForRebuild(_context, "Bloom Downsample");
+    _upsamplePipeline.CheckForRebuild(_context, "Bloom Upsamble");
+    _compositePipeline.CheckForRebuild(_context, "Bloom Composite");
 }

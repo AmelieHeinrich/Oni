@@ -26,11 +26,21 @@ public:
 
     void SetVelocityBuffer(Texture::Ptr texture) { _velocityBuffer = texture; }
 private:
+    void AccumulateHistory(uint32_t width, uint32_t height);
+    void Resolve(uint32_t width, uint32_t height);
+
     RenderContext::Ptr _context;
+
+    HotReloadablePipeline _accumulatePipeline;
+    HotReloadablePipeline _resolvePipeline;
 
     Texture::Ptr _velocityBuffer;
     Texture::Ptr _output;
     Texture::Ptr _history;
 
+    Sampler::Ptr _pointSampler;
+    Sampler::Ptr _linearSampler;
+
+    float _modulationFactor = 0.9f;
     bool _enabled = true;
 };

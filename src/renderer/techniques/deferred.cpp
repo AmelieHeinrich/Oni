@@ -79,7 +79,7 @@ Deferred::Deferred(RenderContext::Ptr context)
 
         _gbufferPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            (sizeof(uint32_t) * 8) + (sizeof(glm::vec2) * 2)
+            (sizeof(uint32_t) * 8) + (sizeof(glm::vec2))
         };
         _gbufferPipeline.ReflectRootSignature(false);
         _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferVert.hlsl", "Main", ShaderType::Vertex);
@@ -154,16 +154,8 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
     glm::mat4 depthView = glm::lookAt(scene.Lights.SunTransform.Position, scene.Lights.SunTransform.Position - scene.Lights.SunTransform.GetFrontVector(), glm::vec3(0.0f, 1.0f, 0.0f));
 
     // Apply jitter
-    if (_jitterCounter == 0) {
-        _prevJitter = _haltonSequence[15];
-        _currJitter = _haltonSequence[0];
-    } else {
-        _prevJitter = _haltonSequence[_jitterCounter - 1];
-        _currJitter = _haltonSequence[_jitterCounter];
-    }
+    _currJitter = _haltonSequence[_jitterCounter];
     _jitterCounter = (_jitterCounter + 1) % (_haltonSequence.size());
-
-    scene.Camera.ApplyJitter(_currJitter);
 
     // Start rendering
     commandBuffer->BeginEvent("GBuffer");
@@ -225,8 +217,7 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t AOTexture;
                     uint32_t Sampler;
                     uint32_t _Pad0;
-                    glm::vec2 PrevJitter;
-                    glm::vec2 CurrJitter;
+                    glm::vec2 Jitter;
                 };
                 Data data;
                 data.ModelBuffer = primitive.ModelBuffer[frameIndex]->CBV();
@@ -237,8 +228,10 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 data.AOTexture = ao->SRV();
                 data.Sampler = _sampler->BindlesssSampler();
                 data._Pad0 = 0;
-                data.PrevJitter = _prevJitter;
-                data.CurrJitter = _currJitter;
+                data.Jitter = _currJitter;
+                if (!_jitter) {
+                    data.Jitter = glm::vec2(0.0f, 0.0f);
+                }
 
                 commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
                 commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
@@ -384,8 +377,8 @@ void Deferred::OnUI()
 
 void Deferred::Reconstruct()
 {
-    _gbufferPipeline.CheckForRebuild(_context);
-    _lightingPipeline.CheckForRebuild(_context);
+    _gbufferPipeline.CheckForRebuild(_context, "GBuffer");
+    _lightingPipeline.CheckForRebuild(_context, "Deferred");
 }
 
 void Deferred::ConnectEnvironmentMap(EnvironmentMap& map)
