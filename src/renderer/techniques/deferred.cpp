@@ -6,6 +6,8 @@
 
 #include "deferred.hpp"
 
+#include "core/log.hpp"
+
 Deferred::Deferred(RenderContext::Ptr context)
     : _context(context), _gbufferPipeline(PipelineType::Graphics), _lightingPipeline(PipelineType::Compute)
 {
@@ -77,7 +79,7 @@ Deferred::Deferred(RenderContext::Ptr context)
 
         _gbufferPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            (sizeof(uint32_t) * 7)
+            (sizeof(uint32_t) * 8) + (sizeof(glm::vec2) * 2)
         };
         _gbufferPipeline.ReflectRootSignature(false);
         _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferVert.hlsl", "Main", ShaderType::Vertex);
@@ -108,6 +110,30 @@ Deferred::Deferred(RenderContext::Ptr context)
 
     _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, true, 0);
     _shadowSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, false, 0);
+
+    // Generate halton sequence
+    _haltonSequence = {
+        glm::vec2(0.500000f, 0.333333f),
+        glm::vec2(0.250000f, 0.666667f),
+        glm::vec2(0.750000f, 0.111111f),
+        glm::vec2(0.125000f, 0.444444f),
+        glm::vec2(0.625000f, 0.777778f),
+        glm::vec2(0.375000f, 0.222222f),
+        glm::vec2(0.875000f, 0.555556f),
+        glm::vec2(0.062500f, 0.888889f),
+        glm::vec2(0.562500f, 0.037037f),
+        glm::vec2(0.312500f, 0.370370f),
+        glm::vec2(0.812500f, 0.703704f),
+        glm::vec2(0.187500f, 0.148148f),
+        glm::vec2(0.687500f, 0.481481f),
+        glm::vec2(0.437500f, 0.814815f),
+        glm::vec2(0.937500f, 0.259259f),
+        glm::vec2(0.031250f, 0.592593f)
+    };
+    for (int i = 0; i < _haltonSequence.size(); i++) {
+        _haltonSequence[i].x = ((_haltonSequence[i].x - 0.5f) / width) * 2;
+        _haltonSequence[i].y = ((_haltonSequence[i].y - 0.5f) / height) * 2;
+    }
 }
 
 Deferred::~Deferred()
@@ -123,9 +149,23 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Construct GBuffer");
 
+    // Construct matrices
     glm::mat4 depthProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 0.05f, 50.0f);
     glm::mat4 depthView = glm::lookAt(scene.Lights.SunTransform.Position, scene.Lights.SunTransform.Position - scene.Lights.SunTransform.GetFrontVector(), glm::vec3(0.0f, 1.0f, 0.0f));
 
+    // Apply jitter
+    if (_jitterCounter == 0) {
+        _prevJitter = _haltonSequence[15];
+        _currJitter = _haltonSequence[0];
+    } else {
+        _prevJitter = _haltonSequence[_jitterCounter - 1];
+        _currJitter = _haltonSequence[_jitterCounter];
+    }
+    _jitterCounter = (_jitterCounter + 1) % (_haltonSequence.size());
+
+    scene.Camera.ApplyJitter(_currJitter);
+
+    // Start rendering
     commandBuffer->BeginEvent("GBuffer");
     commandBuffer->ImageBarrier(_normals, TextureLayout::RenderTarget);
     commandBuffer->ImageBarrier(_albedoEmission, TextureLayout::RenderTarget);
@@ -148,7 +188,7 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
 
                 Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
                 Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
-                Texture::Ptr pbr = material.HasMetallicRoughness ? material.PBRTexture : _whiteTexture;
+                Texture::Ptr pbr = material.HasMetallicRoughness ? material.PBRTexture : _blackTexture;
                 Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _blackTexture;
                 Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
 
@@ -182,6 +222,9 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t EmissiveTexture;
                     uint32_t AOTexture;
                     uint32_t Sampler;
+                    uint32_t _Pad0;
+                    glm::vec2 PrevJitter;
+                    glm::vec2 CurrJitter;
                 };
                 Data data;
                 data.ModelBuffer = primitive.ModelBuffer[frameIndex]->CBV();
@@ -191,6 +234,9 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 data.EmissiveTexture = emissive->SRV();
                 data.AOTexture = ao->SRV();
                 data.Sampler = _sampler->BindlesssSampler();
+                data._Pad0 = 0;
+                data.PrevJitter = _prevJitter;
+                data.CurrJitter = _currJitter;
 
                 commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
                 commandBuffer->BindIndexBuffer(primitive.IndexBuffer);

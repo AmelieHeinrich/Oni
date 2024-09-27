@@ -26,6 +26,8 @@ public:
 
     void ConnectEnvironmentMap(EnvironmentMap& map);
     void ConnectShadowMap(Texture::Ptr texture);
+    
+    void ShouldJitter(bool jitter) { _jitter = jitter; }
 
     Texture::Ptr GetOutput() { return _outputImage; }
     Texture::Ptr GetDepthBuffer() { return _depthBuffer; }
@@ -58,6 +60,12 @@ private:
 
     Sampler::Ptr _sampler;
     Sampler::Ptr _shadowSampler;
+
+    std::array<glm::vec2, 16> _haltonSequence;
+    glm::vec2 _currJitter;
+    glm::vec2 _prevJitter;
+    int _jitterCounter = 0;
+    bool _jitter = true;
 
     int _mode = 0;
     bool _visualizeShadow = false;

@@ -12,6 +12,7 @@
 #include "techniques/shadows.hpp"
 #include "techniques/deferred.hpp"
 #include "techniques/envmap_forward.hpp"
+#include "techniques/temporal_anti_aliasing.hpp"
 #include "techniques/chromatic_aberration.hpp"
 #include "techniques/bloom.hpp"
 #include "techniques/color_correction.hpp"
@@ -58,15 +59,19 @@ private:
     Statistics _stats;
     RenderContext::Ptr _renderContext;
 
-    std::shared_ptr<Texture> _testTexture;
-
+    // Geometry
     std::shared_ptr<Shadows> _shadows;
     std::shared_ptr<Deferred> _deferred;
     std::shared_ptr<EnvMapForward> _envMapForward;
+
+    // Post process graph
+    std::shared_ptr<TemporalAntiAliasing> _taa;
     std::shared_ptr<ChromaticAberration> _chromaticAberration;
     std::shared_ptr<Bloom> _bloom;
     std::shared_ptr<ColorCorrection> _colorCorrection;
     std::shared_ptr<AutoExposure> _autoExposure;
     std::shared_ptr<Tonemapping> _tonemapping;
+    
+    // Debug renderer
     std::shared_ptr<DebugRenderer> _debugRenderer;
 };

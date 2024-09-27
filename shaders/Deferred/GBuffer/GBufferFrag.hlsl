@@ -4,6 +4,8 @@
 // $Create Time: 2024-09-19 14:05:32
 //
 
+#define ORCA 0
+
 struct FragmentIn
 {
     float4 Position : SV_POSITION;
@@ -30,6 +32,9 @@ struct SceneData
     uint EmissiveTexture;
     uint AOTexture;
     uint Sampler;
+    uint _Pad0;
+    float2 PrevJitter;
+    float2 CurrJitter;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);
@@ -71,16 +76,26 @@ FragmentOut Main(FragmentIn Input)
     float4 albedo = AlbedoTexture.Sample(Sampler, Input.TexCoords.xy);
     float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords.xy);
     float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords.xy);
+
+#ifndef ORCA
+    float ao = metallicRoughness.r;
+    float roughness = metallicRoughness.g;
+    float metallic = metallicRoughness.b;
+#else
     float metallic = metallicRoughness.b;
     float roughness = metallicRoughness.g;
     float4 aot = AOTexture.Sample(Sampler, Input.TexCoords.xy);
     float ao = aot.r;
+#endif
 
     FragmentOut output = (FragmentOut)0;
     
+    float2 cancelJitter = Settings.PrevJitter - Settings.CurrJitter;
     float2 oldPos = Input.PrevPosition.xy / Input.PrevPosition.w;
     float2 newPos = Input.CurrPosition.xy / Input.CurrPosition.w;
-    float2 positionDifference = newPos - oldPos;
+    
+    float2 positionDifference = (oldPos - newPos) + cancelJitter;
+    positionDifference.xy *= float2(-1.0f, 1.0f);
 
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
     output.AlbedoEmissive = float4(albedo.rgb + emission.rgb, 1.0f);

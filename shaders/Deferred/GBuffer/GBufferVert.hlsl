@@ -37,6 +37,9 @@ struct SceneData
     uint EmissiveTexture;
     uint AOTexture;
     uint Sampler;
+    uint _Pad0;
+    float2 PrevJitter;
+    float2 CurrJitter;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);

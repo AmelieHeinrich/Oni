@@ -46,10 +46,11 @@ public:
     void Update(bool updateFrustum);
     void Input(double dt);
     void Resize(int width, int height);
+    void ApplyJitter(glm::vec2 jitter);
 
-    glm::mat4 View() { return _View; }
-    glm::mat4 Projection() { return _Projection; }
-    glm::vec3 GetPosition() { return _Position; }
+    glm::mat4& View() { return _View; }
+    glm::mat4& Projection() { return _Projection; }
+    glm::vec3& GetPosition() { return _Position; }
 
     bool InFrustum(AABB aabb);
 private:

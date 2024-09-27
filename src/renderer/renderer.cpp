@@ -22,19 +22,23 @@ Renderer::Renderer(RenderContext::Ptr context)
     _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
     _deferred = std::make_shared<Deferred>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _deferred->GetOutput(), _deferred->GetDepthBuffer());
+
+    _deferred->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
+    _deferred->ConnectShadowMap(_shadows->GetOutput());
+
+    _taa = std::make_shared<TemporalAntiAliasing>(context, _deferred->GetOutput());
     _chromaticAberration = std::make_shared<ChromaticAberration>(context, _deferred->GetOutput());
     _bloom = std::make_shared<Bloom>(context, _deferred->GetOutput());
     _colorCorrection = std::make_shared<ColorCorrection>(context, _deferred->GetOutput());
     _autoExposure = std::make_shared<AutoExposure>(context, _deferred->GetOutput());
     _tonemapping = std::make_shared<Tonemapping>(context, _deferred->GetOutput());
+
+    _taa->SetVelocityBuffer(_deferred->GetVelocityBuffer());
+
     _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
+    _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());
 
     DebugRenderer::SetDebugRenderer(_debugRenderer);
-
-    _deferred->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
-    _deferred->ConnectShadowMap(_shadows->GetOutput());
-
-    _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());
 }
 
 Renderer::~Renderer()
@@ -45,6 +49,8 @@ Renderer::~Renderer()
 void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 {
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
+
+    _deferred->ShouldJitter(_taa->IsEnabled());
 
     {
         OPTICK_EVENT("Frame Render");
@@ -57,6 +63,10 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         });
         _stats.PushFrameTime("Environment Map", [this, &scene, width, height]() {
             _envMapForward->Render(scene, width, height);
+        });
+
+        _stats.PushFrameTime("Temporal Anti-Aliasing", [this, &scene, width, height]() {
+            _taa->Render(scene, width, height);
         });
         _stats.PushFrameTime("Chromatic Aberration", [this, &scene, width, height]() {
             _chromaticAberration->Render(scene, width, height);
@@ -73,6 +83,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         _stats.PushFrameTime("Tonemapping", [this, &scene, width, height]() {
             _tonemapping->Render(scene, width, height);
         });
+
         _stats.PushFrameTime("Debug Renderer", [this, &scene, width, height]() {
             _debugRenderer->Flush(scene, width, height);
         });
@@ -97,16 +108,20 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
     }
 }
 
+// Not used
 void Renderer::Resize(uint32_t width, uint32_t height)
 {
     _shadows->Resize(width, height);
     _deferred->Resize(width, height);
     _envMapForward->Resize(width, height, _deferred->GetOutput(), _deferred->GetDepthBuffer());
+
+    _taa->Resize(width, height);
     _chromaticAberration->Resize(width, height, _deferred->GetOutput());
     _bloom->Resize(width, height, _deferred->GetOutput());
     _colorCorrection->Resize(width, height, _deferred->GetOutput());
     _autoExposure->Resize(width, height, _deferred->GetOutput());
     _tonemapping->Resize(width, height, _deferred->GetOutput());
+
     _debugRenderer->Resize(width, height, _tonemapping->GetOutput());
 }
 
@@ -117,11 +132,14 @@ void Renderer::OnUI()
     _shadows->OnUI();
     _deferred->OnUI();
     _envMapForward->OnUI();
+
+    _taa->OnUI();
     _chromaticAberration->OnUI();
     _bloom->OnUI();
     _colorCorrection->OnUI();
     _autoExposure->OnUI();
     _tonemapping->OnUI();
+    
     _debugRenderer->OnUI();
 
     ImGui::End();
