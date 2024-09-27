@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "buffer.hpp"
 #include "texture.hpp"
 #include "cube_map.hpp"
@@ -24,6 +26,13 @@ enum class Topology
     TriangleStrip = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP
 };
 
+struct Barrier
+{
+    Texture::Ptr Texture;
+    TextureLayout NewLayout;
+    int Subresource = 0;
+};
+
 class CommandBuffer
 {
 public:
@@ -41,6 +50,8 @@ public:
 
     void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout);
     void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout, int subresource);
+    void ImageBarrierBatch(const std::vector<Barrier>& barrier);
+    
     void CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout);
     
     void SetViewport(float x, float y, float width, float height);

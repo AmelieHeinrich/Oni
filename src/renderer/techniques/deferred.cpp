@@ -167,10 +167,12 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
 
     // Start rendering
     commandBuffer->BeginEvent("GBuffer");
-    commandBuffer->ImageBarrier(_normals, TextureLayout::RenderTarget);
-    commandBuffer->ImageBarrier(_albedoEmission, TextureLayout::RenderTarget);
-    commandBuffer->ImageBarrier(_pbrData, TextureLayout::RenderTarget);
-    commandBuffer->ImageBarrier(_velocityBuffer, TextureLayout::RenderTarget);
+    commandBuffer->ImageBarrierBatch({
+        { _normals, TextureLayout::RenderTarget },
+        { _albedoEmission, TextureLayout::RenderTarget },
+        { _pbrData, TextureLayout::RenderTarget },
+        { _velocityBuffer, TextureLayout::RenderTarget }
+    });
     commandBuffer->ClearRenderTarget(_normals, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_albedoEmission, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);

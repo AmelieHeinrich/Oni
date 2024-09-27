@@ -124,6 +124,27 @@ void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout, 
     texture->SetState(D3D12_RESOURCE_STATES(newLayout), subresource);
 }
 
+void CommandBuffer::ImageBarrierBatch(const std::vector<Barrier>& barrier)
+{
+    std::vector<D3D12_RESOURCE_BARRIER> barrierList;
+    for (int i = 0; i < barrier.size(); i++) {
+        D3D12_RESOURCE_BARRIER pushBarrier = {};
+        pushBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        pushBarrier.Transition.pResource = barrier[i].Texture->GetResource().Resource;
+        pushBarrier.Transition.StateBefore = barrier[i].Texture->GetState(barrier[i].Subresource);
+        pushBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES(barrier[i].NewLayout);
+        pushBarrier.Transition.Subresource = barrier[i].Subresource;
+
+        if (pushBarrier.Transition.StateBefore == pushBarrier.Transition.StateAfter)
+            return;
+
+        barrierList.push_back(pushBarrier);
+    
+        barrier[i].Texture->SetState(D3D12_RESOURCE_STATES(barrier[i].NewLayout), barrier[i].Subresource);
+    }
+    _commandList->ResourceBarrier(barrierList.size(), barrierList.data());
+}
+
 void CommandBuffer::CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout)
 {
     D3D12_RESOURCE_BARRIER barrier = {};

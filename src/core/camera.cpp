@@ -98,10 +98,10 @@ void FreeCamera::Resize(int width, int height)
 void FreeCamera::ApplyJitter(glm::vec2 jitter)
 {
     glm::mat4 haltonMatrix(
-        1.0f,                  0.0f,                  0.0f, 0.0f,
-        0.0f,                  1.0f,                  0.0f, 0.0f,
-        0.0f,                  0.0f,                  1.0f, 0.0f,
-        jitter.x,              jitter.y,         0.0f, 1.0f
+        1.0f,     0.0f,     0.0f, 0.0f,
+        0.0f,     1.0f,     0.0f, 0.0f,
+        0.0f,     0.0f,     1.0f, 0.0f,
+        jitter.x, jitter.y, 0.0f, 1.0f
     );
     _Projection *= haltonMatrix;
 }

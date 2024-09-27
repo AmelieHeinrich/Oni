@@ -54,8 +54,10 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_EVENT("Tonemapping PostFX");
 
     cmdBuf->BeginEvent("Tonemapping Pass");
-    cmdBuf->ImageBarrier(_inputHDR, TextureLayout::ShaderResource);
-    cmdBuf->ImageBarrier(_outputLDR, TextureLayout::Storage);
+    cmdBuf->ImageBarrierBatch({
+        { _inputHDR, TextureLayout::ShaderResource },
+        { _outputLDR, TextureLayout::Storage }
+    });
     cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
     cmdBuf->PushConstantsCompute(&constants, sizeof(PushConstants), 0);
     cmdBuf->Dispatch(width / 8, height / 8, 1);

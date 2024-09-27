@@ -142,11 +142,14 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             };
 
             cmdBuffer->BeginEvent("Motion Visualizer", 200, 200, 200);
-            cmdBuffer->ImageBarrier(VelocityBuffer, TextureLayout::ShaderResource);
-            cmdBuffer->ImageBarrier(Output, TextureLayout::Storage);
+            cmdBuffer->ImageBarrierBatch({
+                { VelocityBuffer, TextureLayout::ShaderResource },
+                { Output, TextureLayout::Storage }
+            });
             cmdBuffer->BindComputePipeline(MotionShader.ComputePipeline);
             cmdBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
             cmdBuffer->Dispatch(width / 8, height / 8, 1);
+            cmdBuffer->ImageBarrier(VelocityBuffer, TextureLayout::RenderTarget);
             cmdBuffer->EndEvent();
         }
     }

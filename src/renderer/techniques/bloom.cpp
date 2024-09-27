@@ -83,8 +83,10 @@ void Bloom::Downsample(Scene& scene, uint32_t width, uint32_t height)
     for (int i = 0; i < MIP_COUNT - 1; i++) {
         const auto& mip = _mipChain[i];
         
-        cmdBuf->ImageBarrier(_mipChain[i].RenderTarget, TextureLayout::ShaderResource);
-        cmdBuf->ImageBarrier(_mipChain[i + 1].RenderTarget, TextureLayout::Storage);
+        cmdBuf->ImageBarrierBatch({
+            { _mipChain[i].RenderTarget, TextureLayout::ShaderResource },
+            { _mipChain[i + 1].RenderTarget, TextureLayout::Storage }
+        });
         cmdBuf->BindComputePipeline(_downsamplePipeline.ComputePipeline);
         cmdBuf->PushConstantsCompute(glm::value_ptr(glm::ivec3(_mipChain[i].RenderTarget->SRV(), _linearClamp->BindlesssSampler(), _mipChain[i + 1].RenderTarget->UAV())), sizeof(glm::ivec3), 0);
         cmdBuf->Dispatch(std::max(uint32_t(mip.Size.x) / 8u, 1u), std::max(uint32_t(mip.Size.y) / 8u, 1u), 1);
@@ -117,8 +119,10 @@ void Bloom::Upsample(Scene& scene, uint32_t width, uint32_t height)
         data.LinearSampler = _linearClamp->BindlesssSampler();
         data.MipNMinusOne = _mipChain[i - 1].RenderTarget->UAV();
 
-        cmdBuf->ImageBarrier(_mipChain[i].RenderTarget, TextureLayout::ShaderResource);
-        cmdBuf->ImageBarrier(_mipChain[i - 1].RenderTarget, TextureLayout::Storage);
+        cmdBuf->ImageBarrierBatch({
+            { _mipChain[i].RenderTarget, TextureLayout::ShaderResource },
+            { _mipChain[i - 1].RenderTarget, TextureLayout::Storage }
+        });
         cmdBuf->BindComputePipeline(_upsamplePipeline.ComputePipeline);
         cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
         cmdBuf->Dispatch(std::max(uint32_t(mip.Size.x) / 8u, 1u),
@@ -151,8 +155,10 @@ void Bloom::Composite(Scene& scene, uint32_t width, uint32_t height)
     data.BloomStrength = _bloomStrenght;
 
     cmdBuf->BeginEvent("Bloom Composite");
-    cmdBuf->ImageBarrier(firstMip.RenderTarget, TextureLayout::ShaderResource);
-    cmdBuf->ImageBarrier(_output, TextureLayout::Storage);
+    cmdBuf->ImageBarrierBatch({
+        { firstMip.RenderTarget, TextureLayout::ShaderResource },
+        { _output, TextureLayout::Storage }
+    });
     cmdBuf->BindComputePipeline(_compositePipeline.ComputePipeline);
     cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
     cmdBuf->Dispatch(std::max(width / 8u, 1u), std::max(height / 8u, 1u), 1);
