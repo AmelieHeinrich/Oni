@@ -40,6 +40,6 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     float3 historyColor = History[ThreadID.xy].rgb;
     float3 currentColor = Current.Sample(LinearSampler, previousPixelPos).rgb;
 
-    float3 color = lerp(historyColor, currentColor, 1.0 - Settings.ModulationFactor);
+    float3 color = lerp(historyColor, currentColor, Settings.ModulationFactor);
     History[ThreadID.xy] = float4(color, 1.0);
 }

@@ -41,6 +41,6 @@ private:
     Sampler::Ptr _pointSampler;
     Sampler::Ptr _linearSampler;
 
-    float _modulationFactor = 0.9f;
+    float _modulationFactor = 0.1f;
     bool _enabled = true;
 };
