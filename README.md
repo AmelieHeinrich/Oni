@@ -66,7 +66,8 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 
 ## WIP
 
-- FXAA
+- TAA
+- Motion Blur
 
 ## Screenshots
 

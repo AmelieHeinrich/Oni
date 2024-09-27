@@ -101,6 +101,6 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
     RWTexture2D<float4> OutputHDR = ResourceDescriptorHeap[Settings.OutputHDR];
 
-    float4 FragColor = (1.0 - Arrow(ThreadID.xy, Field(ArrowTileCenterCoord(ThreadID.xy)) * ARROW_TILE_SIZE * 0.4)) * float4(Field(ThreadID.xy) * 0.5 + 0.5, 0.5, 1.0);
+    float4 FragColor = (1.0 - Arrow(ThreadID.xy, Field(ArrowTileCenterCoord(ThreadID.xy)) * ARROW_TILE_SIZE * 0.4)) * float4((Field(ThreadID.xy) * float2(1000.0, 1000.0)) * 0.5 + 0.5, 0.5, 1.0);
     OutputHDR[ThreadID.xy] = FragColor;
 }

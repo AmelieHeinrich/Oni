@@ -14,9 +14,10 @@ struct VertexIn
 struct VertexOut
 {
     float4 Position : SV_POSITION;
-    float4 PrevPosition : COLOR0;
-    float2 TexCoords : TEXCOORD;
-    float3 Normals: NORMAL;
+    float4 PrevPosition : POSITION0;
+    float4 CurrPosition : POSITION1;
+    float4 TexCoords : TEXCOORD;
+    float4 Normals: NORMAL;
 };
 
 struct ModelMatrices
@@ -50,8 +51,9 @@ VertexOut Main(VertexIn Input)
     
     Output.Position = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos);
     Output.PrevPosition = mul(mul(Matrices.PrevCameraMatrix, Matrices.PrevTransform), pos);
-    Output.TexCoords = Input.TexCoords;
-    Output.Normals = normalize(float4(mul(transpose(Matrices.Transform), float4(Input.Normals, 1.0))).xyz);
+    Output.CurrPosition = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos);
+    Output.TexCoords = float4(Input.TexCoords, 0.0, 0.0);
+    Output.Normals = normalize(float4(mul(transpose(Matrices.Transform), float4(Input.Normals, 1.0))));
     
     return Output;
 }

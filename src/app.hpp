@@ -58,5 +58,6 @@ private:
     int _historySize = 10000;
 
     int _fps;
+    int _frameCount = 0;
     float _frameTime = 0.0f;
 };

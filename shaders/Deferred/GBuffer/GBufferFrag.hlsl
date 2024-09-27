@@ -7,9 +7,10 @@
 struct FragmentIn
 {
     float4 Position : SV_POSITION;
-    float4 PrevPosition : COLOR0;
-    float2 TexCoords : TEXCOORD;
-    float3 Normals: NORMAL;
+    float4 PrevPosition : POSITION0;
+    float4 CurrPosition : POSITION1;
+    float4 TexCoords : TEXCOORD;
+    float4 Normals: NORMAL;
 };
 
 struct FragmentOut
@@ -40,17 +41,17 @@ float3 GetNormalFromMap(FragmentIn Input)
 
     float3 hasNormalTexture = NormalTexture.Sample(Sampler, float2(0.0, 0.0)).rgb;
     if (hasNormalTexture.r == 1.0 && hasNormalTexture.g == 1.0 && hasNormalTexture.b == 1.0) {
-        return normalize(Input.Normals);
+        return normalize(Input.Normals.xyz);
     }
 
-    float3 tangentNormal = NormalTexture.Sample(Sampler, Input.TexCoords).rgb * 2.0 - 1.0;
+    float3 tangentNormal = NormalTexture.Sample(Sampler, Input.TexCoords.xy).rgb * 2.0 - 1.0;
 
     float3 Q1 = normalize(ddx(Input.Position.xyz));
     float3 Q2 = normalize(ddy(Input.Position.xyz));
     float2 ST1 = normalize(ddx(Input.TexCoords.xy));
     float2 ST2 = normalize(ddy(Input.TexCoords.xy));
 
-    float3 N = normalize(Input.Normals);
+    float3 N = normalize(Input.Normals.xyz);
     float3 T = normalize(Q1 * ST2.y - Q2 * ST1.y);
     float3 B = -normalize(cross(N, T));
     float3x3 TBN = float3x3(T, B, N);
@@ -67,18 +68,18 @@ FragmentOut Main(FragmentIn Input)
     Texture2D AOTexture = ResourceDescriptorHeap[Settings.AOTexture];
     SamplerState Sampler = SamplerDescriptorHeap[Settings.Sampler];
 
-    float4 albedo = AlbedoTexture.Sample(Sampler, Input.TexCoords);
-    float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords);
-    float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords);
+    float4 albedo = AlbedoTexture.Sample(Sampler, Input.TexCoords.xy);
+    float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords.xy);
+    float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords.xy);
     float metallic = metallicRoughness.b;
     float roughness = metallicRoughness.g;
-    float4 aot = AOTexture.Sample(Sampler, Input.TexCoords);
+    float4 aot = AOTexture.Sample(Sampler, Input.TexCoords.xy);
     float ao = aot.r;
 
     FragmentOut output = (FragmentOut)0;
     
     float2 oldPos = Input.PrevPosition.xy / Input.PrevPosition.w;
-    float2 newPos = Input.Position.xy / Input.Position.w;
+    float2 newPos = Input.CurrPosition.xy / Input.CurrPosition.w;
     float2 positionDifference = newPos - oldPos;
 
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);

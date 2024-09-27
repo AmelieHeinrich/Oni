@@ -112,7 +112,7 @@ void App::Run()
         float dt = (time - _lastFrame) / 1000.0f;
         _lastFrame = time;
 
-        glm::vec3 translation = glm::vec3(4.0 * (sin(((time / 1000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
+        glm::vec3 translation = glm::vec3(4.0 * (sin(((time / 5000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
         scene.Models[0].Primitives[0].Transform = glm::translate(glm::mat4(1.0f), translation);
 
         _camera.Update(_updateFrustum);
@@ -211,6 +211,8 @@ void App::Run()
             _frameTime = _frameTimer.GetElapsed();
             _updateTimer.Restart();
         } 
+
+        _frameCount++;
     }
 }
 
