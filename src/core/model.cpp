@@ -180,10 +180,14 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     renderContext->FlushUploader(uploader);
 
     struct ModelData {
+        glm::mat4 Camera;
+        glm::mat4 PrevCamera;
         glm::mat4 Transform;
         glm::mat4 PrevTransform;
     };
     ModelData temp;
+    temp.Camera = glm::mat4(1.0f);
+    temp.PrevCamera = glm::mat4(1.0f);
     temp.Transform = out.Transform;
     temp.PrevTransform = out.Transform;
 

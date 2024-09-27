@@ -65,9 +65,10 @@ bool ShaderCompiler::CompileShader(const std::string& path, const std::string& e
     }
 
     LPCWSTR pArgs[] = {
-        L"-Zs",
+        L"-Zi",
         L"-Fd",
-        L"-Fre"
+        L"-Fre",
+        L"-Qembed_debug"
     };
 
     ComPtr<IDxcOperationResult> pResult;

@@ -115,13 +115,6 @@ void App::Run()
         glm::vec3 translation = glm::vec3(4.0 * (sin(((time / 1000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
         scene.Models[0].Primitives[0].Transform = glm::translate(glm::mat4(1.0f), translation);
 
-        for (auto& model : scene.Models) {
-            for (auto& primitive : model.Primitives) {
-                primitive.PrevTransform = primitive.Transform;
-            }
-        }
-        scene.PrevViewProj = scene.Camera.Projection() * scene.Camera.View();
-
         _camera.Update(_updateFrustum);
 
         if (ImGui::IsKeyPressed(ImGuiKey_F1)) {
@@ -194,6 +187,16 @@ void App::Run()
                 _renderContext->Present(_vsync);
                 _renderContext->Finish();
             });
+        }
+
+        // Update matrices
+        {
+            for (auto& model : scene.Models) {
+                for (auto& primitive : model.Primitives) {
+                    primitive.PrevTransform = primitive.Transform;
+                }
+            }
+            scene.PrevViewProj = scene.Camera.Projection() * scene.Camera.View();
         }
 
         _renderer->Reconstruct();

@@ -166,6 +166,7 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 };
                 if (_visualizeShadow) {
                     matrices.CameraMatrix = depthProjection * depthView;
+                    matrices.PrevCameraMatrix = depthProjection * depthView;
                 }
 
                 void *pData;

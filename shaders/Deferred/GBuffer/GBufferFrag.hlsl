@@ -79,11 +79,12 @@ FragmentOut Main(FragmentIn Input)
     
     float2 oldPos = Input.PrevPosition.xy / Input.PrevPosition.w;
     float2 newPos = Input.Position.xy / Input.Position.w;
+    float2 positionDifference = newPos - oldPos;
 
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
     output.AlbedoEmissive = float4(albedo.rgb + emission.rgb, 1.0f);
     output.PbrAO = float4(float3(metallic, roughness, ao), 1.0f);
-    output.Velocity = newPos - oldPos;
+    output.Velocity = positionDifference;
 
     return output;
 }
