@@ -128,6 +128,7 @@ void Allocator::OnGUI()
                     if (ImGui::TreeNodeEx(ss.str().c_str(), ImGuiTreeNodeFlags_Framed)) {
                         if (_uiSelected->AttachedTexture->_srvs.size() > 0) {
                             if (_uiSelected->AttachedTexture->_srvs[i].Valid && _uiSelected->AttachedTexture->_dsv.Valid != true) {
+                                ImGui::Text("Heap Index: %d", _uiSelected->AttachedTexture->_srvs[i].HeapIndex);
                                 if (_uiSelected->AttachedTexture->GetState(i) == D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE)
                                     ImGui::Image((ImTextureID)_uiSelected->AttachedTexture->_srvs[i].GPU.ptr, ImVec2(256, 256));
                             }

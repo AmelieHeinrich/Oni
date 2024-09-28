@@ -138,9 +138,11 @@ void CommandBuffer::ImageBarrierBatch(const std::vector<Barrier>& barrier)
         if (pushBarrier.Transition.StateBefore == pushBarrier.Transition.StateAfter)
             continue;
 
-        barrierList.push_back(pushBarrier);
-    
         barrier[i].Texture->SetState(D3D12_RESOURCE_STATES(barrier[i].NewLayout), barrier[i].Subresource);
+        barrierList.push_back(pushBarrier);
+    }
+    if (barrierList.size() == 0) {
+        return;
     }
     _commandList->ResourceBarrier(barrierList.size(), barrierList.data());
 }

@@ -50,6 +50,7 @@ struct Constants
     uint AlbedoEmissive;
     uint PbrAO;
     uint Velocity;
+    uint Emissive;
 
     uint Irradiance;
     uint Prefilter;
@@ -174,6 +175,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     Texture2D AlbedoEmissive = ResourceDescriptorHeap[Settings.AlbedoEmissive];
     Texture2D PbrAO = ResourceDescriptorHeap[Settings.PbrAO];
     Texture2D<float2> Velocity = ResourceDescriptorHeap[Settings.Velocity];
+    Texture2D<float4> Emissive = ResourceDescriptorHeap[Settings.Emissive];
     TextureCube Irradiance = ResourceDescriptorHeap[Settings.Irradiance];
     TextureCube Prefilter = ResourceDescriptorHeap[Settings.Prefilter];
     Texture2D BRDF = ResourceDescriptorHeap[Settings.BRDF];
@@ -209,7 +211,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     data.LightPos = shadowPosition;
 
     // Albedo + Emissive
-    float4 albedo = AlbedoEmissive.Sample(Sampler, TexCoords);
+    float4 albedo = AlbedoEmissive.Sample(Sampler, TexCoords) + Emissive.Sample(Sampler, TexCoords);
     albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
 
     // PBR + AO
@@ -273,7 +275,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = float4(color, 1.0);
             break;
         case MODE_ALBEDO:
-            final = albedo;
+            final = pow(AlbedoEmissive.Sample(Sampler, TexCoords), float4(2.2, 2.2, 2.2, 1.0));
             break;
         case MODE_NORMAL:
             final = float4(normals.rgb * 0.5 + 0.5, 1.0);
@@ -285,7 +287,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = float4(ao, ao, ao, 1.0);
             break;
         case MODE_EMISSIVE:
-            final = albedo;
+            final = Emissive.Sample(Sampler, TexCoords);
             break;
         case MODE_SPECULAR:
             final = float4(Lo, 1.0);

@@ -30,6 +30,7 @@ struct ModelMatrices
 
 struct SceneData
 {
+    // 36
     uint ModelBuffer;
     uint AlbedoTexture;
     uint NormalTexture; 
@@ -37,8 +38,11 @@ struct SceneData
     uint EmissiveTexture;
     uint AOTexture;
     uint Sampler;
-    uint _Pad0;
     float2 Jitter;
+    
+    // 28 bytes
+    float4 _Pad1;
+    float3 _Pad2;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);
@@ -55,7 +59,7 @@ VertexOut Main(VertexIn Input)
     Output.PrevPosition = mul(mul(Matrices.PrevCameraMatrix, Matrices.PrevTransform), pos);
     Output.CurrPosition = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos);
     Output.TexCoords = float4(Input.TexCoords, 0.0, 0.0);
-    Output.Normals = normalize(float4(mul(transpose(Matrices.Transform), float4(Input.Normals, 1.0))));
+    Output.Normals = normalize(float4(mul(Matrices.Transform, float4(Input.Normals, 1.0))));
     
     return Output;
 }

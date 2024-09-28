@@ -24,7 +24,7 @@
 
 #include "renderer/techniques/debug_renderer.hpp"
 
-constexpr int TEST_LIGHT_COUNT = 32;
+constexpr int TEST_LIGHT_COUNT = 0;
 
 float random_float(float min, float max)
 {
@@ -64,7 +64,7 @@ App::App()
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
     Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/suzanne/Suzanne.gltf");
+    sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
 
     //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
@@ -112,8 +112,8 @@ void App::Run()
         float dt = (time - _lastFrame) / 1000.0f;
         _lastFrame = time;
 
-        glm::vec3 translation = glm::vec3(2.0 * (sin(((time / 1000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
-        scene.Models[0].Primitives[0].Transform = glm::translate(glm::mat4(1.0f), translation);
+        //glm::vec3 translation = glm::vec3(2.0 * (sin(((time / 1000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
+        //scene.Models[0].Primitives[0].Transform = glm::translate(glm::mat4(1.0f), translation);
 
         _camera.Update(_updateFrustum);
 

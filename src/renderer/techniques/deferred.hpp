@@ -32,6 +32,7 @@ public:
     Texture::Ptr GetOutput() { return _outputImage; }
     Texture::Ptr GetDepthBuffer() { return _depthBuffer; }
     Texture::Ptr GetVelocityBuffer() { return _velocityBuffer; }
+    Texture::Ptr GetEmissiveBuffer() { return _emissive; }
 private:
     void GBufferPass(Scene& scene, uint32_t width, uint32_t height);
     void LightingPass(Scene& scene, uint32_t width, uint32_t height);
@@ -45,6 +46,7 @@ private:
     Texture::Ptr _albedoEmission;
     Texture::Ptr _pbrData;
     Texture::Ptr _velocityBuffer;
+    Texture::Ptr _emissive;
 
     Texture::Ptr _whiteTexture;
     Texture::Ptr _blackTexture;

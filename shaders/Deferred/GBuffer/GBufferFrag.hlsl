@@ -20,11 +20,13 @@ struct FragmentOut
     float4 Normals : SV_TARGET0;
     float4 AlbedoEmissive : SV_TARGET1;
     float4 PbrAO : SV_TARGET2;
-    float2 Velocity: SV_TARGET3;
+    float4 Emissive: SV_TARGET3;
+    float2 Velocity: SV_TARGET4;
 };
 
 struct SceneData
 {
+    // 36
     uint ModelBuffer;
     uint AlbedoTexture;
     uint NormalTexture; 
@@ -32,8 +34,11 @@ struct SceneData
     uint EmissiveTexture;
     uint AOTexture;
     uint Sampler;
-    uint _Pad0;
     float2 Jitter;
+    
+    // 28 bytes
+    float4 _Pad1;
+    float3 _Pad2;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);
@@ -75,17 +80,20 @@ FragmentOut Main(FragmentIn Input)
     float4 albedo = AlbedoTexture.Sample(Sampler, Input.TexCoords.xy);
     float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords.xy);
     float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords.xy);
-
-#ifndef ORCA
-    float ao = metallicRoughness.r;
-    float roughness = metallicRoughness.g;
-    float metallic = metallicRoughness.b;
-#else
-    float metallic = metallicRoughness.b;
-    float roughness = metallicRoughness.g;
     float4 aot = AOTexture.Sample(Sampler, Input.TexCoords.xy);
-    float ao = aot.r;
-#endif
+
+    float ao = 1.0f;
+    float roughness = 0.0f;
+    float metallic = 0.0f;
+    if (ORCA) {
+        ao = metallicRoughness.r;
+        roughness = metallicRoughness.g;
+        metallic = metallicRoughness.b;
+    } else {
+        metallic = metallicRoughness.b;
+        roughness = metallicRoughness.g;
+        ao = aot.r;
+    }
 
     FragmentOut output = (FragmentOut)0;
     
@@ -95,8 +103,9 @@ FragmentOut Main(FragmentIn Input)
     positionDifference *= float2(-1.0f, 1.0f);
 
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
-    output.AlbedoEmissive = float4(albedo.rgb + emission.rgb, 1.0f);
+    output.AlbedoEmissive = float4(albedo.rgb, 1.0f);
     output.PbrAO = float4(float3(metallic, roughness, ao), 1.0f);
+    output.Emissive = float4(emission.rgb, 1.0f);
     output.Velocity = positionDifference;
 
     return output;

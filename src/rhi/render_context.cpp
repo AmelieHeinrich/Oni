@@ -365,8 +365,10 @@ void RenderContext::GenerateMips(Texture::Ptr texture, CommandBuffer::Ptr cmdBuf
         memcpy(pData, glm::value_ptr(data), sizeof(data));
         buffers[i]->Unmap(0, 0);
 
-        cmdBuf->ImageBarrier(texture, TextureLayout::ShaderResource, i);
-        cmdBuf->ImageBarrier(texture, TextureLayout::Storage, i + 1);
+        cmdBuf->ImageBarrierBatch({
+            { texture, TextureLayout::ShaderResource, i },
+            { texture, TextureLayout::Storage, i + 1 }
+        });
         cmdBuf->BindComputeShaderResource(texture, 0, i);
         cmdBuf->BindComputeStorageTexture(texture, 1, i + 1);
         cmdBuf->BindComputeSampler(_mipmapSampler, 2);

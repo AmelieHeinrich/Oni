@@ -88,4 +88,4 @@ Oni makes heavy use of compute shaders for its rendering. Anything that isn't a 
 - [optick](https://github.com/bombomby/optick)
 - [stb](https://github.com/nothings/stb)
 - [Agility SDK](https://devblogs.microsoft.com/directx/directx12agility/)
-- [Assimp](https://github.com/assimp/assimp)
+- [cgltf](https://github.com/jkuhlmann/cgltf)

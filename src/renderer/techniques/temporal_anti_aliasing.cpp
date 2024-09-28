@@ -23,15 +23,6 @@ TemporalAntiAliasing::TemporalAntiAliasing(RenderContext::Ptr renderContext, Tex
 
     _linearSampler = _context->CreateSampler(SamplerAddress::Border, SamplerFilter::Linear, false, 0);
     _pointSampler = _context->CreateSampler(SamplerAddress::Border, SamplerFilter::Nearest, false, 0);
-
-    CommandBuffer::Ptr commandBuffer = _context->CreateCommandBuffer(CommandQueueType::Graphics, false);
-    commandBuffer->Begin(false);
-    commandBuffer->ImageBarrierBatch({
-        { _history, TextureLayout::CopyDest },
-        { _output, TextureLayout::CopySource },
-    });
-    commandBuffer->CopyTextureToTexture(_history, _output);
-    commandBuffer->End();
 }
 
 void TemporalAntiAliasing::Render(Scene& scene, uint32_t width, uint32_t height)
@@ -98,6 +89,10 @@ void TemporalAntiAliasing::Resolve(uint32_t width, uint32_t height)
         { _output, TextureLayout::CopySource },
     });
     commandBuffer->CopyTextureToTexture(_history, _output);
+    commandBuffer->ImageBarrierBatch({
+        { _history, TextureLayout::ShaderResource },
+        { _output, TextureLayout::Storage },
+    });
     commandBuffer->EndEvent();
 }
 

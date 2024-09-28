@@ -29,6 +29,10 @@ Deferred::Deferred(RenderContext::Ptr context)
     _velocityBuffer = _context->CreateTexture(width, height, TextureFormat::RG16Float, TextureUsage::RenderTarget, false, "[GBUFFER] Velocity buffer");
     _velocityBuffer->BuildRenderTarget();
     _velocityBuffer->BuildShaderResource();
+    
+    _emissive = _context->CreateTexture(width, height, TextureFormat::RGBA16Float, TextureUsage::RenderTarget, false, "[GBUFFER] Emissive");
+    _emissive->BuildRenderTarget();
+    _emissive->BuildShaderResource();
 
     _whiteTexture = context->CreateTexture(1, 1, TextureFormat::RGBA8, TextureUsage::ShaderResource, false, "[DEFERRED] White Texture");
     _whiteTexture->BuildShaderResource();
@@ -66,20 +70,22 @@ Deferred::Deferred(RenderContext::Ptr context)
     _depthBuffer->BuildShaderResource(TextureFormat::R32Float);
 
     {
-        _gbufferPipeline.Specs.FormatCount = 4;
+        _gbufferPipeline.Specs.FormatCount = 5;
         _gbufferPipeline.Specs.Formats[0] = TextureFormat::RGBA16Float;
         _gbufferPipeline.Specs.Formats[1] = TextureFormat::RGBA8;
         _gbufferPipeline.Specs.Formats[2] = TextureFormat::RGBA8;
-        _gbufferPipeline.Specs.Formats[3] = TextureFormat::RG16Float;
+        _gbufferPipeline.Specs.Formats[3] = TextureFormat::RGBA16Float;
+        _gbufferPipeline.Specs.Formats[4] = TextureFormat::RG16Float;
         _gbufferPipeline.Specs.DepthFormat = TextureFormat::R32Depth;
         _gbufferPipeline.Specs.Depth = DepthOperation::Less;
         _gbufferPipeline.Specs.DepthEnabled = true;
         _gbufferPipeline.Specs.Cull = CullMode::Front;
         _gbufferPipeline.Specs.Fill = FillMode::Solid;
+        _gbufferPipeline.Specs.CCW = false;
 
         _gbufferPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            (sizeof(uint32_t) * 8) + (sizeof(glm::vec2))
+            64
         };
         _gbufferPipeline.ReflectRootSignature(false);
         _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferVert.hlsl", "Main", ShaderType::Vertex);
@@ -163,17 +169,19 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
         { _normals, TextureLayout::RenderTarget },
         { _albedoEmission, TextureLayout::RenderTarget },
         { _pbrData, TextureLayout::RenderTarget },
+        { _emissive, TextureLayout::RenderTarget },
         { _velocityBuffer, TextureLayout::RenderTarget }
     });
     commandBuffer->ClearRenderTarget(_normals, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_albedoEmission, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);
+    commandBuffer->ClearRenderTarget(_emissive, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_velocityBuffer, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearDepthTarget(_depthBuffer);
     if (_draw) {
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->SetTopology(Topology::TriangleList);
-        commandBuffer->BindRenderTargets({ _normals, _albedoEmission, _pbrData, _velocityBuffer }, _depthBuffer);
+        commandBuffer->BindRenderTargets({ _normals, _albedoEmission, _pbrData, _emissive, _velocityBuffer }, _depthBuffer);
         commandBuffer->BindGraphicsPipeline(_gbufferPipeline.GraphicsPipeline);
 
         for (auto model : scene.Models) {
@@ -216,8 +224,10 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t EmissiveTexture;
                     uint32_t AOTexture;
                     uint32_t Sampler;
-                    uint32_t _Pad0;
                     glm::vec2 Jitter;
+
+                    glm::vec4 _Pad0;
+                    glm::vec3 _Pad1;
                 };
                 Data data;
                 data.ModelBuffer = primitive.ModelBuffer[frameIndex]->CBV();
@@ -227,7 +237,6 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 data.EmissiveTexture = emissive->SRV();
                 data.AOTexture = ao->SRV();
                 data.Sampler = _sampler->BindlesssSampler();
-                data._Pad0 = 0;
                 data.Jitter = _currJitter;
                 if (!_jitter) {
                     data.Jitter = glm::vec2(0.0f, 0.0f);
@@ -289,6 +298,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             uint32_t AlbedoEmissive;
             uint32_t PbrAO;
             uint32_t Velocity;
+            uint32_t Emissive;
             uint32_t Irradiance;
             uint32_t Prefilter;
             uint32_t BRDF;
@@ -306,6 +316,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             _albedoEmission->SRV(),
             _pbrData->SRV(),
             _velocityBuffer->SRV(),
+            _emissive->SRV(),
             _map.IrradianceMap->SRV(),
             _map.PrefilterMap->SRV(),
             _map.BRDF->SRV(),

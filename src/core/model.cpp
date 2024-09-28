@@ -8,48 +8,83 @@
 #include "core/bitmap.hpp"
 #include "core/log.hpp"
 
-void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, const aiScene *scene, glm::mat4 transform)
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform)
 {
+    if (primitive->type != cgltf_primitive_type_triangles) {
+        Logger::Warn("GLTF primitive isn't a triangle list, discarding.");
+        return;
+    }
+
     Primitive out;
     out.Transform = transform;
 
     // Geometry
+    cgltf_attribute* pos_attribute = nullptr;
+    cgltf_attribute* uv_attribute = nullptr;
+    cgltf_attribute* norm_attribute = nullptr;
+
+    for (int i = 0; i < primitive->attributes_count; i++) {
+        if (!strcmp(primitive->attributes[i].name, "POSITION")) {
+            pos_attribute = &primitive->attributes[i];
+        }
+        if (!strcmp(primitive->attributes[i].name, "TEXCOORD_0")) {
+            uv_attribute = &primitive->attributes[i];
+        }
+        if (!strcmp(primitive->attributes[i].name, "NORMAL")) {
+            norm_attribute = &primitive->attributes[i];
+        }
+    }
+    if (!pos_attribute || !uv_attribute || !norm_attribute) {
+        Logger::Warn("Didn't find all GLTF attributes, discarding.");
+        return;
+    }
+
+    int vertexCount = pos_attribute->data->count;
+    int indexCount = primitive->indices->count;
+
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
-    for (int i = 0; i < mesh->mNumVertices; i++) {
+    for (int i = 0; i < vertexCount; i++) {
         Vertex vertex;
 
-        vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-        if (mesh->HasNormals()) {
-            vertex.Normals = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+        if (!cgltf_accessor_read_float(pos_attribute->data, i, glm::value_ptr(vertex.Position), 4)) {
+            Logger::Warn("Failed to read all position attributes!");
         }
-        if (mesh->mTextureCoords[0]) {
-            vertex.UV = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+        if (!cgltf_accessor_read_float(uv_attribute->data, i, glm::value_ptr(vertex.UV), 4)) {
+            Logger::Warn("Failed to read all UV attributes!");
         }
-        
+        if (!cgltf_accessor_read_float(norm_attribute->data, i, glm::value_ptr(vertex.Normals), 4)) {
+            Logger::Warn("Failed to read all normal attributes!");
+        }
+
+        // Pre-transform vertices
+        vertex.UV = glm::vec2(vertex.UV.x, 1.0 - vertex.UV.y);
+
         vertices.push_back(vertex);
     }
 
-    for (int i = 0; i < mesh->mNumFaces; i++) {
-        aiFace face = mesh->mFaces[i];
-        for (int j = 0; j < face.mNumIndices; j++)
-            indices.push_back(face.mIndices[j]);
+    for (int i = 0; i < indexCount; i++) {
+        indices.push_back(cgltf_accessor_read_index(primitive->indices, i));
     }
 
     out.VertexCount = vertices.size();
     out.IndexCount = indices.size();
 
-    out.VertexBuffer = renderContext->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
-    out.IndexBuffer = renderContext->CreateBuffer(out.IndexCount * sizeof(uint32_t), 0, BufferType::Index, false, "Index Buffer");
+    out.VertexBuffer = context->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
+    out.IndexBuffer = context->CreateBuffer(out.IndexCount * sizeof(uint32_t), 0, BufferType::Index, false, "Index Buffer");
     
     for (int i = 0; i < 3; i++) {
-        out.ModelBuffer[i] = renderContext->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer");
+        out.ModelBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer");
         out.ModelBuffer[i]->BuildConstantBuffer();
     }
 
     // MATERIAL
-    aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+    cgltf_material* material = primitive->material;
     Material meshMaterial = {};
     out.MaterialIndex = Materials.size();
 
@@ -59,25 +94,22 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     Bitmap emissiveImage;
     Bitmap aoImage;
 
-    aiColor3D flatColor(1.0f, 1.0f, 1.0f);
-    material->Get(AI_MATKEY_COLOR_DIFFUSE, flatColor);
+    glm::vec3 flatColor(1.0f, 1.0f, 1.0f);
     meshMaterial.FlatColor = glm::vec3(flatColor.r, flatColor.g, flatColor.b);
 
-    Uploader uploader = renderContext->CreateUploader();
+    Uploader uploader = context->CreateUploader();
     
     // ALBEDO TEXTURE
     {
-        aiString str;
-        material->GetTexture(aiTextureType_DIFFUSE, 0, &str);
-        if (str.length) {
-            std::string texturePath = Directory + '/' + str.C_Str();
+        if (material->pbr_metallic_roughness.base_color_texture.texture) {
+            std::string texturePath = Directory + '/' + std::string(material->pbr_metallic_roughness.base_color_texture.texture->image->uri);
             meshMaterial.AlbedoPath = texturePath;
             meshMaterial.HasAlbedo = true;
             if (TextureCache.count(texturePath) != 0)  {
                 meshMaterial.AlbedoTexture = TextureCache[texturePath];
             } else {
                 albedoImage.LoadFromFile(texturePath);
-                meshMaterial.AlbedoTexture = renderContext->CreateTexture(albedoImage.Width, albedoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AlbedoPath);
+                meshMaterial.AlbedoTexture = context->CreateTexture(albedoImage.Width, albedoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AlbedoPath);
                 meshMaterial.AlbedoTexture->BuildShaderResource();
                 uploader.CopyHostToDeviceTexture(albedoImage, meshMaterial.AlbedoTexture);
                 TextureCache[texturePath] = meshMaterial.AlbedoTexture;
@@ -87,17 +119,15 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     
     // NORMAL TEXTURE
     {
-        aiString str;
-        material->GetTexture(aiTextureType_NORMALS, 0, &str);
-        if (str.length) {
-            std::string texturePath = Directory + '/' + str.C_Str();
+        if (material->normal_texture.texture) {
+            std::string texturePath = Directory + '/' + std::string(material->normal_texture.texture->image->uri);
             meshMaterial.NormalPath = texturePath;
             meshMaterial.HasNormal = true;
             if (TextureCache.count(texturePath) != 0) {
                 meshMaterial.NormalTexture = TextureCache[texturePath];
             } else {
                 normalImage.LoadFromFile(texturePath);
-                meshMaterial.NormalTexture = renderContext->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.NormalPath);
+                meshMaterial.NormalTexture = context->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.NormalPath);
                 meshMaterial.NormalTexture->BuildShaderResource();
                 uploader.CopyHostToDeviceTexture(normalImage, meshMaterial.NormalTexture);
                 TextureCache[texturePath] = meshMaterial.NormalTexture;
@@ -107,17 +137,28 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     
     // PBR TEXTURE
     {
-        aiString str;
-        material->GetTexture(aiTextureType_UNKNOWN, 0, &str);
-        if (str.length) {
-            std::string texturePath = Directory + '/' + str.C_Str();
+        if (material->pbr_metallic_roughness.metallic_roughness_texture.texture) {
+            std::string texturePath = Directory + '/' + std::string(material->pbr_metallic_roughness.metallic_roughness_texture.texture->image->uri);
             meshMaterial.MetallicRoughnessPath = texturePath;
             meshMaterial.HasMetallicRoughness = true;
             if (TextureCache.count(texturePath) != 0) {
                 meshMaterial.PBRTexture = TextureCache[texturePath];
             } else{
                 pbrImage.LoadFromFile(texturePath);
-                meshMaterial.PBRTexture = renderContext->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
+                meshMaterial.PBRTexture = context->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
+                meshMaterial.PBRTexture->BuildShaderResource();
+                uploader.CopyHostToDeviceTexture(pbrImage, meshMaterial.PBRTexture);
+                TextureCache[texturePath] = meshMaterial.PBRTexture;
+            }
+        } else if (material->specular.specular_texture.texture) {
+            std::string texturePath = Directory + '/' + std::string(material->specular.specular_texture.texture->image->uri);
+            meshMaterial.MetallicRoughnessPath = texturePath;
+            meshMaterial.HasMetallicRoughness = true;
+            if (TextureCache.count(texturePath) != 0) {
+                meshMaterial.PBRTexture = TextureCache[texturePath];
+            } else{
+                pbrImage.LoadFromFile(texturePath);
+                meshMaterial.PBRTexture = context->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
                 meshMaterial.PBRTexture->BuildShaderResource();
                 uploader.CopyHostToDeviceTexture(pbrImage, meshMaterial.PBRTexture);
                 TextureCache[texturePath] = meshMaterial.PBRTexture;
@@ -127,17 +168,15 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     
     // EMISSIVE TEXTURE
     {
-        aiString str;
-        material->GetTexture(aiTextureType_EMISSIVE, 0, &str);
-        if (str.length) {
-            std::string texturePath = Directory + '/' + str.C_Str();
+        if (material->emissive_texture.texture) {
+            std::string texturePath = Directory + '/' + std::string(material->emissive_texture.texture->image->uri);
             meshMaterial.EmissivePath = texturePath;
             meshMaterial.HasEmissive = true;
             if (TextureCache.count(meshMaterial.EmissivePath) != 0) {
                 meshMaterial.EmissiveTexture = TextureCache[texturePath];
             } else {
                 emissiveImage.LoadFromFile(texturePath);
-                meshMaterial.EmissiveTexture = renderContext->CreateTexture(emissiveImage.Width, emissiveImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.EmissivePath);
+                meshMaterial.EmissiveTexture = context->CreateTexture(emissiveImage.Width, emissiveImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.EmissivePath);
                 meshMaterial.EmissiveTexture->BuildShaderResource();
                 uploader.CopyHostToDeviceTexture(emissiveImage, meshMaterial.EmissiveTexture);
                 TextureCache[texturePath] = meshMaterial.EmissiveTexture;
@@ -147,17 +186,15 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     
     // AO TEXTURE
     {
-        aiString str;
-        material->GetTexture(aiTextureType_LIGHTMAP, 0, &str);
-        if (str.length) {
-            std::string texturePath = Directory + '/' + str.C_Str();
+        if (material->occlusion_texture.texture) {
+            std::string texturePath = Directory + '/' + std::string(material->occlusion_texture.texture->image->uri);
             meshMaterial.AOPath = texturePath;
             meshMaterial.HasAO = true;
             if (TextureCache.count(meshMaterial.AOPath) != 0) {
                 meshMaterial.AOTexture = TextureCache[meshMaterial.AOPath];
             } else {
                 aoImage.LoadFromFile(texturePath);
-                meshMaterial.AOTexture = renderContext->CreateTexture(aoImage.Width, aoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AOPath);
+                meshMaterial.AOTexture = context->CreateTexture(aoImage.Width, aoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AOPath);
                 meshMaterial.AOTexture->BuildShaderResource();
                 uploader.CopyHostToDeviceTexture(aoImage, meshMaterial.AOTexture);
                 TextureCache[texturePath] = meshMaterial.AOTexture;
@@ -167,7 +204,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
 
     uploader.CopyHostToDeviceLocal(vertices.data(), vertices.size() * sizeof(Vertex), out.VertexBuffer);
     uploader.CopyHostToDeviceLocal(indices.data(), indices.size() * sizeof(uint32_t), out.IndexBuffer);
-    renderContext->FlushUploader(uploader);
+    context->FlushUploader(uploader);
 
     struct ModelData {
         glm::mat4 Camera;
@@ -193,53 +230,75 @@ void Model::ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, con
     }
 
     if (meshMaterial.HasAlbedo) {
-        renderContext->GenerateMips(meshMaterial.AlbedoTexture);
+        context->GenerateMips(meshMaterial.AlbedoTexture);
     }
     if (meshMaterial.HasNormal) {
-        renderContext->GenerateMips(meshMaterial.NormalTexture);
+        context->GenerateMips(meshMaterial.NormalTexture);
     }
     if (meshMaterial.HasMetallicRoughness) {
-        renderContext->GenerateMips(meshMaterial.PBRTexture);
+        context->GenerateMips(meshMaterial.PBRTexture);
     }
     if (meshMaterial.HasAO) {
-        renderContext->GenerateMips(meshMaterial.AOTexture);
+        context->GenerateMips(meshMaterial.AOTexture);
     }
     if (meshMaterial.HasEmissive) {
-        renderContext->GenerateMips(meshMaterial.EmissiveTexture);
+        context->GenerateMips(meshMaterial.EmissiveTexture);
     }
-
-    glm::vec3 Min = glm::vec3(mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z);
-    glm::vec3 Max = glm::vec3(mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z);
-
-    out.BoundingBox.Extent = ((Max - Min) * 0.5f).x;
-    out.BoundingBox.Center = Min + out.BoundingBox.Extent;
 
     Primitives.push_back(out);
 }
 
-void Model::ProcessNode(RenderContext::Ptr renderContext, aiNode *node, const aiScene *scene)
+void Model::ProcessNode(RenderContext::Ptr context, cgltf_node *node, glm::mat4 transform)
 {
-    for (int i = 0; i < node->mNumMeshes; i++) {
-        aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        glm::mat4 transform(1.0f);
-        ProcessPrimitive(renderContext, mesh, scene, transform);
+    glm::mat4 localTransform = transform;
+    glm::mat4 translationMatrix(1.0f);
+    glm::mat4 rotationMatrix(1.0f);
+    glm::mat4 scaleMatrix(1.0f);
+
+    if (node->has_translation) {
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(node->translation[0], node->translation[1], node->translation[2]));
+    }
+    if (node->has_rotation) {
+        rotationMatrix = glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
+    }
+    if (node->has_scale) {
+        scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(node->scale[0], node->scale[1], node->scale[2]));
     }
 
-    for (int i = 0; i < node->mNumChildren; i++) {
-        ProcessNode(renderContext, node->mChildren[i], scene);
+    if (node->has_matrix) {
+        localTransform *= glm::make_mat4(node->matrix);
+    } else {
+        localTransform *= translationMatrix * rotationMatrix * scaleMatrix;
+    }
+
+    if (node->mesh) {
+        for (int i = 0; i < node->mesh->primitives_count; i++) {
+            ProcessPrimitive(context, &node->mesh->primitives[i], localTransform);
+        }
+    }
+
+    for (int i = 0; i < node->children_count; i++) {
+        ProcessNode(context, node->children[i], localTransform);
     }
 }
 
 void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
 {
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_FlipWindingOrder | aiProcess_PreTransformVertices);
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        Logger::Error("Failed to load model at path %s", path.c_str());
-    } else {
-        Logger::Info("Loading %s...", path.c_str());
+    cgltf_options options = {};
+    cgltf_data* data = nullptr;
+
+    if (cgltf_parse_file(&options, path.c_str(), &data) != cgltf_result_success) {
+        Logger::Error("Failed to parse GLTF %s", path.c_str());
     }
+    if (cgltf_load_buffers(&options, data, path.c_str()) != cgltf_result_success) {
+        Logger::Error("Failed to load buffers %s", path.c_str());
+    }
+    cgltf_scene* scene = data->scene;
+
     Directory = path.substr(0, path.find_last_of('/'));
-    ProcessNode(renderContext, scene->mRootNode, scene);
+    for (int i = 0; i < scene->nodes_count; i++) {
+        ProcessNode(renderContext, scene->nodes[i], glm::mat4(1.0f));
+    }
     Logger::Info("Successfully loaded model at path %s", path.c_str());
+    cgltf_free(data);
 }

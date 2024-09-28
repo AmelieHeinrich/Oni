@@ -8,13 +8,9 @@
 #include <string>
 #include <array>
 #include <glm/glm.hpp>
+#include <cgltf/cgltf.h>
 
 #include "rhi/render_context.hpp"
-
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <assimp/pbrmaterial.h>
 
 struct AABB
 {
@@ -83,6 +79,6 @@ public:
     ~Model() = default;
 
 private:
-    void ProcessPrimitive(RenderContext::Ptr renderContext, aiMesh *mesh, const aiScene *scene, glm::mat4 transform);
-    void ProcessNode(RenderContext::Ptr renderContext, aiNode *node, const aiScene *scene);
+    void ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform);
+    void ProcessNode(RenderContext::Ptr context, cgltf_node *node, glm::mat4 transform);
 };
