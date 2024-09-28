@@ -52,7 +52,7 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - Tonemapping
 - FFT Bloom
 - Chromatic Aberration
-- TAA for static scenes
+- TAA for static/dynamic scenes
 
 ### Misc
 - Resource inspector
@@ -67,7 +67,6 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 
 ## WIP
 
-- TAA for dynamic scenes
 - Motion Blur
 
 ## Screenshots

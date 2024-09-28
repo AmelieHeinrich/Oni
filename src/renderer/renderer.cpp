@@ -34,6 +34,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _tonemapping = std::make_shared<Tonemapping>(context, _deferred->GetOutput());
 
     _taa->SetVelocityBuffer(_deferred->GetVelocityBuffer());
+    _taa->SetDepthBuffer(_deferred->GetDepthBuffer());
 
     _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
     _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());

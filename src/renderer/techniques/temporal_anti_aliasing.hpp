@@ -25,6 +25,7 @@ public:
     bool IsEnabled() { return _enabled; }
 
     void SetVelocityBuffer(Texture::Ptr texture) { _velocityBuffer = texture; }
+    void SetDepthBuffer(Texture::Ptr texture) { _depth = texture; }
 private:
     void AccumulateHistory(uint32_t width, uint32_t height);
     void Resolve(uint32_t width, uint32_t height);
@@ -36,6 +37,7 @@ private:
     Texture::Ptr _velocityBuffer;
     Texture::Ptr _output;
     Texture::Ptr _history;
+    Texture::Ptr _depth;
 
     Sampler::Ptr _pointSampler;
     Sampler::Ptr _linearSampler;

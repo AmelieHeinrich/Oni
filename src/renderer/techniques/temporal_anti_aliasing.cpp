@@ -15,7 +15,7 @@ TemporalAntiAliasing::TemporalAntiAliasing(RenderContext::Ptr renderContext, Tex
 
     _taaPipeline.SignatureInfo = {
         { RootSignatureEntry::PushConstants },
-        sizeof(uint32_t) * 6
+        sizeof(uint32_t) * 5
     };
     _taaPipeline.ReflectRootSignature(false);
     _taaPipeline.AddShaderWatch("shaders/TAA/TAACompute.hlsl", "Main", ShaderType::Compute);
@@ -62,7 +62,6 @@ void TemporalAntiAliasing::AccumulateHistory(uint32_t width, uint32_t height)
         uint32_t History;
         uint32_t Current;
         uint32_t Velocity;
-        float ModulationVector;
         uint32_t LinearSampler;
         uint32_t PointSampler;
     };
@@ -70,7 +69,6 @@ void TemporalAntiAliasing::AccumulateHistory(uint32_t width, uint32_t height)
     data.History = _history->SRV();
     data.Current = _output->UAV();
     data.Velocity = _velocityBuffer->SRV();
-    data.ModulationVector = _modulationFactor;
     data.LinearSampler = _linearSampler->BindlesssSampler();
     data.PointSampler = _pointSampler->BindlesssSampler();
 
