@@ -1,7 +1,7 @@
 //
 // $Notice: Xander Studios @ 2024
 // $Author: Amélie Heinrich
-// $Create Time: 2024-09-27 17:20:12
+// $Create Time: 2024-09-28 17:53:32
 //
 
 #pragma once
@@ -11,35 +11,28 @@
 #include "renderer/scene.hpp"
 #include "renderer/hot_reloadable_pipeline.hpp"
 
-class TemporalAntiAliasing
+class MotionBlur
 {
 public:
-    TemporalAntiAliasing(RenderContext::Ptr renderContext, Texture::Ptr output);
-    ~TemporalAntiAliasing() = default;
+    MotionBlur(RenderContext::Ptr context, Texture::Ptr output);
+    ~MotionBlur() = default;
 
     void Render(Scene& scene, uint32_t width, uint32_t height);
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
     void Reconstruct();
 
-    bool IsEnabled() { return _enabled; }
-
     void SetVelocityBuffer(Texture::Ptr texture) { _velocityBuffer = texture; }
-private:
-    void AccumulateHistory(uint32_t width, uint32_t height);
-    void Resolve(uint32_t width, uint32_t height);
 
+private:
     RenderContext::Ptr _context;
 
-    HotReloadablePipeline _taaPipeline;
+    bool _enabled = false;
+    uint32_t _sampleCount = 1;
+    HotReloadablePipeline _blurPipeline;
 
     Texture::Ptr _velocityBuffer;
     Texture::Ptr _output;
-    Texture::Ptr _history;
 
     Sampler::Ptr _pointSampler;
-    Sampler::Ptr _linearSampler;
-
-    float _modulationFactor = 0.1f;
-    bool _enabled = true;
 };

@@ -6,18 +6,20 @@
 #pragma once
 
 #include "scene.hpp"
-
 #include "core/timer.hpp"
 
 #include "techniques/shadows.hpp"
 #include "techniques/deferred.hpp"
 #include "techniques/envmap_forward.hpp"
+
 #include "techniques/temporal_anti_aliasing.hpp"
+#include "techniques/motion_blur.hpp"
 #include "techniques/chromatic_aberration.hpp"
 #include "techniques/bloom.hpp"
 #include "techniques/color_correction.hpp"
 #include "techniques/auto_exposure.hpp"
 #include "techniques/tonemapping.hpp"
+
 #include "techniques/debug_renderer.hpp"
 
 #include <vector>
@@ -66,6 +68,7 @@ private:
 
     // Post process graph
     std::shared_ptr<TemporalAntiAliasing> _taa;
+    std::shared_ptr<MotionBlur> _motionBlur;
     std::shared_ptr<ChromaticAberration> _chromaticAberration;
     std::shared_ptr<Bloom> _bloom;
     std::shared_ptr<ColorCorrection> _colorCorrection;

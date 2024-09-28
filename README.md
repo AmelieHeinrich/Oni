@@ -1,6 +1,7 @@
 # Oni : D3D12 research renderer and playground
 
 Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose is for it to be used as a portfolio piece once I go back to job finding.
+Oni makes heavy use of compute shaders for its rendering. Anything that isn't a draw call will be put into a compute shader.
 
 ![](screenshots/Bistro.png)
 ![](screenshots/Sponza.png)
@@ -14,7 +15,8 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - [xmake](https://xmake.io/#/)
 - Windows SDK Latest
 - Visual Studio 2022 + ATL Toolkit
-- GPU with the following features:
+- HLSL Shader Model 6.6
+- GPU with, ideally, the following features:
     - DXR
     - Mesh shaders
     - Work graphs
@@ -34,7 +36,7 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - Point lights
 - Directional lights
 - Forward shading
-- Deferred rendering :
+- Deferred rendering:
     - Depth Buffer R32Typeless
     - Normals RGBA16Float
     - Albedo + Emissive RGBA8Unorm
@@ -48,11 +50,12 @@ Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose 
 - Bindless resources via SM6.6
 
 ### Post Processing
+- TAA for static/dynamic scenes
+- Motion Blur
+- Chromatic Aberration
+- FFT Bloom
 - Color grading
 - Tonemapping
-- FFT Bloom
-- Chromatic Aberration
-- TAA for static/dynamic scenes
 
 ### Misc
 - Resource inspector

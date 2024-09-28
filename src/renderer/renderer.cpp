@@ -27,6 +27,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _deferred->ConnectShadowMap(_shadows->GetOutput());
 
     _taa = std::make_shared<TemporalAntiAliasing>(context, _deferred->GetOutput());
+    _motionBlur = std::make_shared<MotionBlur>(context, _deferred->GetOutput());
     _chromaticAberration = std::make_shared<ChromaticAberration>(context, _deferred->GetOutput());
     _bloom = std::make_shared<Bloom>(context, _deferred->GetOutput());
     _colorCorrection = std::make_shared<ColorCorrection>(context, _deferred->GetOutput());
@@ -34,7 +35,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _tonemapping = std::make_shared<Tonemapping>(context, _deferred->GetOutput());
 
     _taa->SetVelocityBuffer(_deferred->GetVelocityBuffer());
-    _taa->SetDepthBuffer(_deferred->GetDepthBuffer());
+    _motionBlur->SetVelocityBuffer(_deferred->GetVelocityBuffer());
 
     _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
     _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());
@@ -68,6 +69,9 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 
         _stats.PushFrameTime("Temporal Anti-Aliasing", [this, &scene, width, height]() {
             _taa->Render(scene, width, height);
+        });
+        _stats.PushFrameTime("Motion Blur", [this, &scene, width, height]() {
+            _motionBlur->Render(scene, width, height);
         });
         _stats.PushFrameTime("Chromatic Aberration", [this, &scene, width, height]() {
             _chromaticAberration->Render(scene, width, height);
@@ -117,6 +121,7 @@ void Renderer::Resize(uint32_t width, uint32_t height)
     _envMapForward->Resize(width, height, _deferred->GetOutput(), _deferred->GetDepthBuffer());
 
     _taa->Resize(width, height);
+    _motionBlur->Resize(width, height);
     _chromaticAberration->Resize(width, height, _deferred->GetOutput());
     _bloom->Resize(width, height, _deferred->GetOutput());
     _colorCorrection->Resize(width, height, _deferred->GetOutput());
@@ -135,6 +140,7 @@ void Renderer::OnUI()
     _envMapForward->OnUI();
 
     _taa->OnUI();
+    _motionBlur->OnUI();
     _chromaticAberration->OnUI();
     _bloom->OnUI();
     _colorCorrection->OnUI();
@@ -165,7 +171,7 @@ void Renderer::Screenshot(Texture::Ptr screenshotTexture, TextureLayout newLayou
     String.replace(String.size() - 1, 4, ".png");
 
     uint8_t *Result = new uint8_t[toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4];
-    memset(Result, 0xffffffff, toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4);
+    memset(Result, 0x00000000, toScreenshot->GetWidth() * toScreenshot->GetHeight() * 4);
 
     CommandBuffer::Ptr cmdBuffer = _renderContext->CreateCommandBuffer(CommandQueueType::Graphics, false);
 
@@ -198,6 +204,7 @@ void Renderer::Reconstruct()
     _envMapForward->Reconstruct();
 
     _taa->Reconstruct();
+    _motionBlur->Reconstruct();
     _chromaticAberration->Reconstruct();
     _bloom->Reconstruct();
     _colorCorrection->Reconstruct();
