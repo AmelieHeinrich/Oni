@@ -39,12 +39,14 @@ Oni makes heavy use of compute shaders for its rendering. Anything that isn't a 
 - Deferred rendering:
     - Depth Buffer R32Typeless
     - Normals RGBA16Float
-    - Albedo + Emissive RGBA8Unorm
+    - Albedo
     - PBR + AO RGBA8Unorm
-- PBR lighting and materials
+    - Emissive RGBA16Float
+- PBR lighting, PBR materials
 - Environment mapping
 - IBL
 - Shadow mapping (directional)
+- Emissive materials
 
 ### GPU Driven Rendering
 - Bindless resources via SM6.6
@@ -55,6 +57,7 @@ Oni makes heavy use of compute shaders for its rendering. Anything that isn't a 
 - Chromatic Aberration
 - FFT Bloom
 - Color grading
+- Film Grain
 - Tonemapping
 
 ### Misc
