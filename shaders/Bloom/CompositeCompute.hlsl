@@ -5,6 +5,7 @@
 //
 
 #include "shaders/Common/Compute.hlsl"
+#include "shaders/Common/Math.hlsl"
 
 struct Parameters
 {
@@ -29,5 +30,6 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     float2 UVs = TexelToUV(ThreadID.xy, 1.0 / float2(width, height));
     float3 InputColor = Input.Sample(InputSampler, UVs);
 
-    OutputHDR[ThreadID.xy] = lerp(OutputHDR[ThreadID.xy], float4(InputColor, 1.0), Settings.BloomStrength);
+    float4 color = lerp(OutputHDR[ThreadID.xy] * 1.5, float4(InputColor, 1.0), Settings.BloomStrength);
+    OutputHDR[ThreadID.xy] = color;
 }

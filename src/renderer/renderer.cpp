@@ -36,6 +36,7 @@ Renderer::Renderer(RenderContext::Ptr context)
 
     _taa->SetVelocityBuffer(_deferred->GetVelocityBuffer());
     _motionBlur->SetVelocityBuffer(_deferred->GetVelocityBuffer());
+    _bloom->ConnectEmissiveBuffer(_deferred->GetEmissiveBuffer());
 
     _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
     _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());

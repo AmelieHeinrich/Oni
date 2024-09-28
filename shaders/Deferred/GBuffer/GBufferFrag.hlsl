@@ -105,7 +105,7 @@ FragmentOut Main(FragmentIn Input)
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
     output.AlbedoEmissive = float4(albedo.rgb, 1.0f);
     output.PbrAO = float4(float3(metallic, roughness, ao), 1.0f);
-    output.Emissive = float4(emission.rgb, 1.0f);
+    output.Emissive = float4(emission.rgb, 1.0f) * 2.0f;
     output.Velocity = positionDifference;
 
     return output;

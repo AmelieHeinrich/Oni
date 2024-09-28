@@ -51,7 +51,7 @@ Bloom::Bloom(RenderContext::Ptr context, Texture::Ptr inputHDR)
         BloomMip firstMip;
         firstMip.Size = mipSize;
         firstMip.IntSize = mipIntSize;
-        firstMip.RenderTarget = inputHDR;
+        firstMip.RenderTarget = nullptr;
 
         _mipChain.push_back(firstMip);
 
@@ -184,7 +184,7 @@ void Bloom::Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR)
     BloomMip firstMip;
     firstMip.Size = mipSize;
     firstMip.IntSize = mipIntSize;
-    firstMip.RenderTarget = inputHDR;
+    firstMip.RenderTarget = _emissionBuffer;
 
     _mipChain.push_back(firstMip);
 
@@ -218,4 +218,10 @@ void Bloom::Reconstruct()
     _downsamplePipeline.CheckForRebuild(_context, "Bloom Downsample");
     _upsamplePipeline.CheckForRebuild(_context, "Bloom Upsamble");
     _compositePipeline.CheckForRebuild(_context, "Bloom Composite");
+}
+
+void Bloom::ConnectEmissiveBuffer(Texture::Ptr texture)
+{
+    _emissionBuffer = texture;
+    _mipChain[0].RenderTarget = _emissionBuffer;
 }

@@ -24,11 +24,13 @@ public:
     void OnUI();
     void Reconstruct();
 
+    void ConnectEmissiveBuffer(Texture::Ptr texture);
 private:
     void Downsample(Scene& scene, uint32_t width, uint32_t height);
     void Upsample(Scene& scene, uint32_t width, uint32_t height);
     void Composite(Scene& scene, uint32_t width, uint32_t height);
 
+    Texture::Ptr _emissionBuffer;
     Texture::Ptr _output;
 
     int MIP_COUNT = 8;
@@ -44,7 +46,7 @@ private:
     float _filterRadius = 0.005f;
     float _bloomStrenght = 0.30f;
 
-    bool _enable = false;
+    bool _enable = true;
 
     HotReloadablePipeline _downsamplePipeline;
     HotReloadablePipeline _upsamplePipeline;

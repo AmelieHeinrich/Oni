@@ -68,7 +68,7 @@ float3 Downsample(uint3 ThreadID)
 	outColor += ComputePartialAverage(BL, B, C, L) * 0.125f;
 	outColor += ComputePartialAverage(BR, B, C, R) * 0.125f;
 
-    return outColor;
+    return outColor * 1.5f;
 }
 
 [numthreads(8, 8, 1)]
