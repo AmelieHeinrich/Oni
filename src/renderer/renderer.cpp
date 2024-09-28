@@ -31,6 +31,7 @@ Renderer::Renderer(RenderContext::Ptr context)
     _chromaticAberration = std::make_shared<ChromaticAberration>(context, _deferred->GetOutput());
     _bloom = std::make_shared<Bloom>(context, _deferred->GetOutput());
     _colorCorrection = std::make_shared<ColorCorrection>(context, _deferred->GetOutput());
+    _filmGrain = std::make_shared<FilmGrain>(context, _deferred->GetOutput());
     _autoExposure = std::make_shared<AutoExposure>(context, _deferred->GetOutput());
     _tonemapping = std::make_shared<Tonemapping>(context, _deferred->GetOutput());
 
@@ -83,6 +84,9 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         _stats.PushFrameTime("Color Correction", [this, &scene, width, height]() {
             _colorCorrection->Render(scene, width, height);
         });
+        _stats.PushFrameTime("Film Grain", [this, &scene, width, height, dt]() {
+            _filmGrain->Render(scene, width, height, dt);
+        });
         _stats.PushFrameTime("Auto Exposure", [this, &scene, width, height, dt]() {
             _autoExposure->Render(scene, width, height, dt);
         });
@@ -126,6 +130,7 @@ void Renderer::Resize(uint32_t width, uint32_t height)
     _chromaticAberration->Resize(width, height, _deferred->GetOutput());
     _bloom->Resize(width, height, _deferred->GetOutput());
     _colorCorrection->Resize(width, height, _deferred->GetOutput());
+    _filmGrain->Resize(width, height, _deferred->GetOutput());
     _autoExposure->Resize(width, height, _deferred->GetOutput());
     _tonemapping->Resize(width, height, _deferred->GetOutput());
 
@@ -145,6 +150,7 @@ void Renderer::OnUI()
     _chromaticAberration->OnUI();
     _bloom->OnUI();
     _colorCorrection->OnUI();
+    _filmGrain->OnUI();
     _autoExposure->OnUI();
     _tonemapping->OnUI();
     
@@ -209,6 +215,7 @@ void Renderer::Reconstruct()
     _chromaticAberration->Reconstruct();
     _bloom->Reconstruct();
     _colorCorrection->Reconstruct();
+    _filmGrain->Reconstruct();
     _autoExposure->Reconstruct();
     _tonemapping->Reconstruct();
 

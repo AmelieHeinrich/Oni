@@ -17,6 +17,7 @@
 #include "techniques/chromatic_aberration.hpp"
 #include "techniques/bloom.hpp"
 #include "techniques/color_correction.hpp"
+#include "techniques/film_grain.hpp"
 #include "techniques/auto_exposure.hpp"
 #include "techniques/tonemapping.hpp"
 
@@ -72,6 +73,7 @@ private:
     std::shared_ptr<ChromaticAberration> _chromaticAberration;
     std::shared_ptr<Bloom> _bloom;
     std::shared_ptr<ColorCorrection> _colorCorrection;
+    std::shared_ptr<FilmGrain> _filmGrain;
     std::shared_ptr<AutoExposure> _autoExposure;
     std::shared_ptr<Tonemapping> _tonemapping;
     

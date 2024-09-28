@@ -207,8 +207,8 @@ void Bloom::OnUI()
 {
     if (ImGui::TreeNodeEx("Bloom", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Enable", &_enable);
-        ImGui::SliderFloat("Filter Radius", &_filterRadius, 0.0f, 0.01f, "%.3f");
-        ImGui::SliderFloat("Bloom Strength", &_bloomStrenght, 0.0f, 0.7f, "%.2f");
+        //ImGui::SliderFloat("Filter Radius", &_filterRadius, 0.0f, 0.01f, "%.3f");
+        //ImGui::SliderFloat("Bloom Strength", &_bloomStrenght, 0.0f, 0.7f, "%.2f");
         ImGui::TreePop();
     }
 }

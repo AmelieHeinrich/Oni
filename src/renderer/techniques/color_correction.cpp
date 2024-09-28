@@ -62,7 +62,7 @@ void ColorCorrection::OnUI()
         ImGui::Checkbox("Enable", &_enable);
         ImGui::Separator();
 
-        ImGui::SliderFloat("Exposure", &_settings.Exposure, 0.0f, 10.0f, "%.1f");
+        ImGui::SliderFloat("Exposure", &_settings.Exposure, -10.0f, 10.0f, "%.1f");
         ImGui::SliderFloat("Contrast", &_settings.Contrast, -100.0f, 100.0f, "%.1f");
         ImGui::SliderFloat("Hue Shift", &_settings.HueShift, -180.0f, 180.0f, "%.1f");
         ImGui::SliderFloat("Saturation", &_settings.Saturation, -100.0f, 100.0f, "%.1f");

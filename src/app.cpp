@@ -64,7 +64,7 @@ App::App()
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
     Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
+    sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
 
     //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
