@@ -31,8 +31,7 @@ private:
 
     RenderContext::Ptr _context;
 
-    HotReloadablePipeline _accumulatePipeline;
-    HotReloadablePipeline _resolvePipeline;
+    HotReloadablePipeline _taaPipeline;
 
     Texture::Ptr _velocityBuffer;
     Texture::Ptr _output;

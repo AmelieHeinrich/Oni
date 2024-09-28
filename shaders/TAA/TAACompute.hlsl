@@ -25,21 +25,19 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     SamplerState LinearSampler = SamplerDescriptorHeap[Settings.LinearSampler];
 
     Texture2D<float2> VelocityTexture = ResourceDescriptorHeap[Settings.Velocity];
-    Texture2D<float4> Current = ResourceDescriptorHeap[Settings.Output];
-    RWTexture2D<float4> History = ResourceDescriptorHeap[Settings.History];
+    Texture2D<float4> History = ResourceDescriptorHeap[Settings.History];
+    RWTexture2D<float4> Current = ResourceDescriptorHeap[Settings.Output];
 
     // Start shader
     int width, height;
     VelocityTexture.GetDimensions(width, height);
 
     float2 texelSize = 1.0 / float2(width, height);
-    float2 velocitySamplePos = TexelToUV(ThreadID.xy, texelSize);
-    float2 velocity = VelocityTexture.Sample(PointSampler, velocitySamplePos);
-    float2 previousPixelPos = velocitySamplePos - velocity;
+    float2 uv = TexelToUV(ThreadID.xy, texelSize);
+    
+    float3 currentColor = Current[ThreadID.xy].rgb;
+    float3 previousColor = History.Sample(LinearSampler, uv).rgb;
+    float3 output = currentColor * 0.1 + previousColor * 0.9;
 
-    float3 historyColor = History[ThreadID.xy].rgb;
-    float3 currentColor = Current.Sample(LinearSampler, previousPixelPos).rgb;
-
-    float3 color = lerp(historyColor, currentColor, Settings.ModulationFactor);
-    History[ThreadID.xy] = float4(color, 1.0);
+    Current[ThreadID.xy] = float4(output, 1.0);
 }

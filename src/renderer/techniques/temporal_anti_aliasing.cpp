@@ -7,30 +7,31 @@
 #include "temporal_anti_aliasing.hpp"
 
 TemporalAntiAliasing::TemporalAntiAliasing(RenderContext::Ptr renderContext, Texture::Ptr output)
-    : _context(renderContext), _output(output), _resolvePipeline(PipelineType::Compute), _accumulatePipeline(PipelineType::Compute)
+    : _context(renderContext), _output(output), _taaPipeline(PipelineType::Compute)
 {
     _history = renderContext->CreateTexture(output->GetWidth(), output->GetHeight(), output->GetFormat(), TextureUsage::ShaderResource, false, "[TAA] History Texture");
     _history->BuildShaderResource();
     _history->BuildStorage();
 
-    _accumulatePipeline.SignatureInfo = {
+    _taaPipeline.SignatureInfo = {
         { RootSignatureEntry::PushConstants },
         sizeof(uint32_t) * 6
     };
-    _accumulatePipeline.ReflectRootSignature(false);
-    _accumulatePipeline.AddShaderWatch("shaders/TAA/TAAHistoryCompute.hlsl", "Main", ShaderType::Compute);
-    _accumulatePipeline.Build(_context);
-
-    _resolvePipeline.SignatureInfo = {
-        { RootSignatureEntry::PushConstants },
-        sizeof(uint32_t) * 3
-    };
-    _resolvePipeline.ReflectRootSignature(false);
-    _resolvePipeline.AddShaderWatch("shaders/TAA/TAAMergeCompute.hlsl", "Main", ShaderType::Compute);
-    _resolvePipeline.Build(_context);
+    _taaPipeline.ReflectRootSignature(false);
+    _taaPipeline.AddShaderWatch("shaders/TAA/TAACompute.hlsl", "Main", ShaderType::Compute);
+    _taaPipeline.Build(_context);
 
     _linearSampler = _context->CreateSampler(SamplerAddress::Border, SamplerFilter::Linear, false, 0);
     _pointSampler = _context->CreateSampler(SamplerAddress::Border, SamplerFilter::Nearest, false, 0);
+
+    CommandBuffer::Ptr commandBuffer = _context->CreateCommandBuffer(CommandQueueType::Graphics, false);
+    commandBuffer->Begin(false);
+    commandBuffer->ImageBarrierBatch({
+        { _history, TextureLayout::CopyDest },
+        { _output, TextureLayout::CopySource },
+    });
+    commandBuffer->CopyTextureToTexture(_history, _output);
+    commandBuffer->End();
 }
 
 void TemporalAntiAliasing::Render(Scene& scene, uint32_t width, uint32_t height)
@@ -66,27 +67,22 @@ void TemporalAntiAliasing::AccumulateHistory(uint32_t width, uint32_t height)
         uint32_t PointSampler;
     };
     Data data;
-    data.History = _history->UAV();
-    data.Current = _output->SRV();
+    data.History = _history->SRV();
+    data.Current = _output->UAV();
     data.Velocity = _velocityBuffer->SRV();
     data.ModulationVector = _modulationFactor;
     data.LinearSampler = _linearSampler->BindlesssSampler();
     data.PointSampler = _pointSampler->BindlesssSampler();
 
-    commandBuffer->BeginEvent("Accumulate History");
-    commandBuffer->BindComputePipeline(_accumulatePipeline.ComputePipeline);
+    commandBuffer->BeginEvent("Resolve");
+    commandBuffer->BindComputePipeline(_taaPipeline.ComputePipeline);
     commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
-    commandBuffer->ImageBarrierBatch({
-        { _history, TextureLayout::Storage },
-        { _output, TextureLayout::ShaderResource },
-        { _velocityBuffer, TextureLayout::ShaderResource }
-    });
-    commandBuffer->Dispatch(width / 8, height / 8, 1);
     commandBuffer->ImageBarrierBatch({
         { _history, TextureLayout::ShaderResource },
         { _output, TextureLayout::Storage },
-        { _velocityBuffer, TextureLayout::RenderTarget }
+        { _velocityBuffer, TextureLayout::ShaderResource }
     });
+    commandBuffer->Dispatch(width / 8, height / 8, 1);
     commandBuffer->EndEvent();
 }
 
@@ -96,30 +92,14 @@ void TemporalAntiAliasing::Resolve(uint32_t width, uint32_t height)
     uint32_t frameIndex = _context->GetBackBufferIndex();
 
     OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
-    OPTICK_GPU_EVENT("TAA Resolve");
+    OPTICK_GPU_EVENT("TAA Copy to History");
 
-    struct Data {
-        uint32_t History;
-        uint32_t Current;
-        uint32_t Point;
-    };
-    Data data;
-    data.History = _history->UAV();
-    data.Current = _output->SRV();
-    data.Point = _pointSampler->BindlesssSampler();
-
-    commandBuffer->BeginEvent("Resolve");
-    commandBuffer->BindComputePipeline(_resolvePipeline.ComputePipeline);
-    commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
+    commandBuffer->BeginEvent("TAA Copy to History");
     commandBuffer->ImageBarrierBatch({
-        { _history, TextureLayout::ShaderResource },
-        { _output, TextureLayout::Storage },
+        { _history, TextureLayout::CopyDest },
+        { _output, TextureLayout::CopySource },
     });
-    commandBuffer->Dispatch(width / 8, height / 8, 1);
-    commandBuffer->ImageBarrierBatch({
-        { _history, TextureLayout::Storage },
-        { _output, TextureLayout::RenderTarget },
-    });
+    commandBuffer->CopyTextureToTexture(_history, _output);
     commandBuffer->EndEvent();
 }
 
@@ -139,6 +119,5 @@ void TemporalAntiAliasing::OnUI()
 
 void TemporalAntiAliasing::Reconstruct()
 {
-    _accumulatePipeline.CheckForRebuild(_context, "TAA Accumulate");
-    _resolvePipeline.CheckForRebuild(_context, "TAA Resolve");
+    _taaPipeline.CheckForRebuild(_context, "TAA");
 }
