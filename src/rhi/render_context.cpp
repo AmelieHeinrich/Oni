@@ -189,7 +189,18 @@ Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, Textu
 
 Sampler::Ptr RenderContext::CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel)
 {
-    return std::make_shared<Sampler>(_device, _heaps, address, filter, mips, anisotropyLevel);
+    for (auto& sampler : _samplerCache) {
+        if (sampler->Address() == address
+        &&  sampler->AnisotropyLevel() == anisotropyLevel
+        &&  sampler->Filter() == filter
+        &&  sampler->HasMips() == mips) {
+            return sampler;
+        }
+    }
+
+    Sampler::Ptr result = std::make_shared<Sampler>(_device, _heaps, address, filter, mips, anisotropyLevel);
+    _samplerCache.push_back(result);
+    return result;
 }
 
 CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name)

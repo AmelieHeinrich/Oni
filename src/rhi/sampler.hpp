@@ -34,7 +34,17 @@ public:
     DescriptorHeap::Descriptor GetDescriptor() { return _descriptor; }
 
     uint32_t BindlesssSampler() { return _descriptor.HeapIndex; }
+
+    SamplerAddress Address() { return _address; }
+    SamplerFilter Filter() { return _filter; }
+    bool HasMips() { return _mips; }
+    int AnisotropyLevel() { return _anisotropyLevel; } 
 private:
+    SamplerAddress _address;
+    SamplerFilter _filter;
+    bool _mips;
+    int _anisotropyLevel;
+
     DescriptorHeap::Descriptor _descriptor;
     DescriptorHeap::Heaps _heaps;
 };

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <unordered_map>
+
 #include "core/window.hpp"
 
 #include "rhi/device.hpp"
@@ -100,4 +102,6 @@ private:
     ComputePipeline::Ptr _mipmapPipeline;
     Buffer::Ptr _mipmapBuffer;
     Sampler::Ptr _mipmapSampler;
+
+    std::vector<Sampler::Ptr> _samplerCache;
 };

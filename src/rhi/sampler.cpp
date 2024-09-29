@@ -6,7 +6,7 @@
 #include "sampler.hpp"
 
 Sampler::Sampler(Device::Ptr device, DescriptorHeap::Heaps& heaps, SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel)
-    : _heaps(heaps)
+    : _heaps(heaps), _address(address), _filter(filter), _mips(mips), _anisotropyLevel(anisotropyLevel)
 {
     D3D12_SAMPLER_DESC SamplerDesc = {};
     SamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE(address);
