@@ -40,7 +40,7 @@ public:
             float end = timer.GetElapsed();
             
             FrameTimesHistory[key].push_back(end - start);
-            if (FrameTimesHistory.size() > 100) {
+            if (FrameTimesHistory.size() > 50) {
                 FrameTimesHistory.erase(FrameTimesHistory.begin());
             }
         }
