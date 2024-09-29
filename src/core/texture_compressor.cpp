@@ -101,6 +101,9 @@ void TextureCompressor::TraverseDirectory(const std::string& path, TextureCompre
     if (!FileSystem::Exists(".cache")) {
         FileSystem::CreateDirectoryFromPath(".cache/");
     }
+    if (!FileSystem::Exists(".cache/textures/")) {
+        FileSystem::CreateDirectoryFromPath(".cache/textures/");
+    }
 
     NVTTErrorHandler errorHandler;
 
@@ -164,7 +167,7 @@ std::string TextureCompressor::GetCachedPath(const std::string& path)
 
     const char *key = path.c_str();
     uint64_t hash = util::hash(key, path.length(), 1000);
-    path_ss << ".cache/" << hash << ".oni";
+    path_ss << ".cache/textures/" << hash << ".oni";
 
     return path_ss.str();
 }

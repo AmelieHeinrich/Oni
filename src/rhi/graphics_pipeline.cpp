@@ -104,7 +104,7 @@ GraphicsPipeline::GraphicsPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs&
 
     HRESULT Result = devicePtr->GetDevice()->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(&_pipeline));
     if (FAILED(Result)) {
-        Logger::Error("D3D12: Failed creating D3D12 graphics pipeline!");
+        Logger::Error("[D3D12] Failed creating D3D12 graphics pipeline!");
         return;
     }
 }

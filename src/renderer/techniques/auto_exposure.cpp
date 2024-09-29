@@ -17,7 +17,7 @@ AutoExposure::AutoExposure(RenderContext::Ptr context, Texture::Ptr inputHDR)
             sizeof(float) * 6
         };
         _computePipeline.ReflectRootSignature(false);
-        _computePipeline.AddShaderWatch("shaders/AutoExposure/LuminanceHistogram.hlsl", "Main", ShaderType::Compute);
+        _computePipeline.AddShaderWatch("shaders/AutoExposure/LuminanceHistogramCompute.hlsl", "Main", ShaderType::Compute);
         _computePipeline.Build(context);
     }
     {
@@ -26,7 +26,7 @@ AutoExposure::AutoExposure(RenderContext::Ptr context, Texture::Ptr inputHDR)
             sizeof(float) * 7
         };
         _averagePipeline.ReflectRootSignature(false);
-        _averagePipeline.AddShaderWatch("shaders/AutoExposure/HistogramAverage.hlsl", "Main", ShaderType::Compute);
+        _averagePipeline.AddShaderWatch("shaders/AutoExposure/HistogramAverageCompute.hlsl", "Main", ShaderType::Compute);
         _averagePipeline.Build(context);
     }
 

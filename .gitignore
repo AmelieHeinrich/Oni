@@ -2,6 +2,7 @@
 build
 .xmake
 .vscode
+notes.md
 
 # Engine files
 log.txt

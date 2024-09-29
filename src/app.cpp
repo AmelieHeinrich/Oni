@@ -21,6 +21,7 @@
 #include "core/texture_compressor.hpp"
 #include "core/file_system.hpp"
 #include "core/model.hpp"
+#include "core/shader_loader.hpp"
 
 #include "renderer/techniques/debug_renderer.hpp"
 
@@ -47,6 +48,9 @@ App::App()
 
     // Compress every model texture
     //TextureCompressor::TraverseDirectory("assets/textures/", TextureCompressorFormat::BC1);
+
+    // Load/Cache every shader
+    ShaderLoader::TraverseDirectory("shaders/");
 
     _window = std::make_shared<Window>(1920 + 16, 1080 + 38, "ONI");
     _window->OnResize([&](uint32_t width, uint32_t height) {

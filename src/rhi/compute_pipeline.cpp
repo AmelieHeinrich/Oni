@@ -29,7 +29,7 @@ ComputePipeline::ComputePipeline(Device::Ptr device, ShaderBytecode& bytecode, R
 
     HRESULT Result = device->GetDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&_pipeline));
     if (FAILED(Result)) {
-        Logger::Error("D3D12: Failed creating D3D12 compute pipeline!");
+        Logger::Error("[D3D12] Failed creating D3D12 compute pipeline!");
         return;
     }
 }

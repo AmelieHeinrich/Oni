@@ -58,7 +58,7 @@ Device::Device()
     ID3D12Debug* debug;
     Result = D3D12GetDebugInterface(IID_PPV_ARGS(&debug));
     if (FAILED(Result))
-        Logger::Error("D3D12: Failed to get debug interface!");
+        Logger::Error("[D3D12] Failed to get debug interface!");
 
     debug->QueryInterface(IID_PPV_ARGS(&_debug));
     debug->Release();
@@ -69,17 +69,17 @@ Device::Device()
 
     Result = CreateDXGIFactory(IID_PPV_ARGS(&_factory));
     if (FAILED(Result))
-        Logger::Error("D3D12: Failed to create DXGI factory!");
+        Logger::Error("[D3D12] Failed to create DXGI factory!");
     GetHardwareAdapter(_factory, &_adapter, true);
 
     Result = D3D12CreateDevice(_adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&_device));
     if (FAILED(Result))
-        Logger::Error("D3D12: Failed to create device!");
+        Logger::Error("[D3D12] Failed to create device!");
 
 #ifdef ONI_DEBUG
     Result = _device->QueryInterface(IID_PPV_ARGS(&_debugDevice));
     if (FAILED(Result))
-        Logger::Error("D3D12: Failed to query debug device!");
+        Logger::Error("[D3D12] Failed to query debug device!");
 
     ID3D12InfoQueue* InfoQueue = 0;
     _device->QueryInterface(IID_PPV_ARGS(&InfoQueue));
@@ -115,14 +115,14 @@ Device::Device()
     _adapter->GetDesc(&Desc);
     std::wstring WideName = Desc.Description;
     std::string DeviceName = std::string(WideName.begin(), WideName.end());
-    Logger::Info("D3D12: Using GPU %s:", DeviceName.c_str());
+    Logger::Info("[D3D12] Using GPU %s:", DeviceName.c_str());
 
-    Logger::Info("\t- Device Raytracing Support: %d", _features.Raytracing);
-    Logger::Info("\t- Device Mesh Shading Support: %d", _features.MeshShaders);
-    Logger::Info("\t- Device Work Graphs Support: %d", _features.WorkGraphs);
-    Logger::Info("\t- Available Video memory: %fgb", float(Desc.DedicatedVideoMemory / 1024.0f / 1024.0f / 1024.0f));
-    Logger::Info("\t- Available System memory: %fgb", float(Desc.DedicatedSystemMemory / 1024.0f / 1024.0f / 1024.0f));
-    Logger::Info("\t- Available Shared memory: %fgb", float(Desc.SharedSystemMemory / 1024.0f / 1024.0f / 1024.0f));
+    Logger::Info("[D3D12] Device Raytracing Support: %d", _features.Raytracing);
+    Logger::Info("[D3D12] Device Mesh Shading Support: %d", _features.MeshShaders);
+    Logger::Info("[D3D12] Device Work Graphs Support: %d", _features.WorkGraphs);
+    Logger::Info("[D3D12] Available Video memory: %fgb", float(Desc.DedicatedVideoMemory / 1024.0f / 1024.0f / 1024.0f));
+    Logger::Info("[D3D12] Available System memory: %fgb", float(Desc.DedicatedSystemMemory / 1024.0f / 1024.0f / 1024.0f));
+    Logger::Info("[D3D12] Available Shared memory: %fgb", float(Desc.SharedSystemMemory / 1024.0f / 1024.0f / 1024.0f));
 
     _name = DeviceName;
 }

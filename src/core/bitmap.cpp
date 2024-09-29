@@ -30,9 +30,9 @@ void Bitmap::LoadFromFile(const std::string& path, bool flip)
     stbi_set_flip_vertically_on_load(flip);
     Bytes = reinterpret_cast<char*>(stbi_load(path.c_str(), &Width, &Height, &channels, STBI_rgb_alpha));
     if (!Bytes) {
-        Logger::Error("Failed to load image %s", path.c_str());
+        Logger::Error("[BITMAP] Failed to load image %s", path.c_str());
     } else {
-        Logger::Info("Loaded texture: %s", path.c_str());
+        Logger::Info("[BITMAP] Loaded texture: %s", path.c_str());
     }
 }
 
@@ -44,8 +44,8 @@ void Bitmap::LoadHDR(const std::string& path)
     stbi_set_flip_vertically_on_load(false);
     Bytes = reinterpret_cast<char*>(stbi_load_16(path.c_str(), &Width, &Height, &channels, STBI_rgb_alpha));
     if (!Bytes) {
-        Logger::Error("Failed to load image %s", path.c_str());
+        Logger::Error("[BITMAP] Failed to load image %s", path.c_str());
     } else {
-        Logger::Info("Loaded HDR map: %s", path.c_str());
+        Logger::Info("[BITMAP] Loaded HDR map: %s", path.c_str());
     }
 }

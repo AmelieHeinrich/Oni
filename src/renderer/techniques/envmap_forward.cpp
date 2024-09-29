@@ -6,6 +6,7 @@
 #include "envmap_forward.hpp"
 
 #include <core/log.hpp>
+#include <core/shader_loader.hpp>
 #include <optick.h>
 
 #include <ImGui/imgui.h>
@@ -57,11 +58,10 @@ const float CubeVertices[] = {
 EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor, Texture::Ptr inputDepth)
     : _context(context), _inputColor(inputColor), _inputDepth(inputDepth), _cubeRenderer(PipelineType::Graphics)
 {
-    ShaderBytecode cubemapBytecode, prefilterBytecode, irradianceBytecode, brdfBytecode;
-    ShaderCompiler::CompileShader("shaders/EquiMap/EquiMapCompute.hlsl", "Main", ShaderType::Compute, cubemapBytecode);
-    ShaderCompiler::CompileShader("shaders/Irradiance/IrradianceCompute.hlsl", "Main", ShaderType::Compute, irradianceBytecode);
-    ShaderCompiler::CompileShader("shaders/Prefilter/PrefilterCompute.hlsl", "Main", ShaderType::Compute, prefilterBytecode);
-    ShaderCompiler::CompileShader("shaders/BRDF/BRDFCompute.hlsl", "Main", ShaderType::Compute, brdfBytecode);
+    ShaderBytecode cubemapBytecode = ShaderLoader::GetFromCache("shaders/EquiMap/EquiMapCompute.hlsl");
+    ShaderBytecode prefilterBytecode = ShaderLoader::GetFromCache("shaders/Irradiance/IrradianceCompute.hlsl");
+    ShaderBytecode irradianceBytecode = ShaderLoader::GetFromCache("shaders/Prefilter/PrefilterCompute.hlsl");
+    ShaderBytecode brdfBytecode = ShaderLoader::GetFromCache("shaders/BRDF/BRDFCompute.hlsl");
 
     // Create pipelines
     _envToCube = context->CreateComputePipeline(cubemapBytecode, _context->CreateDefaultRootSignature(sizeof(glm::ivec3)));
@@ -163,7 +163,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     _context->WaitForGPU();
 
     float endTime = (clock() - startTime) / 1000.0f;
-    Logger::Info("Environment map: Texture generation took %f seconds", endTime);
+    Logger::Info("[ENVMAP] Environment map: Texture generation took %f seconds", endTime);
 }
 
 EnvMapForward::~EnvMapForward()

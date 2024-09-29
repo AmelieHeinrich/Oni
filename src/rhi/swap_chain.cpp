@@ -29,7 +29,7 @@ SwapChain::SwapChain(Device::Ptr device, CommandQueue::Ptr graphicsQueue, Descri
     IDXGISwapChain1* temp;
     HRESULT result = device->GetFactory()->CreateSwapChainForHwnd(graphicsQueue->GetQueue(), _hwnd, &Desc, nullptr, nullptr, &temp);
     if (FAILED(result)) {
-        Logger::Error("D3D12: Failed to create swap chain!");
+        Logger::Error("[D3D12] Failed to create swap chain!");
     }
     temp->QueryInterface(IID_PPV_ARGS(&_swapchain));
     temp->Release();
@@ -37,7 +37,7 @@ SwapChain::SwapChain(Device::Ptr device, CommandQueue::Ptr graphicsQueue, Descri
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
         result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&_buffers[i]));
         if (FAILED(result)) {
-            Logger::Error("D3D12: Failed to get swapchain backbuffer at index %d", i);
+            Logger::Error("[D3D12] Failed to get swapchain backbuffer at index %d", i);
         }
 
         _descriptors[i] = _rtvHeap->Allocate();
@@ -72,7 +72,7 @@ void SwapChain::Present(bool vsync)
 
     HRESULT result = _swapchain->Present(vsync, 0);
     if (FAILED(result))
-        Logger::Error("D3D12: Failed to present swapchain!");
+        Logger::Error("[D3D12] Failed to present swapchain!");
 }
 
 int SwapChain::AcquireImage()
@@ -99,13 +99,13 @@ void SwapChain::Resize(uint32_t width, uint32_t height)
 
         HRESULT result = _swapchain->ResizeBuffers(0, _width, _height, DXGI_FORMAT_UNKNOWN, 0);
         if (FAILED(result)) {
-            Logger::Error("D3D12: Failed to resize swapchain!");
+            Logger::Error("[D3D12] Failed to resize swapchain!");
         }
 
         for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
             result = _swapchain->GetBuffer(i, IID_PPV_ARGS(&_buffers[i]));
             if (FAILED(result)) {
-                Logger::Error("D3D12: Failed to get swapchain backbuffer at index %d", i);
+                Logger::Error("[D3D12] Failed to get swapchain backbuffer at index %d", i);
             }
     
             _descriptors[i] = _rtvHeap->Allocate();

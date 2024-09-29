@@ -15,7 +15,7 @@
 void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform)
 {
     if (primitive->type != cgltf_primitive_type_triangles) {
-        Logger::Warn("GLTF primitive isn't a triangle list, discarding.");
+        Logger::Warn("[CGLTF] GLTF primitive isn't a triangle list, discarding.");
         return;
     }
 
@@ -39,7 +39,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
         }
     }
     if (!pos_attribute || !uv_attribute || !norm_attribute) {
-        Logger::Warn("Didn't find all GLTF attributes, discarding.");
+        Logger::Warn("[CGLTF] Didn't find all GLTF attributes, discarding.");
         return;
     }
 
@@ -53,13 +53,13 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
         Vertex vertex;
 
         if (!cgltf_accessor_read_float(pos_attribute->data, i, glm::value_ptr(vertex.Position), 4)) {
-            Logger::Warn("Failed to read all position attributes!");
+            Logger::Warn("[CGLTF] Failed to read all position attributes!");
         }
         if (!cgltf_accessor_read_float(uv_attribute->data, i, glm::value_ptr(vertex.UV), 4)) {
-            Logger::Warn("Failed to read all UV attributes!");
+            Logger::Warn("[CGLTF] Failed to read all UV attributes!");
         }
         if (!cgltf_accessor_read_float(norm_attribute->data, i, glm::value_ptr(vertex.Normals), 4)) {
-            Logger::Warn("Failed to read all normal attributes!");
+            Logger::Warn("[CGLTF] Failed to read all normal attributes!");
         }
 
         // Pre-transform vertices
@@ -288,10 +288,10 @@ void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
     cgltf_data* data = nullptr;
 
     if (cgltf_parse_file(&options, path.c_str(), &data) != cgltf_result_success) {
-        Logger::Error("Failed to parse GLTF %s", path.c_str());
+        Logger::Error("[CGLTF] Failed to parse GLTF %s", path.c_str());
     }
     if (cgltf_load_buffers(&options, data, path.c_str()) != cgltf_result_success) {
-        Logger::Error("Failed to load buffers %s", path.c_str());
+        Logger::Error("[CGLTF] Failed to load buffers %s", path.c_str());
     }
     cgltf_scene* scene = data->scene;
 
@@ -299,6 +299,6 @@ void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
     for (int i = 0; i < scene->nodes_count; i++) {
         ProcessNode(renderContext, scene->nodes[i], glm::mat4(1.0f));
     }
-    Logger::Info("Successfully loaded model at path %s", path.c_str());
+    Logger::Info("[CGLTF] Successfully loaded model at path %s", path.c_str());
     cgltf_free(data);
 }

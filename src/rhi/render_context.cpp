@@ -18,6 +18,7 @@
 
 #include <core/shader_bytecode.hpp>
 #include <core/log.hpp>
+#include <core/shader_loader.hpp>
 
 static float normalize(float value, float old_min, float old_max, float new_min, float new_max)
 {
@@ -84,8 +85,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     ImGui_ImplDX12_Init(_device->GetDevice(), FRAMES_IN_FLIGHT, DXGI_FORMAT_R8G8B8A8_UNORM, _heaps.ShaderHeap->GetHeap(), _fontDescriptor.CPU, _fontDescriptor.GPU);
     ImGui_ImplWin32_Init(hwnd->GetHandle());
 
-    ShaderBytecode bytecode;
-    ShaderCompiler::CompileShader("shaders/MipMaps/GenerateCompute.hlsl", "Main", ShaderType::Compute, bytecode);
+    ShaderBytecode bytecode = ShaderLoader::GetFromCache("shaders/MipMaps/GenerateCompute.hlsl");
 
     _mipmapPipeline = CreateComputePipeline(bytecode, CreateDefaultRootSignature(sizeof(glm::vec4) * 2));
     _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, true, 0);
@@ -109,7 +109,7 @@ void RenderContext::Resize(uint32_t width, uint32_t height)
 
     if (_swapChain) {
         _swapChain->Resize(width, height);
-        Logger::Info("D3D12: Resized to (%u, %u)", width, height);
+        Logger::Info("[D3D12] Resized to (%u, %u)", width, height);
     }
 }
 

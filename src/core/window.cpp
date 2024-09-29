@@ -30,7 +30,7 @@ Window::Window(int width, int height, const std::string& title)
     _open = true;
     ShowWindow(_hwnd, SW_SHOW);
 
-    Logger::Info("Created window '%s' with dimensions (%d, %d)", title.c_str(), width, height);
+    Logger::Info("[WINDOW] Created window '%s' with dimensions (%d, %d)", title.c_str(), width, height);
 }
 
 Window::~Window()

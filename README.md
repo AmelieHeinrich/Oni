@@ -55,7 +55,7 @@ Oni makes heavy use of compute shaders for its rendering. Anything that isn't a 
 - TAA for static/dynamic scenes
 - Motion Blur
 - Chromatic Aberration
-- FFT Bloom
+- Bloom
 - Color grading
 - Film Grain
 - Tonemapping
@@ -68,12 +68,12 @@ Oni makes heavy use of compute shaders for its rendering. Anything that isn't a 
 - Simple scene editor to add/move lights around
 - Debug renderer (lines)
 - Log window
-- Shader hot reloading & reflection
+- Shader hot reloading, reflection and caching
 - Texture compression (can be generated, not loaded in engine yet)
 
 ## WIP
 
-- Motion Blur
+- SSAO
 
 ## Screenshots
 

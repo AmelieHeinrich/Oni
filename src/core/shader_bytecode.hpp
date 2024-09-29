@@ -9,11 +9,12 @@
 #include <string>
 #include <vector>
 
-enum class ShaderType
+enum class ShaderType : uint32_t
 {
-    Vertex,
-    Fragment,
-    Compute,
+    None = 0,
+    Vertex = 1,
+    Fragment = 2,
+    Compute = 3,
     // TODO(ahi): Mesh
     // TODO(ahi): Raytracing
     // TODO(ahi): Node

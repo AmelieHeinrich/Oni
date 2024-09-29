@@ -66,7 +66,7 @@ DescriptorHeap::DescriptorHeap(Device::Ptr devicePtr, DescriptorHeapType type, u
 
     _incrementSize = _devicePtr->GetDevice()->GetDescriptorHandleIncrementSize(_type);
 
-    Logger::Info("D3D12: Allocated descriptor heap of type %s and size %u", D3D12HeapTypeToStr(_type), _heapSize);
+    Logger::Info("[D3D12] Allocated descriptor heap of type %s and size %u", D3D12HeapTypeToStr(_type), _heapSize);
 }
 
 DescriptorHeap::~DescriptorHeap()

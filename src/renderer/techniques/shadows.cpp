@@ -29,8 +29,8 @@ Shadows::Shadows(RenderContext::Ptr context, ShadowMapResolution resolution)
     _shadowPipeline.SignatureInfo.PushConstantSize = sizeof(glm::mat4) * 2;
 
     _shadowPipeline.ReflectRootSignature(false);
-    _shadowPipeline.AddShaderWatch("shaders/Shadows/ShadowVertex.hlsl", "Main", ShaderType::Vertex);
-    _shadowPipeline.AddShaderWatch("shaders/Shadows/ShadowPixel.hlsl", "Main", ShaderType::Fragment);
+    _shadowPipeline.AddShaderWatch("shaders/Shadows/ShadowVert.hlsl", "Main", ShaderType::Vertex);
+    _shadowPipeline.AddShaderWatch("shaders/Shadows/ShadowFrag.hlsl", "Main", ShaderType::Fragment);
     _shadowPipeline.Build(context);
 
     _shadowMap = context->CreateTexture(uint32_t(resolution), uint32_t(resolution), TextureFormat::R32Typeless, TextureUsage::DepthTarget, false, "[SHADOW] Shadow Map");

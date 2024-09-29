@@ -7,6 +7,7 @@
 #include "hot_reloadable_pipeline.hpp"
 
 #include "core/log.hpp"
+#include "core/shader_loader.hpp"
 
 HotReloadablePipeline::~HotReloadablePipeline()
 {
@@ -24,7 +25,7 @@ void HotReloadablePipeline::AddShaderWatch(const std::string& path, const std::s
     watch.Path = path;
     watch.EntryPoint = entryPoint;
     watch.Watch.Load(path);
-    ShaderCompiler::CompileShader(path, entryPoint, type, watch.Bytecode);
+    watch.Bytecode = ShaderLoader::GetFromCache(path);
     
     _shaders[type] = watch;
 }

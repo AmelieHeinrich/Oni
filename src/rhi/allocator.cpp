@@ -27,10 +27,10 @@ Allocator::Allocator(Device::Ptr devicePtr)
 
     HRESULT result = D3D12MA::CreateAllocator(&desc, &_allocator);
     if (FAILED(result)) {
-        Logger::Error("D3D12: Failed to create memory allocator!");
+        Logger::Error("[D3D12] Failed to create memory allocator!");
     }
 
-    Logger::Info("D3D12: Successfully created memory allocator");
+    Logger::Info("[D3D12] Successfully created memory allocator");
 }
 
 Allocator::~Allocator()
@@ -57,7 +57,7 @@ GPUResource *Allocator::Allocate(D3D12MA::ALLOCATION_DESC *allocDesc, D3D12_RESO
 
     HRESULT result = _allocator->CreateResource(allocDesc, resourceDesc, state, nullptr, &resource->Allocation, IID_PPV_ARGS(&resource->Resource));
     if (FAILED(result)) {
-        Logger::Error("D3D12: Failed to allocate resource!");
+        Logger::Error("[D3D12] Failed to allocate resource!");
     }
     _allocations.push_back(resource);
 

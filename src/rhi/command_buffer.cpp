@@ -30,18 +30,18 @@ CommandBuffer::CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps
 {
     HRESULT result = devicePtr->GetDevice()->CreateCommandAllocator(_type, IID_PPV_ARGS(&_commandAllocator));
     if (FAILED(result)) {
-        Logger::Error("D3D12: Failed to create command allocator!");
+        Logger::Error("[D3D12] Failed to create command allocator!");
     }
 
     result = devicePtr->GetDevice()->CreateCommandList(0, _type, _commandAllocator, nullptr, IID_PPV_ARGS(&_commandList));
     if (FAILED(result)) {
-        Logger::Error("D3D12: Failed to create command list!");
+        Logger::Error("[D3D12] Failed to create command list!");
     }
 
     if (close) {
         result = _commandList->Close();
         if (FAILED(result)) {
-            Logger::Error("D3D12: Failed to close freshly created command list!");
+            Logger::Error("[D3D12] Failed to close freshly created command list!");
         }
     }
 }
