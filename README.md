@@ -14,11 +14,19 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
     - Mesh shaders
     - Work graphs
 
+## Building
+
+- xmake
+- xmake f --mode={debug/release}
+- Copy the contents of the bin folder in build/windows/x64/{debug/release}/
+- Copy the D3D12 folder in build/windows/x64/{debug/release}/
+- xmake run
+
 ## Screenshots
 
 ![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/Bistro.png)
 
-## Features
+## Renderer features
 
 - Deferred rendering
 - Shadow mapping
@@ -34,7 +42,8 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 ## Other features
 - UI powered by ImGui
 - In-engine screenshot system
-- Shader hot reloading, 
+- Shader hot reloading and caching
+- Texture compression
 
 ## Dependencies
 
