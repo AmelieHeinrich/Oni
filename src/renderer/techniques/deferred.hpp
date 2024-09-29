@@ -61,6 +61,7 @@ private:
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _modeBuffer;
 
     Sampler::Ptr _sampler;
+    Sampler::Ptr _cubeSampler;
     Sampler::Ptr _shadowSampler;
 
     std::array<glm::vec2, 16> _haltonSequence;
@@ -68,6 +69,9 @@ private:
     glm::vec2 _prevJitter;
     int _jitterCounter = 0;
     bool _jitter = true;
+
+    float _directTerm = 1.0f;
+    float _indirectTerm = 0.1f;
 
     int _mode = 0;
     bool _visualizeShadow = false;

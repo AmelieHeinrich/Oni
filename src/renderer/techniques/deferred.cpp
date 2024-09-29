@@ -96,7 +96,7 @@ Deferred::Deferred(RenderContext::Ptr context)
     {
         _lightingPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            (sizeof(uint32_t) * 16)
+            (sizeof(uint32_t) * 19)
         };
         _lightingPipeline.ReflectRootSignature(false);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
@@ -115,6 +115,7 @@ Deferred::Deferred(RenderContext::Ptr context)
     }
 
     _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, true, 0);
+    _cubeSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, true, 0);
     _shadowSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, false, 0);
 
     // Generate halton sequence
@@ -303,12 +304,16 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             uint32_t Prefilter;
             uint32_t BRDF;
             uint32_t ShadowMap;
+            uint32_t CubeSampler;
             uint32_t Sampler;
             uint32_t ShadowSampler;
             uint32_t SceneBuffer;
             uint32_t LightBuffer;
             uint32_t OutputData;
             uint32_t HDRBuffer;
+
+            float direct;
+            float indirect;
         };
         Constants constants = {
             _depthBuffer->SRV(),
@@ -322,11 +327,14 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             _map.BRDF->SRV(),
             _shadowMap->SRV(),
             _sampler->BindlesssSampler(),
+            _cubeSampler->BindlesssSampler(),
             _shadowSampler->BindlesssSampler(),
             _sceneBufferLight[frameIndex]->CBV(),
             _lightBuffer[frameIndex]->CBV(),
             _modeBuffer[frameIndex]->CBV(),
-            _outputImage->SRV()
+            _outputImage->SRV(),
+            _directTerm,
+            _indirectTerm
         };
 
         commandBuffer->SetViewport(0, 0, width, height);
@@ -379,7 +387,10 @@ void Deferred::OnUI()
         ImGui::Checkbox("Enable IBL", &_ibl);
         ImGui::Checkbox("Visualize Shadows", &_visualizeShadow);
 
-        static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Specular", "Ambient", "Position", "Velocity" };
+        ImGui::SliderFloat("Direct Light Term", &_directTerm, 0.0f, 2.0f, "%.1f");
+        ImGui::SliderFloat("Indirect Light Term", &_indirectTerm, 0.0f, 2.0f, "%.1f");
+
+        static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Direct", "Indirect", "Position", "Velocity" };
         ImGui::Combo("Mode", (int*)&_mode, Modes, 10, 10);
 
         ImGui::TreePop();

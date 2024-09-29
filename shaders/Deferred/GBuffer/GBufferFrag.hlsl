@@ -4,7 +4,7 @@
 // $Create Time: 2024-09-19 14:05:32
 //
 
-#define ORCA 0
+#define ORCA 1
 
 struct FragmentIn
 {
@@ -78,6 +78,9 @@ FragmentOut Main(FragmentIn Input)
     SamplerState Sampler = SamplerDescriptorHeap[Settings.Sampler];
 
     float4 albedo = AlbedoTexture.Sample(Sampler, Input.TexCoords.xy);
+    if (albedo.a < 0.001)
+        discard;
+
     float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords.xy);
     float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords.xy);
     float4 aot = AOTexture.Sample(Sampler, Input.TexCoords.xy);

@@ -30,7 +30,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 
 - Deferred rendering
 - Shadow mapping
-- Bloom
+- Bloom (experimental, doesn't work well or look good)
 - HDR rendering
 - Color grading
 - TAA (Temporal Anti-Aliasing)

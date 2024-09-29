@@ -39,10 +39,10 @@ public:
             function();
             float end = timer.GetElapsed();
             
-            FrameTimesHistory[key].push_back(end - start);
-            if (FrameTimesHistory.size() > 50) {
-                FrameTimesHistory.erase(FrameTimesHistory.begin());
+            if (FrameTimesHistory[key].size() > 500) {
+                FrameTimesHistory[key].erase(FrameTimesHistory[key].begin());
             }
+            FrameTimesHistory[key].push_back(end - start);
         }
     };
 

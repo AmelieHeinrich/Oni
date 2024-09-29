@@ -58,12 +58,16 @@ struct Constants
     uint ShadowMap;
 
     uint Sampler;
+    uint CubeSampler;
     uint ShadowSampler;
 
     uint SceneBuffer;
     uint LightBuffer;
     uint OutputData;
     uint HDRBuffer;
+
+    float Direct;
+    float Indirect;
 };
 
 ConstantBuffer<Constants> Settings : register(b0);
@@ -164,7 +168,14 @@ float4 GetPositionFromDepth(float2 uv, float depth, column_major float4x4 invers
     return viewSpacePosition;
 }
 
-static const float MAX_REFLECTION_LOD = 4.0;
+uint GetMaxReflectionLOD()
+{
+    TextureCube Prefilter = ResourceDescriptorHeap[Settings.Prefilter];
+
+    int w, h, l;
+    Prefilter.GetDimensions(0, w, h, l);
+    return l;
+}
 
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID) 
@@ -181,6 +192,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     Texture2D BRDF = ResourceDescriptorHeap[Settings.BRDF];
     Texture2D ShadowMap = ResourceDescriptorHeap[Settings.ShadowMap];
     SamplerState Sampler = SamplerDescriptorHeap[Settings.Sampler];
+    SamplerState CubeSampler = SamplerDescriptorHeap[Settings.CubeSampler];
     SamplerComparisonState ShadowSampler = SamplerDescriptorHeap[Settings.ShadowSampler];
     ConstantBuffer<SceneData> SceneBuffer = ResourceDescriptorHeap[Settings.SceneBuffer];
     ConstantBuffer<LightData> LightBuffer = ResourceDescriptorHeap[Settings.LightBuffer];
@@ -211,7 +223,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     data.LightPos = shadowPosition;
 
     // Albedo + Emissive
-    float4 albedo = AlbedoEmissive.Sample(Sampler, TexCoords) + Emissive.Sample(Sampler, TexCoords);
+    float4 albedo = AlbedoEmissive.Sample(Sampler, TexCoords) + (Emissive.Sample(Sampler, TexCoords) * 10.0f);
     albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
 
     // PBR + AO
@@ -235,39 +247,40 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     float3 F0 = float3(0.04, 0.04, 0.04);
     F0 = lerp(F0, albedo.xyz, metallic);
 
-    float3 Lo = float3(0.0, 0.0, 0.0);
+    // .5 so to make sure there is no black spots
+    float NdotV = max(0.5, dot(N, V));
+    float3 Lr = 2.0 * NdotV * N - V;
+    float3 Lo = 0.0;
 
-    for (int i = 0; i < LightBuffer.PointLightCount; i++) {
-        Lo += CalcPointLight(data, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
-    }
-    if (LightBuffer.HasSun) {
-        Lo += CalcDirectionalLight(data, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo) * (1.0 - shadow);
-    }
-
-    float3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-    
-    float3 kS = F;
-    float3 kD = 1.0 - kS;
-    kD *= 1.0 - metallic;
-
-    float3 ambient = float3(0.0, 0.0, 0.0);
-
-    if (OutputData.IBL == true) {
-        float3 irradiance = Irradiance.SampleLevel(Sampler, N, 0).rgb;
-        float3 diffuse = irradiance * albedo.xyz;
-
-        float3 prefilteredColor = Prefilter.SampleLevel(Sampler, R, roughness * MAX_REFLECTION_LOD).rgb;
-        float2 brdvUV = float2(max(dot(N, V), 0.0), roughness);
-        float2 brdf = BRDF.Sample(Sampler, brdvUV).rg;
-        float3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-        ambient = (kD * diffuse + specular) * ao;
-    } else {
-        ambient = kD * albedo.xyz * ao;
+    float3 directLighting = 0.0;
+    {
+        for (int i = 0; i < LightBuffer.PointLightCount; i++) {
+            Lo += CalcPointLight(data, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
+        }
+        if (LightBuffer.HasSun) {
+            Lo += CalcDirectionalLight(data, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo) * (1.0 - shadow);
+        }
+        directLighting += Lo;
     }
 
-    ambient *= 0.5;
+    float3 indirectLighting = 0.0;
+    {
+        float3 irradiance = Irradiance.Sample(CubeSampler, N).rgb;
+        float3 F = FresnelSchlick(NdotV, F0);
+        float3 kd = lerp(1.0 - F, 0.0, metallic);
+        float3 diffuseIBL = kd * albedo.rgb * irradiance;
 
-    float3 color = (ambient + Lo);
+        uint maxReflectionLOD = GetMaxReflectionLOD();
+        float3 specularIrradiance = Prefilter.SampleLevel(CubeSampler, Lr, roughness * 6).rgb;
+        float2 specularBRDF = BRDF.Sample(Sampler, float2(NdotV, roughness)).rg;
+        float3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
+        indirectLighting = diffuseIBL + specularIBL;
+    }
+
+    directLighting *= Settings.Direct;
+    indirectLighting *= Settings.Indirect;
+
+    float3 color = directLighting + indirectLighting;
     float4 final = float4(0.0, 0.0, 0.0, 1.0);
 
     switch (OutputData.Mode) {
@@ -275,13 +288,13 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = float4(color, 1.0);
             break;
         case MODE_ALBEDO:
-            final = pow(AlbedoEmissive.Sample(Sampler, TexCoords), float4(2.2, 2.2, 2.2, 1.0));
+            final = albedo;
             break;
         case MODE_NORMAL:
             final = float4(normals.rgb * 0.5 + 0.5, 1.0);
             break;
         case MODE_MR:
-            final = PBRAO;
+            final = metallic;
             break;
         case MODE_AO:
             final = float4(ao, ao, ao, 1.0);
@@ -290,10 +303,10 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = Emissive.Sample(Sampler, TexCoords);
             break;
         case MODE_SPECULAR:
-            final = float4(Lo, 1.0);
+            final = float4(directLighting, 1.0);
             break;
         case MODE_AMBIENT:
-            final = float4(ambient, 1.0);
+            final = float4(indirectLighting, 1.0);
             break;
         case MODE_POSITION:
             final = position;

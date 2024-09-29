@@ -203,9 +203,9 @@ Sampler::Ptr RenderContext::CreateSampler(SamplerAddress address, SamplerFilter 
     return result;
 }
 
-CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name)
+CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, int mips, const std::string& name)
 {
-    return std::make_shared<CubeMap>(_device, _allocator, _heaps, width, height, format, name);
+    return std::make_shared<CubeMap>(_device, _allocator, _heaps, width, height, format, mips, name);
 }
 
 CommandBuffer::Ptr RenderContext::CreateCommandBuffer(CommandQueueType type, bool close)
@@ -420,7 +420,7 @@ void RenderContext::OnOverlay()
     ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
     window_flags |= ImGuiWindowFlags_NoMove;
 
-    ImGui::SetNextWindowBgAlpha(0.35f);
+    ImGui::SetNextWindowBgAlpha(0.70f);
     ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
     ImGui::Text("Oni: An experimental renderer written by Amélie Heinrich");
     ImGui::Text("Version 0.0.1");

@@ -10,74 +10,62 @@ struct Constants
     uint EnvironmentMap;
     uint IrradianceMap;
     uint CubeSampler;
+    uint _Pad0;
 };
 
 ConstantBuffer<Constants> Settings : register(b0);
 
-static const float3 ViewPos = float3(0, 0, 0);
+static const uint NumSamples = 64 * 1024;
+static const float InvNumSamples = 1.0 / float(NumSamples);
 
-static const float3 ViewTarget[6] = {
-	float3(1, 0, 0),
-    float3(-1, 0, 0),
-    float3(0, -1, 0),
-    float3(0, 1, 0),
-    float3(0, 0, 1),
-    float3(0, 0, -1)
-};
-
-static const float3 ViewUp[6] = {
-    float3(0, 1, 0),
-    float3(0, 1, 0),
-    float3(0, 0, 1), // +Y
-    float3(0, 0, -1), // -Y
-    float3(0, 1, 0),
-    float3(0, 1, 0)
-};
-
-float4x4 LookAt(float3 pos, float3 target, float3 world_up) {
-    float3 fwd = normalize(target - pos);
-    float3 right = cross(world_up, fwd);
-    float3 up = cross(fwd, right);
-    return float4x4(float4(right, 0), float4(up, 0), float4(fwd, 0), float4(pos, 1));
-}
-
-float2 UVToQuadPos(float2 uv) {
-    return uv * 2.0f - 1.0f;
-}
-
-float3 ToLocalDirection(float2 uv, int face) {
-    float4x4 view = LookAt(ViewPos, ViewTarget[face], ViewUp[face]);
-    return (mul(view, float4(UVToQuadPos(uv), 1, 0))).xyz;
-}
-
-float3 CalculateIrradiance(float3 local_direction)
+float2 SampleHammersley(uint i)
 {
-    TextureCube EnvironmentMap = ResourceDescriptorHeap[Settings.EnvironmentMap];
+	return float2(i * InvNumSamples, radicalInverse_VdC(i));
+}
+
+float3 SampleHemisphere(float u1, float u2)
+{
+	const float u1p = sqrt(max(0.0, 1.0 - u1*u1));
+	return float3(cos(TwoPI * u2) * u1p, sin(TwoPI * u2) * u1p, u1);
+}
+
+float3 GetSamplingVector(uint3 ThreadID)
+{
     RWTexture2DArray<half4> IrradianceMap = ResourceDescriptorHeap[Settings.IrradianceMap];
-    SamplerState CubeSampler = SamplerDescriptorHeap[Settings.CubeSampler];
 
-    float3 normal = normalize(local_direction);
-    float3 irradiance = float3(0.0, 0.0, 0.0);
+	float outputWidth, outputHeight, outputDepth;
+	IrradianceMap.GetDimensions(outputWidth, outputHeight, outputDepth);
 
-    float3 up = float3(0.0, 1.0, 0.0);
-    float3 right = normalize(cross(up, normal));
-    up = cross(normal, right);
+    float2 st = ThreadID.xy/float2(outputWidth, outputHeight);
+    float2 uv = 2.0 * float2(st.x, 1.0-st.y) - 1.0;
 
-    float sample_delta = 0.025;
-    float n_samples = 0.0; 
-    for(float phi = 0.0; phi < 2.0 * PI; phi += sample_delta) {
-        for(float theta = 0.0; theta < 0.5 * PI; theta += sample_delta) {
-            float3 tangent = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-            float3 sample_vec = tangent.x * right + tangent.y * up + tangent.z * normal;
+	// Select vector based on cubemap face index.
+	float3 ret;
+	switch(ThreadID.z)
+	{
+	    case 0: ret = float3(1.0,  uv.y, -uv.x); break;
+	    case 1: ret = float3(-1.0, uv.y,  uv.x); break;
+	    case 2: ret = float3(uv.x, 1.0, -uv.y); break;
+	    case 3: ret = float3(uv.x, -1.0, uv.y); break;
+	    case 4: ret = float3(uv.x, uv.y, 1.0); break;
+	    case 5: ret = float3(-uv.x, uv.y, -1.0); break;
+	}
+    return normalize(ret);
+}
 
-            float3 sample_color = EnvironmentMap.Sample(CubeSampler, sample_vec).rgb * cos(theta) * sin(theta);
-            irradiance += sample_color;
-            n_samples++;
-        }
-    }
-    irradiance = PI * irradiance * (1.0 / float(n_samples));
+void ComputeBasisVectors(const float3 N, out float3 S, out float3 T)
+{
+	// Branchless select non-degenerate T.
+	T = cross(N, float3(0.0, 1.0, 0.0));
+	T = lerp(cross(N, float3(1.0, 0.0, 0.0)), T, step(Epsilon, dot(T, T)));
 
-    return irradiance;
+	T = normalize(T);
+	S = normalize(cross(N, T));
+}
+
+float3 TangentToWorld(const float3 v, const float3 N, const float3 S, const float3 T)
+{
+	return S * v.x + T * v.y + N * v.z;
 }
 
 [numthreads(32, 32, 1)]
@@ -87,15 +75,24 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     RWTexture2DArray<half4> IrradianceMap = ResourceDescriptorHeap[Settings.IrradianceMap];
     SamplerState CubeSampler = SamplerDescriptorHeap[Settings.CubeSampler];
 
-	int faceWidth, faceHeight, whatever;
-	IrradianceMap.GetDimensions(faceWidth, faceHeight, whatever);
+    float3 N = GetSamplingVector(ThreadID);
 
-	float2 UV = float2(ThreadID.xy) / float2(faceWidth, faceHeight);
-	if (UV.x > 1 || UV.y > 1)
-		return;
-	float3 LocalDirection = normalize(ToLocalDirection(UV, ThreadID.z));
-	LocalDirection.y = -LocalDirection.y;
+    float3 S, T;
+	ComputeBasisVectors(N, S, T);
 
-	float4 Color = float4(CalculateIrradiance(LocalDirection), 1);
-	IrradianceMap[ThreadID] = Color;
+    // Monte Carlo integration of hemispherical irradiance.
+	// As a small optimization this also includes Lambertian BRDF assuming perfectly white surface (albedo of 1.0)
+	// so we don't need to normalize in PBR fragment shader (so technically it encodes exitant radiance rather than irradiance).
+	float3 irradiance = 0.0;
+	for(uint i=0; i<NumSamples; ++i) {
+		float2 u  = SampleHammersley(i);
+		float3 Li = TangentToWorld(SampleHemisphere(u.x, u.y), N, S, T);
+		float cosTheta = max(0.0, dot(Li, N));
+
+		// PIs here cancel out because of division by pdf.
+		irradiance += 2.0 * EnvironmentMap.SampleLevel(CubeSampler, Li, 0).rgb * cosTheta;
+	}
+	irradiance /= float(NumSamples);
+
+	IrradianceMap[ThreadID] = float4(irradiance, 1.0);
 }

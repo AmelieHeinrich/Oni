@@ -25,5 +25,7 @@ float4 Main(FragmentIn input) : SV_Target
 
 	float3 env_vector = normalize(input.LocalPosition);
 	float4 color = EnvironmentMap.SampleLevel(CubeSampler, env_vector, 0);
+	color.rgb = pow(color.rgb, 2.2);
+
 	return color;
 }

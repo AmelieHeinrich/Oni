@@ -31,4 +31,5 @@ private:
     Texture::Ptr _outputLDR;
 
     uint32_t _tonemapper = 0;
+    float _gamma = 2.2f;
 };

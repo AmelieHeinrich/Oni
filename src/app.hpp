@@ -55,7 +55,7 @@ private:
     bool _updateFrustum = true;
 
     std::vector<float> _pastFps;
-    int _historySize = 10000;
+    int _historySize = 500;
 
     int _fps;
     int _frameCount = 0;

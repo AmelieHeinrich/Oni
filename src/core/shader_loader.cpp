@@ -168,5 +168,5 @@ void ShaderLoader::CacheShader(const std::string& path)
     fwrite(bytecode.bytecode.data(), bytecode.bytecode.size() * sizeof(uint32_t), 1, f);
     fclose(f);
 
-    Logger::Info("Cached shader %s in %s", path.c_str(), cached.c_str());
+    Logger::Info("[SHADER CACHE] Cached shader %s in %s", path.c_str(), cached.c_str());
 }

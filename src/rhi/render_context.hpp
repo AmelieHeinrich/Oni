@@ -56,7 +56,7 @@ public:
     ComputePipeline::Ptr CreateComputePipeline(ShaderBytecode& shader, RootSignature::Ptr rootSignature = nullptr);
     Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
     Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
-    CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, const std::string& name = "Cube Map");
+    CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, int mips = 1, const std::string& name = "Cube Map");
     CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type, bool close = true);
     
     RootSignature::Ptr CreateRootSignature();

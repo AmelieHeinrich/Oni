@@ -278,7 +278,11 @@ void Model::ProcessNode(RenderContext::Ptr context, cgltf_node *node, glm::mat4 
 
     if (node->mesh) {
         for (int i = 0; i < node->mesh->primitives_count; i++) {
-            ProcessPrimitive(context, &node->mesh->primitives[i], localTransform, std::string(node->name));
+            std::string name = "Node";
+            if (node->name) {
+                name = node->name;
+            }
+            ProcessPrimitive(context, &node->mesh->primitives[i], localTransform, name);
         }
     }
 

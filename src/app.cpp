@@ -27,13 +27,18 @@
 
 #include "renderer/techniques/debug_renderer.hpp"
 
-constexpr int TEST_LIGHT_COUNT = 0;
+#define SCENE_BALLS 0
+#define SCENE_SPONZA 1
+#define SCENE_BISTRO 0
+#define SCENE_SMALL 0
 
-float random_float(float min, float max)
-{
-    float scale = rand() / (float)RAND_MAX; 
-    return min + scale * ( max - min ); 
-}
+enum class SceneMode {
+    Bistro,
+    Sponza,
+    ThreeModels
+};
+
+constexpr int TEST_LIGHT_COUNT = 64;
 
 App::App()
     : _camera(1920, 1080), _lastFrame(0.0f)
@@ -66,6 +71,7 @@ App::App()
 
     scene = {};
 
+#if SCENE_SMALL
     Model platform = {};
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
@@ -77,14 +83,40 @@ App::App()
     scifiHelmet.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)));
 
     Model suzanne = {};
-    suzanne.Load(_renderContext, "assets/models/suzanne/Suzanne.gltf");
+    suzanne.Load(_renderContext, "assets/models/lantern/Lantern.gltf");
     suzanne.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f)));
 
     scene.Models.push_back(platform);
     scene.Models.push_back(damagedHelmet);
     scene.Models.push_back(scifiHelmet);
     scene.Models.push_back(suzanne);
+
+    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
+#endif
+
+#if SCENE_SPONZA
+    Model sponza = {};
+    sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
+
+    scene.Models.push_back(sponza);
     scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
+#endif
+
+#if SCENE_BALLS
+    Model balls = {};
+    balls.Load(_renderContext, "assets/models/balls/MetalRoughSpheres.gltf");
+
+    scene.Models.push_back(balls);
+    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
+#endif
+
+#if SCENE_BISTRO
+    Model bistro = {};
+    bistro.Load(_renderContext, "assets/models/bistro/bistro.gltf");
+    scene.Lights.SetSun(glm::vec3(0.0f, 30.0f, 0.0f), glm::vec3(-90.0f, 30.0f, 0.0f), glm::vec4(5.0f));
+
+    scene.Models.push_back(bistro);
+#endif
 
     for (int i = 0; i < TEST_LIGHT_COUNT; i++) {
         scene.Lights.AddPointLight(PointLight(
@@ -301,7 +333,7 @@ void App::RenderHelper()
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
         window_flags |= ImGuiWindowFlags_NoMove;
 
-        ImGui::SetNextWindowBgAlpha(0.35f);
+        ImGui::SetNextWindowBgAlpha(0.70f);
         ImGui::Begin("Example: Simple overlay", &p_open, window_flags);
         ImGui::Text("WASD + Mouse for Camera");
         ImGui::Text("Debug Menu: F1");
@@ -310,7 +342,6 @@ void App::RenderHelper()
         ImGui::Separator();
         ImGui::Text(_vsync ? "VSYNC: ON" : "VSYNC: OFF");
         ImGui::Text("%d FPS (%.2fms)", _fps, _frameTime);
-        ImGui::PlotLines("FPS Graph", _pastFps.data(), _pastFps.size());
         ImGui::Separator();
         for (auto pair : stats.FrameTimesHistory) {
             char buffer[256] = {};

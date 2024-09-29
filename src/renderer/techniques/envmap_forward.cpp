@@ -59,8 +59,8 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     : _context(context), _inputColor(inputColor), _inputDepth(inputDepth), _cubeRenderer(PipelineType::Graphics)
 {
     ShaderBytecode cubemapBytecode = ShaderLoader::GetFromCache("shaders/EquiMap/EquiMapCompute.hlsl");
-    ShaderBytecode prefilterBytecode = ShaderLoader::GetFromCache("shaders/Irradiance/IrradianceCompute.hlsl");
-    ShaderBytecode irradianceBytecode = ShaderLoader::GetFromCache("shaders/Prefilter/PrefilterCompute.hlsl");
+    ShaderBytecode irradianceBytecode = ShaderLoader::GetFromCache("shaders/Irradiance/IrradianceCompute.hlsl");
+    ShaderBytecode prefilterBytecode = ShaderLoader::GetFromCache("shaders/Prefilter/PrefilterCompute.hlsl");
     ShaderBytecode brdfBytecode = ShaderLoader::GetFromCache("shaders/BRDF/BRDFCompute.hlsl");
 
     // Create pipelines
@@ -92,7 +92,7 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
 
     // Load HDRI
     Bitmap image;
-    image.LoadHDR("assets/env/day/Street_High.hdr");
+    image.LoadHDR("assets/env/day/san_giuseppe_bridge_4k.hdr");
 
     Texture::Ptr hdrTexture = context->CreateTexture(image.Width, image.Height, TextureFormat::RGBA16Unorm, TextureUsage::ShaderResource, false, "HDR Texture");
     hdrTexture->BuildShaderResource();
@@ -105,9 +105,9 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     context->FlushUploader(uploader);
 
     // Create textures
-    _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "[ENVMAP] Environment Map");
-    _map.IrradianceMap = context->CreateCubeMap(128, 128, TextureFormat::RGBA16Unorm, "[ENVMAP] Irradiance Map");
-    _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Unorm, "[ENVMAP] Prefilter Map");
+    _map.Environment = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Float, 1, "[ENVMAP] Environment Map");
+    _map.IrradianceMap = context->CreateCubeMap(32, 32, TextureFormat::RGBA16Float, 1, "[ENVMAP] Irradiance Map");
+    _map.PrefilterMap = context->CreateCubeMap(512, 512, TextureFormat::RGBA16Float, 5, "[ENVMAP] Prefilter Map");
     _map.BRDF = context->CreateTexture(512, 512, TextureFormat::RG16Float, TextureUsage::Storage, false, "[ENVMAP] BRDF");
     _map.BRDF->BuildShaderResource();
     _map.BRDF->BuildStorage();
@@ -125,14 +125,13 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
     // Irradiance
     cmdBuffer->BindComputePipeline(_irradiance);
     cmdBuffer->PushConstantsCompute(glm::value_ptr(glm::ivec3(_map.Environment->SRV(), _map.IrradianceMap->UAV(0), _cubeSampler->BindlesssSampler())), sizeof(glm::ivec3), 0);
-    cmdBuffer->Dispatch(128 / 32, 128 / 32, 6);
+    cmdBuffer->Dispatch(32 / 32, 32 / 32, 6); 
 
     // Prefilter
+    const float deltaRoughness = 1.0f / std::max(float(_map.PrefilterMap->GetMips() - 1u), 1.0f);
     cmdBuffer->BindComputePipeline(_prefilter);
-    for (int i = 0; i < 5; i++) {
-        int width = (int)(512.0f * pow(0.5f, i));
-        int height = (int)(512.0f * pow(0.5f, i));
-        float roughness = (float)i / (float)(5 - 1);
+    for (int level = 0, size = 512; level < _map.PrefilterMap->GetMips(); ++level, size /= 2) {
+        const uint32_t numGroups = std::max(1u, size / 32u);
 
         struct PushConstant {
             uint32_t EnvMap;
@@ -142,13 +141,13 @@ EnvMapForward::EnvMapForward(RenderContext::Ptr context, Texture::Ptr inputColor
         };
         PushConstant constants = {
             _map.Environment->SRV(),
-            _map.PrefilterMap->UAV(i),
+            _map.PrefilterMap->UAV(level),
             _cubeSampler->BindlesssSampler(),
-            roughness
+            level * deltaRoughness
         };
 
         cmdBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
-        cmdBuffer->Dispatch(width / 32, height / 32, 6);
+        cmdBuffer->Dispatch(numGroups, numGroups, 6);
     }
 
     // BRDF

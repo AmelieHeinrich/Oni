@@ -117,7 +117,7 @@ void Bloom::Upsample(Scene& scene, uint32_t width, uint32_t height)
         data.FilterRadius = _filterRadius;
         data.MipN = _mipChain[i].RenderTarget->SRV();
         data.LinearSampler = _linearClamp->BindlesssSampler();
-        data.MipNMinusOne = _mipChain[i - 1].RenderTarget->UAV();
+        data.MipNMinusOne = mip.RenderTarget->UAV();
 
         cmdBuf->ImageBarrierBatch({
             { _mipChain[i].RenderTarget, TextureLayout::ShaderResource },

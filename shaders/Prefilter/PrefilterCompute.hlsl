@@ -5,7 +5,7 @@
 
 #include "shaders/Common/Math.hlsl"
 
-static const uint NumSamples = 512;
+static const uint NumSamples = 1024;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
 struct PrefilterMapSettings
@@ -18,107 +18,74 @@ struct PrefilterMapSettings
 
 ConstantBuffer<PrefilterMapSettings> PrefilterSettings : register(b0);
 
-float3 CubeToWorld(int3 cubeCoord, float2 cubeSize)
+float2 SampleHammersley(uint i)
 {
-	float2 texCoord = float2(cubeCoord.xy) / cubeSize;
-    texCoord = texCoord  * 2.0 - 1.0; // Swap to -1 -> +1
-    switch(cubeCoord.z)
-    {
-        case 0: return float3(1.0, -texCoord.yx); // CUBE_MAP_POS_X
-        case 1: return float3(-1.0, -texCoord.y, texCoord.x); // CUBE_MAP_NEG_X
-        case 2: return float3(texCoord.x, 1.0, texCoord.y); // CUBE_MAP_POS_Y
-        case 3: return float3(texCoord.x, -1.0, -texCoord.y); // CUBE_MAP_NEG_Y
-        case 4: return float3(texCoord.x, -texCoord.y, 1.0); // CUBE_MAP_POS_Z
-        case 5: return float3(-texCoord.xy, -1.0); // CUBE_MAP_NEG_Z
-    }
-    return float3(0.0, 0.0, 0.0);
+	return float2(i * InvNumSamples, radicalInverse_VdC(i));
 }
 
-int3 TexToCube(float3 texCoord, float2 cubeSize)
+float3 SampleGGX(float u1, float u2, float roughness)
 {
-	float3 abst = abs(texCoord);
-    texCoord /= max(max(abst.x, abst.y), abst.z);
-    
-    float cubeFace;
-    float2 uvCoord;
-    if (abst.x > abst.y && abst.x > abst.z)
-    {
-        // X major.
-        float negx = step(texCoord.x, 0.0);
-        uvCoord = lerp(-texCoord.zy, float2(texCoord.z, -texCoord.y), negx);
-        cubeFace = negx;
-    }
-    else if (abst.y > abst.z)
-    {
-        // Y major.
-        float negy = step(texCoord.y, 0.0);
-        uvCoord = lerp(texCoord.xz, float2(texCoord.x, -texCoord.z), negy);
-        cubeFace = 2.0 + negy;
-    }
-    else
-    {
-        // Z major.
-        float negz = step(texCoord.z, 0.0);
-        uvCoord = lerp(float2(texCoord.x, -texCoord.y), -texCoord.xy, negz);
-        cubeFace = 4.0 + negz;
-    }
-    uvCoord = (uvCoord + 1.0) * 0.5; // 0..1
-    uvCoord = uvCoord * cubeSize;
-    uvCoord = clamp(uvCoord, float2(0.0, 0.0), cubeSize - float2(1.0, 1.0));
-    
-    return int3(int2(uvCoord), int(cubeFace));
+	float alpha = roughness * roughness;
+
+	float cosTheta = sqrt((1.0 - u2) / (1.0 + (alpha*alpha - 1.0) * u2));
+	float sinTheta = sqrt(1.0 - cosTheta*cosTheta); // Trig. identity
+	float phi = TwoPI * u1;
+
+	// Convert to Cartesian upon return.
+	return float3(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
 }
 
-float SSBGeometry(float3 N, float3 H, float roughness)
+float NdfGGX(float cosLh, float roughness)
 {
-	float a      = roughness * roughness;
-    float a2     = a * a;
-    float NdotH  = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
-    
-    float nom   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom       = PI * denom * denom;
-    
-    return nom / denom;
+	float alpha   = roughness * roughness;
+	float alphaSq = alpha * alpha;
+
+	float denom = (cosLh * cosLh) * (alphaSq - 1.0) + 1.0;
+	return alphaSq / (PI * denom * denom);
 }
 
-float2 Hammersley(uint i, uint N)
+// Calculate normalized sampling direction vector based on current fragment coordinates.
+// This is essentially "inverse-sampling": we reconstruct what the sampling vector would be if we wanted it to "hit"
+// this particular fragment in a cubemap.
+float3 GetSamplingVector(uint3 ThreadID)
 {
-	float fbits;
-    uint bits = i;
-    
-    bits  = (bits << 16u) | (bits >> 16u);
-    bits  = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
-    bits  = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
-    bits  = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
-    bits  = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
-    fbits = float(bits) * 2.3283064365386963e-10;
-    
-    return float2(float(i) / float(N), fbits);
+    RWTexture2DArray<half4> PrefilterMap = ResourceDescriptorHeap[PrefilterSettings.PrefilterMap];
+
+	float outputWidth, outputHeight, outputDepth;
+	PrefilterMap.GetDimensions(outputWidth, outputHeight, outputDepth);
+
+    float2 st = ThreadID.xy/float2(outputWidth, outputHeight);
+    float2 uv = 2.0 * float2(st.x, 1.0-st.y) - 1.0;
+
+	// Select vector based on cubemap face index.
+	float3 ret;
+	switch(ThreadID.z)
+	{
+	    case 0: ret = float3(1.0,  uv.y, -uv.x); break;
+	    case 1: ret = float3(-1.0, uv.y,  uv.x); break;
+	    case 2: ret = float3(uv.x, 1.0, -uv.y); break;
+	    case 3: ret = float3(uv.x, -1.0, uv.y); break;
+	    case 4: ret = float3(uv.x, uv.y, 1.0); break;
+	    case 5: ret = float3(-uv.x, uv.y, -1.0); break;
+	}
+    return normalize(ret);
 }
 
-float3 SSBImportance(float2 Xi, float3 N, float roughness)
+// Compute orthonormal basis for converting from tanget/shading space to world space.
+void ComputeBasisVectors(const float3 N, out float3 S, out float3 T)
 {
-	float a = roughness * roughness;
+	// Branchless select non-degenerate T.
+	T = cross(N, float3(0.0, 1.0, 0.0));
+	T = lerp(cross(N, float3(1.0, 0.0, 0.0)), T, step(Epsilon, dot(T, T)));
 
-	float phi = 2.0 * PI * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
-	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	T = normalize(T);
+	S = normalize(cross(N, T));
+}
 
-	// from spherical coordinates to cartesian coordinates - halfway vector
-	float3 H;
-	H.x = cos(phi) * sinTheta;
-	H.y = sin(phi) * sinTheta;
-	H.z = cosTheta;
-
-	// from tangent-space H vector to world-space sample vector
-	float3 up        = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
-	float3 tangent   = normalize(cross(up, N));
-	float3 bitangent = cross(N, tangent);
-
-	float3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
-	return normalize(sampleVec);
+// Convert point from tangent/shading space to world space.
+float3 TangentToWorld(const float3 v, const float3 N, const float3 S, const float3 T)
+{
+	return S * v.x + T * v.y + N * v.z;
 }
 
 [numthreads(32, 32, 1)]
@@ -127,50 +94,62 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     TextureCube EnvironmentMap = ResourceDescriptorHeap[PrefilterSettings.EnvironmentMap];
     RWTexture2DArray<half4> PrefilterMap = ResourceDescriptorHeap[PrefilterSettings.PrefilterMap];
     SamplerState CubeSampler = ResourceDescriptorHeap[PrefilterSettings.CubeSampler];
-
-	const uint SAMPLE_COUNT = 1;
 	
-	float enviWidth, enviHeight;
-	EnvironmentMap.GetDimensions(enviWidth, enviHeight);
-	float2 enviSize = float2(enviWidth, enviHeight);
+    uint outputWidth, outputHeight, outputDepth;
+	PrefilterMap.GetDimensions(outputWidth, outputHeight, outputDepth);
+	if(ThreadID.x >= outputWidth || ThreadID.y >= outputHeight) {
+		return;
+	}
 
-	float mipWidth, mipHeight, whatever;
-	PrefilterMap.GetDimensions(mipWidth, mipHeight, whatever);
-	float2 mipSize = float2(mipWidth, mipHeight);	
+    float inputWidth, inputHeight, inputLevels;
+	EnvironmentMap.GetDimensions(0, inputWidth, inputHeight, inputLevels);
+	
+    // Solid angle associated with a single cubemap texel at zero mipmap level.
+	// This will come in handy for importance sampling below.
+	float wt = 4.0 * PI / (6 * inputWidth * inputHeight);
+	
+	// Approximation: Assume zero viewing angle (isotropic reflections).
+	float3 N = GetSamplingVector(ThreadID);
+	float3 Lo = N;
+	
+	float3 S, T;
+	ComputeBasisVectors(N, S, T);
 
-    int3 cubeCoord = int3(ThreadID.xyz);
-    
-    float3 worldPos = CubeToWorld(cubeCoord, mipSize);
-    float3 N = normalize(worldPos);
-    
-    float3 prefilteredColor = float3(0.0, 0.0, 0.0);
-    float totalWeight = 0.0;
-    
-    for (uint i = 0u; i < SAMPLE_COUNT; ++i)
-    {
-        float2 Xi = Hammersley(i, SAMPLE_COUNT);
-        float3 H = SSBImportance(Xi, N, PrefilterSettings.Roughness.x);
-        float3 L  = normalize(2.0 * dot(N, H) * H - N);
-    
-        float NdotL = max(dot(N, L), 0.0);
-        if (NdotL > 0.0)
-        {
-            float D = SSBGeometry(N, H, PrefilterSettings.Roughness.x);
-            float NdotH = max(dot(N, H), 0.0);
-            float HdotV = max(dot(H, N), 0.0);
-            float pdf = D * NdotH / (4.0 * HdotV + 0.0001);
-    
-            float saTexel  = 4.0 * PI / (6.0 * enviSize.x * enviSize.x);
-            float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
-    
-            float mipLevel = PrefilterSettings.Roughness.x == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
-    
-            prefilteredColor += EnvironmentMap.SampleLevel(CubeSampler, L, mipLevel).xyz * NdotL;
-            totalWeight += NdotL;
-        }
-    }
-    
-    prefilteredColor = prefilteredColor / totalWeight;
-    
-	PrefilterMap[cubeCoord] = float4(prefilteredColor, 1.0); 
+	float3 color = 0;
+	float weight = 0;
+
+	// Convolve environment map using GGX NDF importance sampling.
+	// Weight by cosine term since Epic claims it generally improves quality.
+	for(uint i = 0; i < NumSamples; ++i) {
+		float2 u = SampleHammersley(i);
+		float3 Lh = TangentToWorld(SampleGGX(u.x, u.y, PrefilterSettings.Roughness), N, S, T);
+
+		// Compute incident direction (Li) by reflecting viewing direction (Lo) around half-vector (Lh).
+		float3 Li = 2.0 * dot(Lo, Lh) * Lh - Lo;
+
+		float cosLi = dot(N, Li);
+		if(cosLi > 0.0) {
+			// Use Mipmap Filtered Importance Sampling to improve convergence.
+			// See: https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch20.html, section 20.4
+
+			float cosLh = max(dot(N, Lh), 0.0);
+
+			// GGX normal distribution function (D term) probability density function.
+			// Scaling by 1/4 is due to change of density in terms of Lh to Li (and since N=V, rest of the scaling factor cancels out).
+			float pdf = NdfGGX(cosLh, PrefilterSettings.Roughness) * 0.25;
+
+			// Solid angle associated with this sample.
+			float ws = 1.0 / (NumSamples * pdf);
+
+			// Mip level to sample from.
+			float mipLevel = max(0.5 * log2(ws / wt) + 1.0, 0.0);
+
+			color  += EnvironmentMap.SampleLevel(CubeSampler, Li, mipLevel).rgb * cosLi;
+			weight += cosLi;
+		}
+	}
+	color /= weight;
+    color = pow(color, 2.2);
+
+	PrefilterMap[ThreadID] = float4(color, 1.0); 
 }

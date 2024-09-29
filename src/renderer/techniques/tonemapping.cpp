@@ -41,13 +41,13 @@ void Tonemapping::Render(Scene& scene, uint32_t width, uint32_t height)
         uint32_t Mode;
         uint32_t HDRTexture;
         uint32_t LDRTexture;
-        uint32_t _Pad0;
+        float Gamma;
     };
     PushConstants constants = {
         _tonemapper,
         _inputHDR->SRV(),
         _outputLDR->UAV(),
-        0
+        _gamma
     };
 
     OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
@@ -81,7 +81,7 @@ void Tonemapping::OnUI()
     {
         static const char* Tonemappers[] = { "ACES", "Filmic", "Rom Bin Da House" };
         ImGui::Combo("Tonemapper", (int*)&_tonemapper, Tonemappers, 3);
-
+        ImGui::SliderFloat("Gamma", &_gamma, 1.0f, 3.0f, "%.2f");
         ImGui::TreePop();
     }
 }

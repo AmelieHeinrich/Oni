@@ -73,7 +73,7 @@ bool ShaderCompiler::CompileShader(const std::string& path, const std::string& e
 
     ComPtr<IDxcOperationResult> pResult;
     if (!SUCCEEDED(pCompiler->Compile(pSourceBlob.Get(), L"Shader", wideEntry, wideTarget, pArgs, ARRAYSIZE(pArgs), nullptr, 0, pIncludeHandler.Get(), &pResult))) {
-        Logger::Error("DXC: Failed to compile shader!");
+        Logger::Error("[DXC] DXC: Failed to compile shader!");
     }
 
     ComPtr<IDxcBlobEncoding> pErrors;
@@ -83,7 +83,7 @@ bool ShaderCompiler::CompileShader(const std::string& path, const std::string& e
     {
         ComPtr<IDxcBlobUtf8> pErrorsU8;
         pErrors->QueryInterface(IID_PPV_ARGS(&pErrorsU8));
-        Logger::Error("Shader errors:%s", (char*)pErrorsU8->GetStringPointer());
+        Logger::Error("[DXC] Shader errors:%s", (char*)pErrorsU8->GetStringPointer());
         return false;
     }
 
@@ -97,6 +97,6 @@ bool ShaderCompiler::CompileShader(const std::string& path, const std::string& e
     bytecode.bytecode.resize(pShaderBlob->GetBufferSize() / sizeof(uint32_t));
     memcpy(bytecode.bytecode.data(), pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize());
 
-    Logger::Info("DXC: Compiled shader %s", path.c_str());
+    Logger::Info("[DXC] Compiled shader %s", path.c_str());
     return true;
 }

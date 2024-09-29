@@ -35,7 +35,7 @@ struct TonemapperSettings
     uint Tonemapper;
     uint InputIndex;
     uint OutputIndex;
-    uint _Pad0;
+    float Gamma;
 };
 
 ConstantBuffer<TonemapperSettings> Settings : register(b0);
@@ -68,6 +68,9 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
                 break;
             }
         }
-        LDRTexture[ThreadID.xy] = float4(MappedColor, HDRColor.a);
+        float4 final = float4(MappedColor, HDRColor.a);
+        final.rgb = pow(final.rgb, 1.0 / Settings.Gamma);
+
+        LDRTexture[ThreadID.xy] = final;
     }
 }
