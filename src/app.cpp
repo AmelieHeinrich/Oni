@@ -8,9 +8,10 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <optick.h>
+
 #include <ctime>
 #include <cstdlib>
-#include <optick.h>
 #include <sstream>
 #include <iomanip>
 
@@ -22,6 +23,7 @@
 #include "core/file_system.hpp"
 #include "core/model.hpp"
 #include "core/shader_loader.hpp"
+#include "core/util.hpp"
 
 #include "renderer/techniques/debug_renderer.hpp"
 
@@ -67,17 +69,27 @@ App::App()
     Model platform = {};
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
-    Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
+    Model damagedHelmet = {};
+    damagedHelmet.Load(_renderContext, "assets/models/flighthelmet/FlightHelmet.gltf");
 
-    //scene.Models.push_back(platform);
-    scene.Models.push_back(sponza);
+    Model scifiHelmet = {};
+    scifiHelmet.Load(_renderContext, "assets/models/scifi/SciFiHelmet.gltf");
+    scifiHelmet.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)));
+
+    Model suzanne = {};
+    suzanne.Load(_renderContext, "assets/models/suzanne/Suzanne.gltf");
+    suzanne.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f)));
+
+    scene.Models.push_back(platform);
+    scene.Models.push_back(damagedHelmet);
+    scene.Models.push_back(scifiHelmet);
+    scene.Models.push_back(suzanne);
     scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
 
     for (int i = 0; i < TEST_LIGHT_COUNT; i++) {
         scene.Lights.AddPointLight(PointLight(
-            glm::vec3(random_float(-6.0f, 6.0f), random_float(1.0f, 8.0f), random_float(-6.0f, 6.0f)),
-            glm::vec3(random_float(0.0f, 1.0f), random_float(0.0f, 1.0f), random_float(0.0f, 1.0f)),
+            glm::vec3(util::random_range(-6.0f, 6.0f), util::random_range(1.0f, 8.0f), util::random_range(-6.0f, 6.0f)),
+            glm::vec3(util::random_range(0.0f, 1.0f),  util::random_range(0.0f, 1.0f), util::random_range(0.0f, 1.0f)),
             1.0f
         ));
     }
@@ -342,79 +354,97 @@ void App::ShowLightEditor()
     ImGui::Checkbox("Draw Grid (EXPERIMENTAL)", &_drawGrid);
     ImGui::Checkbox("Update Frustum", &_updateFrustum);
 
-    if (ImGui::TreeNodeEx("Sun", ImGuiTreeNodeFlags_Framed)) {
-        float intensity = scene.Lights.Sun.Color.x;
-        ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
-        scene.Lights.Sun.Color = glm::vec3(intensity);
+    if (ImGui::TreeNodeEx("Lights", ImGuiTreeNodeFlags_Framed)) {
+        if (ImGui::TreeNodeEx("Sun", ImGuiTreeNodeFlags_Framed)) {
+            float intensity = scene.Lights.Sun.Color.x;
+            ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
+            scene.Lights.Sun.Color = glm::vec3(intensity);
 
-        ImGui::SliderFloat3("Position", glm::value_ptr(scene.Lights.SunTransform.Position), -100.0f, 100.0f);
-        ImGui::SliderFloat3("Rotation", glm::value_ptr(scene.Lights.SunTransform.Rotation), -360.0f, 360.0f);
-        
-        if (ImGui::Button("Translate")) {
-            operation = ImGuizmo::OPERATION::TRANSLATE;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Rotate")) {
-            operation = ImGuizmo::OPERATION::ROTATE;
-        }
+            ImGui::SliderFloat3("Position", glm::value_ptr(scene.Lights.SunTransform.Position), -100.0f, 100.0f);
+            ImGui::SliderFloat3("Rotation", glm::value_ptr(scene.Lights.SunTransform.Rotation), -360.0f, 360.0f);
 
-        ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(scene.Lights.SunTransform.Position),
-                                                glm::value_ptr(scene.Lights.SunTransform.Rotation),
-                                                glm::value_ptr(scene.Lights.SunTransform.Scale),
-                                                glm::value_ptr(scene.Lights.SunTransform.Matrix));
+            if (ImGui::Button("Translate")) {
+                operation = ImGuizmo::OPERATION::TRANSLATE;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Rotate")) {
+                operation = ImGuizmo::OPERATION::ROTATE;
+            }
 
-        ImGuizmo::Manipulate(glm::value_ptr(scene.Camera.View()),
-                             glm::value_ptr(scene.Camera.Projection()),
-                             operation,
-                             ImGuizmo::MODE::WORLD,
-                             glm::value_ptr(scene.Lights.SunTransform.Matrix),
-                             nullptr,
-                             nullptr);
-
-        ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(scene.Lights.SunTransform.Matrix),
-                                              glm::value_ptr(scene.Lights.SunTransform.Position),
-                                              glm::value_ptr(scene.Lights.SunTransform.Rotation),
-                                              glm::value_ptr(scene.Lights.SunTransform.Scale));
-
-        ImGui::TreePop();
-    }
-
-    ImGui::Separator();
-
-    if (ImGui::Button("Add Point Light")) {
-        scene.Lights.AddPointLight(PointLight(glm::vec3(0.0f), glm::vec3(1.0f), 1.0f));   
-    }
-
-    for (int i = 0; i < scene.Lights.PointLights.size(); i++) {
-        auto& light = scene.Lights.PointLights[i];
-        if (ImGui::TreeNodeEx(std::string("Point Light " + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_Framed)) {
-            ImGui::ColorPicker3("Color", glm::value_ptr(light.Color), ImGuiColorEditFlags_PickerHueBar);
-            ImGui::SliderFloat("Brightness", &light.Brightness, 0.0f, 100.0f);
-
-            glm::mat4 Transform(1.0f);
-            glm::vec3 DummyRotation;
-            glm::vec3 DummyScale;
-
-            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(light.Position),
-                                                    glm::value_ptr(glm::vec3(0.0f)), 
-                                                    glm::value_ptr(glm::vec3(1.0f)),
-                                                    glm::value_ptr(Transform));
+            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(scene.Lights.SunTransform.Position),
+                                                    glm::value_ptr(scene.Lights.SunTransform.Rotation),
+                                                    glm::value_ptr(scene.Lights.SunTransform.Scale),
+                                                    glm::value_ptr(scene.Lights.SunTransform.Matrix));
 
             ImGuizmo::Manipulate(glm::value_ptr(scene.Camera.View()),
                                  glm::value_ptr(scene.Camera.Projection()),
-                                 ImGuizmo::OPERATION::TRANSLATE,
+                                 operation,
                                  ImGuizmo::MODE::WORLD,
-                                 glm::value_ptr(Transform),
+                                 glm::value_ptr(scene.Lights.SunTransform.Matrix),
                                  nullptr,
                                  nullptr);
 
-            ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(Transform),
-                                                  glm::value_ptr(light.Position),
-                                                  glm::value_ptr(DummyRotation),
-                                                  glm::value_ptr(DummyScale));
+            ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(scene.Lights.SunTransform.Matrix),
+                                                  glm::value_ptr(scene.Lights.SunTransform.Position),
+                                                  glm::value_ptr(scene.Lights.SunTransform.Rotation),
+                                                  glm::value_ptr(scene.Lights.SunTransform.Scale));
 
             ImGui::TreePop();
         }
+
+        ImGui::Separator();
+
+        if (ImGui::Button("Add Point Light")) {
+            scene.Lights.AddPointLight(PointLight(glm::vec3(0.0f), glm::vec3(1.0f), 1.0f));   
+        }
+
+        for (int i = 0; i < scene.Lights.PointLights.size(); i++) {
+            auto& light = scene.Lights.PointLights[i];
+            if (ImGui::TreeNodeEx(std::string("Point Light " + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_Framed)) {
+                ImGui::ColorPicker3("Color", glm::value_ptr(light.Color), ImGuiColorEditFlags_PickerHueBar);
+                ImGui::SliderFloat("Brightness", &light.Brightness, 0.0f, 100.0f);
+
+                glm::mat4 Transform(1.0f);
+                glm::vec3 DummyRotation;
+                glm::vec3 DummyScale;
+
+                ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(light.Position),
+                                                        glm::value_ptr(glm::vec3(0.0f)), 
+                                                        glm::value_ptr(glm::vec3(1.0f)),
+                                                        glm::value_ptr(Transform));
+
+                ImGuizmo::Manipulate(glm::value_ptr(scene.Camera.View()),
+                                     glm::value_ptr(scene.Camera.Projection()),
+                                     ImGuizmo::OPERATION::TRANSLATE,
+                                     ImGuizmo::MODE::WORLD,
+                                     glm::value_ptr(Transform),
+                                     nullptr,
+                                     nullptr);
+
+                ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(Transform),
+                                                      glm::value_ptr(light.Position),
+                                                      glm::value_ptr(DummyRotation),
+                                                      glm::value_ptr(DummyScale));
+
+                ImGui::TreePop();
+            }
+        }
+        
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("Game Objects", ImGuiTreeNodeFlags_Framed)) {
+        for (auto& model : scene.Models) {
+            if (ImGui::TreeNodeEx(model.Name.c_str(), ImGuiTreeNodeFlags_Framed)) {
+                for (auto& primitive : model.Primitives) {
+                    if (ImGui::TreeNodeEx(primitive.Name.c_str(), ImGuiTreeNodeFlags_Framed)) {
+                        ImGui::TreePop();
+                    }
+                }
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
     }
 
     ImGui::End();

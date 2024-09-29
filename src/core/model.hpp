@@ -61,6 +61,7 @@ struct Primitive
     glm::mat4 PrevTransform;
     glm::mat4 Transform;
     AABB BoundingBox;
+    std::string Name;
 };
 
 class Model
@@ -74,11 +75,13 @@ public:
     uint32_t IndexCount;
 
     std::string Directory;
+    std::string Name;
 
     void Load(RenderContext::Ptr renderContext, const std::string& path);
     ~Model() = default;
 
+    void ApplyTransform(glm::mat4 transform);
 private:
-    void ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform);
+    void ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform, std::string name);
     void ProcessNode(RenderContext::Ptr context, cgltf_node *node, glm::mat4 transform);
 };

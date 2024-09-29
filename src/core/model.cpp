@@ -12,7 +12,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform)
+void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform, std::string name)
 {
     if (primitive->type != cgltf_primitive_type_triangles) {
         Logger::Warn("[CGLTF] GLTF primitive isn't a triangle list, discarding.");
@@ -21,6 +21,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
 
     Primitive out;
     out.Transform = transform;
+    if (name.empty()) {
+        out.Name = "GLTF Node";
+    } else {
+        out.Name = name;
+    }
 
     // Geometry
     cgltf_attribute* pos_attribute = nullptr;
@@ -273,7 +278,7 @@ void Model::ProcessNode(RenderContext::Ptr context, cgltf_node *node, glm::mat4 
 
     if (node->mesh) {
         for (int i = 0; i < node->mesh->primitives_count; i++) {
-            ProcessPrimitive(context, &node->mesh->primitives[i], localTransform);
+            ProcessPrimitive(context, &node->mesh->primitives[i], localTransform, std::string(node->name));
         }
     }
 
@@ -284,6 +289,8 @@ void Model::ProcessNode(RenderContext::Ptr context, cgltf_node *node, glm::mat4 
 
 void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
 {
+    Name = path;
+
     cgltf_options options = {};
     cgltf_data* data = nullptr;
 
@@ -301,4 +308,11 @@ void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
     }
     Logger::Info("[CGLTF] Successfully loaded model at path %s", path.c_str());
     cgltf_free(data);
+}
+
+void Model::ApplyTransform(glm::mat4 transform)
+{
+    for (auto& primitive : Primitives) {
+        primitive.Transform *= transform;
+    }
 }

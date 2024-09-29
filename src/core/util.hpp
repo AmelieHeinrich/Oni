@@ -11,4 +11,6 @@
 namespace util
 {
     uint64_t hash(const void *key, uint32_t len, uint64_t seed);
+
+    float random_range(float min, float max);
 }

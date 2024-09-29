@@ -6,6 +6,8 @@
 
 #include "util.hpp"
 
+#include <random>
+
 namespace util
 {
     // https://github.com/niklas-ourmachinery/bitsquid-foundation/blob/master/murmur_hash.cpp
@@ -50,4 +52,14 @@ namespace util
 
 		return h;
     }
+
+	float random_range(float min, float max)
+	{
+		static std::random_device rd;
+    	static std::mt19937 gen(rd());
+
+		std::uniform_real_distribution<float> dis(min, max);
+
+		return dis(gen);
+	}
 }

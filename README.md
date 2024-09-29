@@ -24,7 +24,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 
 ## Screenshots
 
-![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/Bistro.png) ![](screenshots/engine/Screenshot%20Sun%20Sep%2029%2017_21_58%202024.png)
+![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/Bistro.png) ![](screenshots/engine/Screenshot%20Sun%20Sep%2029%2017_21_58%202024.png) ![](screenshots/Multiple%20Models.png)
 
 ## Renderer features
 
