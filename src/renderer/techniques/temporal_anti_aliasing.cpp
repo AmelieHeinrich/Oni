@@ -105,7 +105,6 @@ void TemporalAntiAliasing::OnUI()
 {
     if (ImGui::TreeNodeEx("Temporal Anti Aliasing", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Enable", &_enabled);
-        ImGui::SliderFloat("Modulation Factor", &_modulationFactor, 0.0f, 1.0f, "%.1f");
         ImGui::TreePop();
     }
 }
