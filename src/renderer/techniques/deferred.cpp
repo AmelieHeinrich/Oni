@@ -332,7 +332,8 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->BindComputePipeline(_lightingPipeline.ComputePipeline);
         commandBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
-        commandBuffer->Dispatch(width / 8, height / 8, 1);
+        std::cout << height << std::endl;
+        commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
     }
     commandBuffer->EndEvent();
 }

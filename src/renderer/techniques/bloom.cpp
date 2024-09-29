@@ -161,7 +161,7 @@ void Bloom::Composite(Scene& scene, uint32_t width, uint32_t height)
     });
     cmdBuf->BindComputePipeline(_compositePipeline.ComputePipeline);
     cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
-    cmdBuf->Dispatch(std::max(width / 8u, 1u), std::max(height / 8u, 1u), 1);
+    cmdBuf->Dispatch(std::max((uint32_t)std::ceil(width / 8u), 1u), std::max((uint32_t)std::ceil(height / 8u), 1u), 1);
     cmdBuf->EndEvent();
 }
 

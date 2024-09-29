@@ -43,7 +43,7 @@ void FilmGrain::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
         cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
         cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
-        cmdBuf->Dispatch(width / 8, height / 8, 1);
+        cmdBuf->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::RenderTarget);
         cmdBuf->EndEvent();
     }

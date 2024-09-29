@@ -71,7 +71,7 @@ void TemporalAntiAliasing::AccumulateHistory(uint32_t width, uint32_t height)
         { _output, TextureLayout::Storage },
         { _velocityBuffer, TextureLayout::ShaderResource }
     });
-    commandBuffer->Dispatch(width / 8, height / 8, 1);
+    commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
     commandBuffer->EndEvent();
 }
 

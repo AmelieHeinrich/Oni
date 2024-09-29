@@ -72,7 +72,7 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             cmdBuf->BeginEvent("AE Histogram Compute Pass");
             cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
             cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
-            cmdBuf->Dispatch(round(width / 16), round(height / 16), 1);
+            cmdBuf->Dispatch(std::ceil(width / 16), std::ceil(height / 16), 1);
             cmdBuf->EndEvent();
         }
 
@@ -102,7 +102,7 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::Storage);
             cmdBuf->BindComputePipeline(_averagePipeline.ComputePipeline);
             cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
-            cmdBuf->Dispatch(round(width / 16), round(height / 16), 1);
+            cmdBuf->Dispatch(std::ceil(width / 16), std::ceil(height / 16), 1);
             cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::ShaderResource);
             cmdBuf->EndEvent();
         }

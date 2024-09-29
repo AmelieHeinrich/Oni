@@ -19,7 +19,12 @@ Window::Window(int width, int height, const std::string& title)
     windowClass.hInstance = GetModuleHandle(nullptr);
     RegisterClassA(&windowClass);
 
-    _hwnd = CreateWindowA(windowClass.lpszClassName, title.c_str(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr, nullptr, windowClass.hInstance, nullptr);
+    RECT rect = {};
+    rect.right = width;
+    rect.bottom = height;
+    AdjustWindowRect(&rect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, FALSE);
+
+    _hwnd = CreateWindowA(windowClass.lpszClassName, title.c_str(), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, rect.right, rect.bottom, nullptr, nullptr, windowClass.hInstance, nullptr);
     if (!_hwnd) {
         Logger::Error("Failed to create window!");
         return;
@@ -30,7 +35,7 @@ Window::Window(int width, int height, const std::string& title)
     _open = true;
     ShowWindow(_hwnd, SW_SHOW);
 
-    Logger::Info("[WINDOW] Created window '%s' with dimensions (%d, %d)", title.c_str(), width, height);
+    Logger::Info("[WINDOW] Created window '%s' with dimensions (%d, %d)", title.c_str(), rect.right, rect.bottom);
 }
 
 Window::~Window()
@@ -65,7 +70,6 @@ void Window::GetSize(uint32_t& width, uint32_t& height)
     GetClientRect(_hwnd, &ClientRect);
     width = ClientRect.right - ClientRect.left;
     height = ClientRect.bottom - ClientRect.top;
-    height -= 1;
 }
 
 LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

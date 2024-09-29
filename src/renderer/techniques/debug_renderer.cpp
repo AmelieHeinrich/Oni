@@ -148,7 +148,7 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             });
             cmdBuffer->BindComputePipeline(MotionShader.ComputePipeline);
             cmdBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
-            cmdBuffer->Dispatch(width / 8, height / 8, 1);
+            cmdBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
             cmdBuffer->ImageBarrier(VelocityBuffer, TextureLayout::RenderTarget);
             cmdBuffer->EndEvent();
         }

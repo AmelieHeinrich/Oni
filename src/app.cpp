@@ -52,7 +52,7 @@ App::App()
     // Load/Cache every shader
     ShaderLoader::TraverseDirectory("shaders/");
 
-    _window = std::make_shared<Window>(1920 + 16, 1080 + 38, "ONI");
+    _window = std::make_shared<Window>(1920, 1080, "ONI");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
         _renderer->Resize(width, height);
@@ -68,7 +68,7 @@ App::App()
     platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
 
     Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
+    sponza.Load(_renderContext, "assets/models/damagedhelmet/DamagedHelmet.gltf");
 
     //scene.Models.push_back(platform);
     scene.Models.push_back(sponza);
