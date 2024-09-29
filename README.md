@@ -1,14 +1,7 @@
-# Oni : D3D12 research renderer and playground
+# Oni : a DirectX 12 renderer written in C++
 
-Oni is an experimental sandbox renderer written in C++ with D3D12. It's purpose is for it to be used as a portfolio piece once I go back to job finding.
-Oni makes heavy use of compute shaders for its rendering. Anything that isn't a draw call will be put into a compute shader.
-
-![](screenshots/Bistro.png)
-![](screenshots/Sponza.png)
-
-## Authors
-
-- Amélie Heinrich (amelie.heinrich.dev@gmail.com)
+Oni is a modern graphics engine written in C++ with the DirectX 12 API. Its goal is to showcase the latest advancements in real-time rendering.
+Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- everything that isn't a draw call is done through compute.
 
 ## Requirements
 
@@ -21,67 +14,29 @@ Oni makes heavy use of compute shaders for its rendering. Anything that isn't a 
     - Mesh shaders
     - Work graphs
 
-## Building
-
-- xmake
-- Copy the contents of the bin folder in build/windows/x64/{debug/release}/
-- Copy the D3D12 folder in build/windows/x64/{debug/release}/
-- xmake run
-- That's it!
-
-## Features:
-
-### Techniques
-
-- Point lights
-- Directional lights
-- Forward shading
-- Deferred rendering:
-    - Depth Buffer R32Typeless
-    - Normals RGBA16Float
-    - Albedo
-    - PBR + AO RGBA8Unorm
-    - Emissive RGBA16Float
-- PBR lighting, PBR materials
-- Environment mapping
-- IBL
-- Shadow mapping (directional)
-- Emissive materials
-
-### GPU Driven Rendering
-- Bindless resources via SM6.6
-
-### Post Processing
-- TAA for static/dynamic scenes
-- Motion Blur
-- Chromatic Aberration
-- Bloom
-- Color grading
-- Film Grain
-- Tonemapping
-
-### Misc
-- Resource inspector
-- VRAM/RAM/Battery usage UI
-- Screenshot system
-- Mipmap generation through compute
-- Simple scene editor to add/move lights around
-- Debug renderer (lines)
-- Log window
-- Shader hot reloading, reflection and caching
-- Texture compression (can be generated, not loaded in engine yet)
-
-## WIP
-
-- SSAO
-
 ## Screenshots
 
-### UI (as of 9/14/2024)
+![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/Bistro.png)
 
-![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png)
+## Features
 
-## Third party dependencies
+- Deferred rendering
+- Shadow mapping
+- Bloom
+- HDR rendering
+- Color grading
+- TAA (Temporal Anti-Aliasing)
+- Film Grain
+- Debug renderer (lines, motion vector visualizer)
+- PBR and emissive material workflow
+- Point, directional lights
+
+## Other features
+- UI powered by ImGui
+- In-engine screenshot system
+- Shader hot reloading, 
+
+## Dependencies
 
 - [D3D12MA](https://gpuopen.com/d3d12-memory-allocator/)
 - [glm](https://github.com/g-truc/glm)
