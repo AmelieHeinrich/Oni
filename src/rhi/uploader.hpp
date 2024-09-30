@@ -5,12 +5,14 @@
 
 #pragma once
 
+#include <vector>
+
 #include "command_queue.hpp"
 #include "command_buffer.hpp"
 #include "device.hpp"
-#include "core/bitmap.hpp"
 
-#include <vector>
+#include "core/bitmap.hpp"
+#include "core/texture_file.hpp"
 
 class Uploader
 {
@@ -21,6 +23,7 @@ public:
     void CopyHostToDeviceShared(void* pData, uint64_t uiSize, Buffer::Ptr pDestBuffer);
     void CopyHostToDeviceLocal(void* pData, uint64_t uiSize, Buffer::Ptr pDestBuffer);
     void CopyHostToDeviceTexture(Bitmap& image, Texture::Ptr pDestTexture);
+    void CopyHostToDeviceCompressedTexture(TextureFile *file, Texture::Ptr pDestTexture);
     void CopyBufferToBuffer(Buffer::Ptr pSourceBuffer, Buffer::Ptr pDestBuffer);
     void CopyTextureToTexture(Texture::Ptr pSourceTexture, Texture::Ptr pDestTexture);
     void CopyBufferToTexture(Buffer::Ptr pSourceBuffer, Texture::Ptr pDestTexture);
@@ -39,6 +42,7 @@ private:
         HostToDeviceShared,
         HostToDeviceLocal,
         HostToDeviceLocalTexture,
+        HostToDeviceCompressedTexture,
         BufferToBuffer,
         TextureToTexture,
         BufferToTexture,
@@ -50,6 +54,9 @@ private:
         UploadCommandType type;
         void* data;
         uint64_t size;
+
+        TextureFile *textureFile;
+        std::vector<Buffer::Ptr> mipBuffers;
 
         Texture::Ptr sourceTexture;
         Texture::Ptr destTexture;

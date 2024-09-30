@@ -54,7 +54,7 @@ App::App()
     }
 
     // Compress every model texture
-    //TextureCompressor::TraverseDirectory("assets/textures/", TextureCompressorFormat::BC1);
+    TextureCompressor::TraverseDirectory("assets/textures/", TextureCompressorFormat::BC7);
 
     // Load/Cache every shader
     ShaderLoader::TraverseDirectory("shaders/");
@@ -68,6 +68,15 @@ App::App()
 
     _renderContext = std::make_shared<RenderContext>(_window);
     _renderer = std::make_unique<Renderer>(_renderContext);
+
+    // Try to load a compressed texture
+    TextureFile file = TextureCompressor::GetFromCache("assets/textures/compression_test.png");
+    _test = _renderContext->CreateTexture(file.Width(), file.Height(), file.Format(), TextureUsage::ShaderResource, true, "Test Texture");
+    _test->BuildShaderResource();
+
+    Uploader uploader = _renderContext->CreateUploader();
+    uploader.CopyHostToDeviceCompressedTexture(&file, _test);
+    _renderContext->FlushUploader(uploader);
 
     scene = {};
 

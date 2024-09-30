@@ -18,6 +18,8 @@
 
 #include <pix3.h>
 
+#undef max
+
 bool IsHDR(TextureFormat format)
 {
     if (format == TextureFormat::RGBA32Float)
@@ -396,6 +398,36 @@ void CommandBuffer::CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src)
     CopyDest.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
     CopyDest.pResource = dst->_resource->Resource;
     CopyDest.SubresourceIndex = 0;
+
+    _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);
+}
+
+void CommandBuffer::CopyBufferToTextureLOD(Texture::Ptr dst, Buffer::Ptr src, int mip)
+{
+    int width = mip > 0 ? dst->GetSizeOfMip(mip) : dst->_width;
+    int height = mip > 0 ? dst->GetSizeOfMip(mip) : dst->_height;
+
+    D3D12_TEXTURE_COPY_LOCATION CopySource = {};
+    CopySource.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    CopySource.pResource = src->_resource->Resource;
+    CopySource.PlacedFootprint.Offset = 0;
+    CopySource.PlacedFootprint.Footprint.Format = DXGI_FORMAT(dst->_format);
+    CopySource.PlacedFootprint.Footprint.Width = width;
+    CopySource.PlacedFootprint.Footprint.Height = height;
+    CopySource.PlacedFootprint.Footprint.Depth = 1;
+    CopySource.PlacedFootprint.Footprint.RowPitch = width * Texture::GetComponentSize(dst->GetFormat());
+    CopySource.SubresourceIndex = 0;
+
+    if (dst->GetFormat() == TextureFormat::BC1) {
+        CopySource.PlacedFootprint.Footprint.RowPitch = width * 2;
+    } else if (dst->GetFormat() == TextureFormat::BC7) {
+        CopySource.PlacedFootprint.Footprint.RowPitch = width * 4;
+    }
+
+    D3D12_TEXTURE_COPY_LOCATION CopyDest = {};
+    CopyDest.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    CopyDest.pResource = dst->_resource->Resource;
+    CopyDest.SubresourceIndex = mip;
 
     _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);
 }

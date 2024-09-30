@@ -76,6 +76,10 @@ Texture::Texture(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap
 
     _states.resize(_mipLevels);
 
+    for (int level = 0, size = width; level < _mipLevels; ++level, size /= 2) {
+        _mipSizes.push_back(size);
+    }
+
     switch (usage)
     {
         case TextureUsage::RenderTarget:

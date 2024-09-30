@@ -79,6 +79,8 @@ public:
 
     uint32_t SRV(uint32_t mip = 0) { return _srvs[mip].HeapIndex; }
     uint32_t UAV(uint32_t mip = 0) { return _uavs[mip].HeapIndex; }
+    
+    int GetSizeOfMip(uint32_t mip) { return _mipSizes[mip]; }
 private:
     friend class SwapChain;
     friend class CommandBuffer;
@@ -94,6 +96,7 @@ private:
     DescriptorHeap::Descriptor _rtv;
     DescriptorHeap::Descriptor _dsv;
 
+    std::vector<int> _mipSizes; // Used only for uploader kekw
     std::vector<DescriptorHeap::Descriptor> _srvs;
     std::vector<DescriptorHeap::Descriptor> _uavs;
     std::vector<D3D12_RESOURCE_STATES> _states;

@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "bitmap.hpp"
+#include "rhi/texture.hpp"
 
 class TextureFile
 {
@@ -21,8 +22,19 @@ public:
         uint32_t mode;
     };
 
+    TextureFile() {}
     TextureFile(const std::string& path);
     ~TextureFile();
+
+    uint32_t Width() { return _header.width; }
+    uint32_t Height() { return _header.height; }
+    uint32_t MipCount() { return _header.mipCount; }
+    TextureFormat Format() { return _header.mode == 1 ? TextureFormat::BC1 : TextureFormat::BC7; }
+
+    void *GetMipChainStart() { return _bytes; }
+    void *GetTexelsAtMip(int level);
+    uint32_t GetMipDimension(int level);
+    uint64_t GetMipByteSize(int level);
 
     Bitmap ToBitmap();
 private:

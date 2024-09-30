@@ -8,8 +8,6 @@
 #include <filesystem>
 #include <stdlib.h>
 
-#include <nvtt/nvtt.h>
-
 #include "texture_compressor.hpp"
 #include "util.hpp"
 #include "file_system.hpp"
@@ -80,16 +78,13 @@ public:
     }
 
     virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {
-        Logger::Info("Writing mip %d of size (%d, %d)", miplevel, width, height);
+        Logger::Info("Writing mip %d of size (%d, %d)", width, height, miplevel);
     }
+    virtual void endImage() override {}
 
     virtual bool writeData(const void * data, int size) override {
         fwrite(data, size, 1, f);
         return true;
-    }
-
-    virtual void endImage() override {
-        Logger::Info("Finished writing mip");
     }
 
 private:
@@ -109,9 +104,15 @@ void TextureCompressor::TraverseDirectory(const std::string& path, TextureCompre
 
     nvtt::Context context;
     context.enableCudaAcceleration(true);
+    
+    if (context.isCudaAccelerationEnabled()) {
+        Logger::Info("Thankfully for you, NVTT found a CUDA context! Enjoy the blazingly fast caching process.");
+    } else {
+        Logger::Info("No CUDA for you. Maybe update drivers, and if you have an AMD card... I'm sorry :(");
+    }
 
     nvtt::CompressionOptions compressionOptions;
-    compressionOptions.setFormat(nvtt::Format_BC1);
+    compressionOptions.setFormat(nvtt::Format(format));
 
     int mode = format == TextureCompressorFormat::BC1 ? 1 : 7;
 
@@ -124,7 +125,6 @@ void TextureCompressor::TraverseDirectory(const std::string& path, TextureCompre
         }
 
         if (ExistsInCache(entryPath)) {
-            Logger::Info("%s is already compressed -- skipping.", entryPath.c_str());
             continue;
         }
 
@@ -174,7 +174,11 @@ std::string TextureCompressor::GetCachedPath(const std::string& path)
 
 TextureFile TextureCompressor::GetFromCache(const std::string& path)
 {
-    return TextureFile(path);
+    if (!ExistsInCache(path)) {
+        Logger::Error("Texture %s is uncached. Please restart Oni.", path.c_str());
+    }
+
+    return TextureFile(GetCachedPath(path));
 }
 
 bool TextureCompressor::IsValidExtension(const std::string& extension)

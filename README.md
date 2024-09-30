@@ -45,6 +45,10 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - Shader hot reloading and caching
 - Texture compression
 
+## WIP
+
+- Cascaded shadow mapping
+
 ## Dependencies
 
 - [D3D12MA](https://gpuopen.com/d3d12-memory-allocator/)

@@ -78,6 +78,25 @@ void Uploader::CopyHostToDeviceTexture(Bitmap& image, Texture::Ptr pDestTexture)
     }
 }
 
+void Uploader::CopyHostToDeviceCompressedTexture(TextureFile *file, Texture::Ptr pDestTexture)
+{
+    int textureSize = file->Width();
+    int mipCount = file->MipCount();
+
+    UploadCommand command;
+    command.type = UploadCommandType::HostToDeviceCompressedTexture;
+    command.textureFile = file;
+    command.destTexture = pDestTexture;
+
+    command.mipBuffers.resize(mipCount);
+    for (int level = 0; level < mipCount; ++level) {
+        int bufferSize = command.textureFile->GetMipByteSize(level);
+        command.mipBuffers[level] = std::make_shared<Buffer>(_devicePtr, _allocator, _heaps, bufferSize, 0, BufferType::Copy, false);
+    }
+
+    _commands.push_back(command);
+}
+
 void Uploader::CopyBufferToBuffer(Buffer::Ptr pSourceBuffer, Buffer::Ptr pDestBuffer)
 {
     UploadCommand command;

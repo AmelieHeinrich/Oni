@@ -17,13 +17,13 @@ const char *GetProfileFromType(ShaderType type)
 {
     switch (type) {
         case ShaderType::Vertex: {
-            return "vs_6_6";
+            return "vs_6_8";
         }
         case ShaderType::Fragment: {
-            return "ps_6_6";
+            return "ps_6_8";
         }
         case ShaderType::Compute: {
-            return "cs_6_6";
+            return "cs_6_8";
         }
     }
     return "???";

@@ -91,6 +91,8 @@ public:
     void CopyBufferToTexture(Texture::Ptr dst, Buffer::Ptr src);
     void CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src);
 
+    void CopyBufferToTextureLOD(Texture::Ptr dst, Buffer::Ptr src, int mip);
+
     void BeginImGui(int width, int height);
     void EndImGui();
     void CleanupImGui();

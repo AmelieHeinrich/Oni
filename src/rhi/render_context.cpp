@@ -255,8 +255,31 @@ void RenderContext::FlushUploader(Uploader& uploader, CommandBuffer::Ptr cmdBuf)
             case Uploader::UploadCommandType::BufferToTexture: {
                 auto state = command.destTexture->GetState(0);
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest);
-                cmdBuf->CopyBufferToTexture(command.destTexture, command.sourceBuffer);
+                cmdBuf->CopyBufferToTextureLOD(command.destTexture, command.sourceBuffer, 0);
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout(state));
+                break;
+            }
+            case Uploader::UploadCommandType::HostToDeviceCompressedTexture: {
+                // Generate all source buffers
+                int textureSize = command.textureFile->Width();
+                int mipCount = command.textureFile->MipCount();
+                TextureFormat format = command.textureFile->Format();
+
+                std::vector<Buffer::Ptr> buffers(command.textureFile->MipCount());
+                for (int level = 0, size = textureSize; level < mipCount; ++level, size /= 2) {
+                    int bufferSize = command.textureFile->GetMipByteSize(level);
+                    buffers[level] = CreateBuffer(bufferSize, 0, BufferType::Copy, false);
+
+                    void *pData;
+                    command.destBuffer->Map(0, 0, &pData);
+                    memcpy(pData, command.textureFile->GetTexelsAtMip(level), bufferSize);
+                    command.destBuffer->Unmap(0, 0);
+
+                    auto state = command.destTexture->GetState(level);
+                    cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest, level);
+                    cmdBuf->CopyBufferToTextureLOD(command.destTexture, buffers[level], level);
+                    cmdBuf->ImageBarrier(command.destTexture, TextureLayout(state), level);
+                }
                 break;
             }
             default: {
@@ -299,6 +322,27 @@ void RenderContext::FlushUploader(Uploader& uploader)
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest);
                 cmdBuf->CopyBufferToTexture(command.destTexture, command.sourceBuffer);
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout(state));
+                break;
+            }
+            case Uploader::UploadCommandType::HostToDeviceCompressedTexture: {
+                // Generate all source buffers
+                int textureSize = command.textureFile->Width();
+                int mipCount = command.textureFile->MipCount();
+                TextureFormat format = command.textureFile->Format();
+
+                for (int level = 0; level < mipCount; ++level) {
+                    int bufferSize = command.textureFile->GetMipByteSize(level);
+                    
+                    void *pData;
+                    command.mipBuffers[level]->Map(0, 0, &pData);
+                    memcpy(pData, command.textureFile->GetTexelsAtMip(level), bufferSize);
+                    command.mipBuffers[level]->Unmap(0, 0);
+
+                    auto state = command.destTexture->GetState(level);
+                    cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest, level);
+                    cmdBuf->CopyBufferToTextureLOD(command.destTexture, command.mipBuffers[level], level);
+                    cmdBuf->ImageBarrier(command.destTexture, TextureLayout::ShaderResource, level);
+                }
                 break;
             }
             default: {

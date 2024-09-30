@@ -11,10 +11,12 @@
 #include "bitmap.hpp"
 #include "texture_file.hpp"
 
+#include <nvtt/nvtt.h>
+
 enum class TextureCompressorFormat
 {
-    BC1,
-    BC7
+    BC1 = nvtt::Format_BC1,
+    BC7 = nvtt::Format_BC7
 };
 
 class TextureCompressor

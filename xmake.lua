@@ -19,7 +19,7 @@ target("Oni")
     add_linkdirs("ext/nvtt/lib64")
 
     if is_plat("windows") then
-        add_syslinks("user32", "kernel32", "gdi32", "dxgi", "d3d12", "dxcompiler", "WinPixEventRuntime.lib", "nvtt.lib")
+        add_syslinks("user32", "kernel32", "gdi32", "dxgi", "d3d12", "dxcompiler", "WinPixEventRuntime.lib", "nvtt30205.lib")
     end
 
     if is_mode("debug") then

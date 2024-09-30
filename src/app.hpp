@@ -42,6 +42,8 @@ private:
     FreeCamera _camera;
     Scene scene;
 
+    Texture::Ptr _test;
+
     bool _vsync = false;
     bool _fpsAsGraph = false;
     bool _hideOverlay = false;
