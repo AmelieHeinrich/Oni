@@ -331,13 +331,6 @@ void RenderContext::FlushUploader(Uploader& uploader)
                 TextureFormat format = command.textureFile->Format();
 
                 for (int level = 0; level < mipCount; ++level) {
-                    int bufferSize = command.textureFile->GetMipByteSize(level);
-                    
-                    void *pData;
-                    command.mipBuffers[level]->Map(0, 0, &pData);
-                    memcpy(pData, command.textureFile->GetTexelsAtMip(level), bufferSize);
-                    command.mipBuffers[level]->Unmap(0, 0);
-
                     auto state = command.destTexture->GetState(level);
                     cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest, level);
                     cmdBuf->CopyBufferToTextureLOD(command.destTexture, command.mipBuffers[level], level);

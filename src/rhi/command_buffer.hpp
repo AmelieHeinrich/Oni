@@ -7,6 +7,7 @@
 
 #include <vector>
 
+#include "device.hpp"
 #include "buffer.hpp"
 #include "texture.hpp"
 #include "cube_map.hpp"
@@ -102,6 +103,7 @@ private:
     void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state);
     void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state, int subresource);
 
+    Device::Ptr _device;
     DescriptorHeap::Heaps _heaps;
     D3D12_COMMAND_LIST_TYPE _type;
     ID3D12GraphicsCommandList* _commandList; // TODO(ahi): Switch to newer version of command list to get access to DXR, Mesh shaders and Work Graphs

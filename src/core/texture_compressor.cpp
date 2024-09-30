@@ -149,7 +149,13 @@ void TextureCompressor::TraverseDirectory(const std::string& path, TextureCompre
             if (i == mipCount - 1) break;
 
             // Prepare the next mip:
+            image.toLinearFromSrgb();
+            image.premultiplyAlpha();
+
             image.buildNextMipmap(nvtt::MipmapFilter_Box);
+        
+            image.demultiplyAlpha();
+            image.toSrgb();
         }
 
         Logger::Info("Compressed %s to %s", entryPath.c_str(), cached.c_str());

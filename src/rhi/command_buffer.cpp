@@ -28,7 +28,7 @@ bool IsHDR(TextureFormat format)
 }
 
 CommandBuffer::CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps, CommandQueueType type, bool close)
-    : _type(D3D12_COMMAND_LIST_TYPE(type)), _heaps(heaps)
+    : _type(D3D12_COMMAND_LIST_TYPE(type)), _heaps(heaps), _device(devicePtr)
 {
     HRESULT result = devicePtr->GetDevice()->CreateCommandAllocator(_type, IID_PPV_ARGS(&_commandAllocator));
     if (FAILED(result)) {

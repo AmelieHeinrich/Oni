@@ -92,6 +92,11 @@ void Uploader::CopyHostToDeviceCompressedTexture(TextureFile *file, Texture::Ptr
     for (int level = 0; level < mipCount; ++level) {
         int bufferSize = command.textureFile->GetMipByteSize(level);
         command.mipBuffers[level] = std::make_shared<Buffer>(_devicePtr, _allocator, _heaps, bufferSize, 0, BufferType::Copy, false);
+
+        void *pData;
+        command.mipBuffers[level]->Map(0, 0, &pData);
+        memcpy(pData, command.textureFile->GetTexelsAtMip(level), bufferSize);
+        command.mipBuffers[level]->Unmap(0, 0);
     }
 
     _commands.push_back(command);

@@ -63,7 +63,7 @@ Bloom::Bloom(RenderContext::Ptr context, Texture::Ptr inputHDR)
             mip.Size = mipSize;
             mip.IntSize = mipIntSize;
 
-            mip.RenderTarget = context->CreateTexture((uint32_t)mipSize.x, (uint32_t)mipSize.y, TextureFormat::RGB11Float, TextureUsage::ShaderResource, false, "Bloom Mip " + std::to_string(i));
+            mip.RenderTarget = context->CreateTexture((uint32_t)mipSize.x, (uint32_t)mipSize.y, TextureFormat::RGB11Float, TextureUsage::ShaderResource, false, "[BLOOM] Bloom Mip " + std::to_string(i));
             mip.RenderTarget->BuildShaderResource();
             mip.RenderTarget->BuildStorage();
             _mipChain.push_back(mip);
