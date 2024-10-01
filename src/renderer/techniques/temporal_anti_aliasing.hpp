@@ -41,5 +41,5 @@ private:
     Sampler::Ptr _linearSampler;
 
     float _modulationFactor = 0.1f;
-    bool _enabled = true;
+    bool _enabled = false;
 };

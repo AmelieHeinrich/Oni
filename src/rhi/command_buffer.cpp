@@ -76,6 +76,11 @@ void CommandBuffer::End()
     _commandList->Close();
 }
 
+void CommandBuffer::ClearState()
+{
+    _commandList->ClearState(nullptr);
+}
+
 void CommandBuffer::BeginEvent(const std::string& name, int r, int g, int b)
 {
     PIXBeginEvent(_commandList, PIX_COLOR(r, g, b), name.c_str());

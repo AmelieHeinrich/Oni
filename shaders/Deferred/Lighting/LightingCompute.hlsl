@@ -79,23 +79,23 @@ float3 CalcPointLight(FragmentData Input, PointLight light, float3 V, float3 N, 
 
     float3 L = normalize(lightPos - Input.WorldPos.xyz);
     float3 H = normalize(V + L);
-    float distance = length(lightPos - Input.WorldPos.xyz);
+    float distance = length(lightPos - Input.WorldPos.xyz) + Epsilon;
     float attenuation = 1.0 / (distance * distance);
     float3 radiance = lightColor * attenuation;
 
     float NDF = DistributionGGX(N, H, roughness);
     float G = GeometrySmith(N, V, L, roughness);
-    float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    float3 F = FresnelSchlick(max(dot(H, V), Epsilon), F0);
     
     float3 numerator = F * G * NDF;
-    float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
+    float denominator = 4 * max(dot(N, V), Epsilon) * max(dot(N, L), Epsilon) + Epsilon;
     float3 specular = numerator / denominator;
 
     float3 kS = F;
     float3 kD = float3(1.0, 1.0, 1.0) - kS;
     kD *= 1.0 - metallic;
 
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotL = max(dot(N, L), Epsilon);
 
     return (kD * albedo.xyz / PI + specular) * radiance * NdotL;
 }
@@ -106,19 +106,19 @@ float3 CalcDirectionalLight(FragmentData Input, DirectionalLight light, float3 V
 
     float3 L = normalize(light.Direction.xyz);
     float3 H = normalize(V + L);
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotL = max(dot(N, L), Epsilon);
     float3 radiance = lightColor * NdotL;
 
     float NDF = DistributionGGX(N, H, roughness);
     float G = GeometrySmith(N, V, L, roughness);
-    float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    float3 F = FresnelSchlick(max(dot(H, V), Epsilon), F0);
     
     float3 numerator = F * G * NDF;
-    float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
+    float denominator = 4 * max(dot(N, V), Epsilon) * max(dot(N, L), Epsilon) + Epsilon;
     float3 specular = numerator / denominator;
 
     float3 kS = F;
-    float3 kD = float3(1.0, 1.0, 1.0) - kS;
+    float3 kD = 1.0 - F;
     kD *= 1.0 - metallic;
 
     return (kD * albedo.xyz / PI + specular) * radiance;
@@ -138,7 +138,7 @@ float ShadowCalculation(FragmentData Input, Texture2D ShadowMap, SamplerComparis
     float shadowWidth, shadowHeight;
     ShadowMap.GetDimensions(shadowWidth, shadowHeight);
 
-    float shadow = 0.0;
+    float shadow = Epsilon;
     float2 texelSize = 1.0 / float2(shadowWidth, shadowHeight);
     for(int x = -1; x <= 1; ++x) {
         for(int y = -1; y <= 1; ++y) {
@@ -244,7 +244,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     float3 V = normalize(SceneBuffer.CameraPosition - position).xyz;
     float3 R = reflect(-V, N);
 
-    float3 F0 = float3(0.04, 0.04, 0.04);
+    float3 F0 = 0.04;
     F0 = lerp(F0, albedo.xyz, metallic);
 
     // .5 so to make sure there is no black spots
@@ -252,7 +252,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     float3 Lr = 2.0 * NdotV * N - V;
     float3 Lo = 0.0;
 
-    float3 directLighting = 0.0;
+    float3 directLighting = Epsilon;
     {
         for (int i = 0; i < LightBuffer.PointLightCount; i++) {
             Lo += CalcPointLight(data, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
@@ -263,7 +263,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
         directLighting += Lo;
     }
 
-    float3 indirectLighting = 0.0;
+    float3 indirectLighting = Epsilon;
     {
         float3 irradiance = Irradiance.Sample(CubeSampler, N).rgb;
         float3 F = FresnelSchlick(NdotV, F0);
@@ -271,7 +271,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
         float3 diffuseIBL = kd * albedo.rgb * irradiance;
 
         uint maxReflectionLOD = GetMaxReflectionLOD();
-        float3 specularIrradiance = Prefilter.SampleLevel(CubeSampler, Lr, roughness * 6).rgb;
+        float3 specularIrradiance = Prefilter.SampleLevel(CubeSampler, Lr, roughness * maxReflectionLOD).rgb;
         float2 specularBRDF = BRDF.Sample(Sampler, float2(NdotV, roughness)).rg;
         float3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
         indirectLighting = diffuseIBL + specularIBL;

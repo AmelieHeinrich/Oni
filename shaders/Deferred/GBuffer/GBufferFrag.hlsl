@@ -4,7 +4,9 @@
 // $Create Time: 2024-09-19 14:05:32
 //
 
-#define ORCA 1
+#include "shaders/Common/Math.hlsl"
+
+#define ORCA 0
 
 struct FragmentIn
 {
@@ -54,16 +56,17 @@ float3 GetNormalFromMap(FragmentIn Input)
     }
 
     float3 tangentNormal = NormalTexture.Sample(Sampler, Input.TexCoords.xy).rgb * 2.0 - 1.0;
+    float3 normal = normalize(Input.Normals.xyz);
 
-    float3 Q1 = normalize(ddx(Input.Position.xyz));
-    float3 Q2 = normalize(ddy(Input.Position.xyz));
-    float2 ST1 = normalize(ddx(Input.TexCoords.xy));
-    float2 ST2 = normalize(ddy(Input.TexCoords.xy));
+    float3 Q1 = ddx(Input.Position.xyz);
+    float3 Q2 = ddy(Input.Position.xyz);
+    float2 ST1 = ddx(Input.TexCoords.xy);
+    float2 ST2 = ddy(Input.TexCoords.xy);
 
-    float3 N = normalize(Input.Normals.xyz);
-    float3 T = normalize(Q1 * ST2.y - Q2 * ST1.y);
-    float3 B = -normalize(cross(N, T));
-    float3x3 TBN = float3x3(T, B, N);
+    float3 T = Q1 * ST2.y - Q2 * ST1.y + Epsilon;
+    float3 B = cross(normal, T) + Epsilon;
+    float3 N = normal + Epsilon;
+    float3x3 TBN = float3x3(normalize(T), normalize(B), N);
 
     return normalize(mul(tangentNormal, TBN));
 }
@@ -78,16 +81,17 @@ FragmentOut Main(FragmentIn Input)
     SamplerState Sampler = SamplerDescriptorHeap[Settings.Sampler];
 
     float4 albedo = AlbedoTexture.Sample(Sampler, Input.TexCoords.xy);
-    if (albedo.a < 0.001)
+    if (albedo.a < 0.1)
         discard;
 
     float4 emission = EmissiveTexture.Sample(Sampler, Input.TexCoords.xy);
-    float4 metallicRoughness = PBRTexture.Sample(Sampler, Input.TexCoords.xy);
-    float4 aot = AOTexture.Sample(Sampler, Input.TexCoords.xy);
+    float4 metallicRoughness = PBRTexture.SampleLevel(Sampler, Input.TexCoords.xy, 0);
+    float4 aot = AOTexture.SampleLevel(Sampler, Input.TexCoords.xy, 0);
 
     float ao = 1.0f;
     float roughness = 0.0f;
     float metallic = 0.0f;
+    
     if (ORCA) {
         ao = metallicRoughness.r;
         roughness = metallicRoughness.g;

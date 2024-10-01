@@ -47,6 +47,8 @@ public:
     void Begin(bool reset = true);
     void End();
 
+    void ClearState();
+
     void BeginEvent(const std::string& name, int r = 255, int g = 255, int b = 255);
     void InsertMarker(const std::string& name, int r = 255, int g = 255, int b = 255);
     void EndEvent();

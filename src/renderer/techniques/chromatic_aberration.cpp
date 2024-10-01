@@ -36,6 +36,7 @@ void ChromaticAberration::Render(Scene& scene, uint32_t width, uint32_t height)
 
     if (_enable) {
         cmdBuf->BeginEvent("Chromatic Aberration");
+        cmdBuf->ClearState();
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
         cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
         cmdBuf->PushConstantsCompute(&constants, sizeof(PushConstants), 0);

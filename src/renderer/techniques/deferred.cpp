@@ -166,6 +166,7 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
 
     // Start rendering
     commandBuffer->BeginEvent("GBuffer");
+    commandBuffer->ClearState();
     commandBuffer->ImageBarrierBatch({
         { _normals, TextureLayout::RenderTarget },
         { _albedoEmission, TextureLayout::RenderTarget },
@@ -291,6 +292,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
     _modeBuffer[frameIndex]->Unmap(0, 0);
 
     commandBuffer->BeginEvent("Deferred Lighting");
+    commandBuffer->ClearState();
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
     if (_draw) {
         struct Constants {

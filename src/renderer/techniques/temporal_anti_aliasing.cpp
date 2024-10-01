@@ -64,6 +64,7 @@ void TemporalAntiAliasing::AccumulateHistory(uint32_t width, uint32_t height)
     data.PointSampler = _pointSampler->BindlesssSampler();
 
     commandBuffer->BeginEvent("Resolve");
+    commandBuffer->ClearState();
     commandBuffer->BindComputePipeline(_taaPipeline.ComputePipeline);
     commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
     commandBuffer->ImageBarrierBatch({

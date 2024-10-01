@@ -43,6 +43,7 @@ void MotionBlur::Render(Scene& scene, uint32_t width, uint32_t height)
 
     if (_enabled) {
         commandBuffer->BeginEvent("Motion Blur");
+        commandBuffer->ClearState();
         commandBuffer->ImageBarrierBatch({
             { _velocityBuffer, TextureLayout::ShaderResource },
             { _output, TextureLayout::Storage }

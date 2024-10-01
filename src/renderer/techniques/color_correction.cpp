@@ -41,6 +41,7 @@ void ColorCorrection::Render(Scene& scene, uint32_t width, uint32_t height)
         _settings.InputHDR = _inputHDR->UAV();
 
         cmdBuf->BeginEvent("Color Correction Pass");
+        cmdBuf->ClearState();
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
         cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
         cmdBuf->PushConstantsCompute(&_settings, sizeof(_settings), 0);

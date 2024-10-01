@@ -72,7 +72,7 @@ void HotReloadablePipeline::CheckForRebuild(RenderContext::Ptr context, const st
         ShaderWatch& watch = shader.second;
 
         if (watch.Watch.Check()) {
-            Logger::Info("Hot reloading pipeline %s", name.c_str());
+            Logger::Info("[HOT RELOAD PIPELINE] Hot reloading pipeline %s", name.c_str());
             switch (_type) {
                 case PipelineType::Graphics: {
                     ShaderBytecode temp;

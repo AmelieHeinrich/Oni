@@ -97,7 +97,9 @@ void Uploader::CopyHostToDeviceCompressedTexture(TextureFile *file, Texture::Ptr
     
     uint8_t *pixels = reinterpret_cast<uint8_t*>(file->GetMipChainStart());
     uint8_t *pData;
+
     buf->Map(0, 0, reinterpret_cast<void**>(&pData));
+    memset(pData, 0, totalSize);
     for (int i = 0; i < numMips; i++) {
         for (int j = 0; j < numRows[i]; j++) {
             memcpy(pData, pixels, rowSizes[i]);

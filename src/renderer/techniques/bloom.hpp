@@ -46,7 +46,7 @@ private:
     float _filterRadius = 0.005f;
     float _bloomStrenght = 0.30f;
 
-    bool _enable = false;
+    bool _enable = true;
 
     HotReloadablePipeline _downsamplePipeline;
     HotReloadablePipeline _upsamplePipeline;

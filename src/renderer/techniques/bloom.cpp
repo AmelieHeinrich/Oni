@@ -80,17 +80,6 @@ void Bloom::Downsample(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_EVENT("Bloom Downsample");
 
     cmdBuf->BeginEvent("Bloom Downsample");
-    for (int i = 0; i < MIP_COUNT - 1; i++) {
-        const auto& mip = _mipChain[i];
-        
-        cmdBuf->ImageBarrierBatch({
-            { _mipChain[i].RenderTarget, TextureLayout::ShaderResource },
-            { _mipChain[i + 1].RenderTarget, TextureLayout::Storage }
-        });
-        cmdBuf->BindComputePipeline(_downsamplePipeline.ComputePipeline);
-        cmdBuf->PushConstantsCompute(glm::value_ptr(glm::ivec3(_mipChain[i].RenderTarget->SRV(), _linearClamp->BindlesssSampler(), _mipChain[i + 1].RenderTarget->UAV())), sizeof(glm::ivec3), 0);
-        cmdBuf->Dispatch(std::max(uint32_t(mip.Size.x) / 8u, 1u), std::max(uint32_t(mip.Size.y) / 8u, 1u), 1);
-    }
     cmdBuf->EndEvent();
 }
 
@@ -103,32 +92,6 @@ void Bloom::Upsample(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_EVENT("Bloom Upsample");
 
     cmdBuf->BeginEvent("Bloom Upsample");
-    cmdBuf->ImageBarrier(_output, TextureLayout::ShaderResource);
-    for (int i = MIP_COUNT - 1; i > 1; i--) {
-        const auto& mip = _mipChain[i - 1];
-        
-        struct Data {
-            float FilterRadius;
-            uint32_t MipN;
-	        uint32_t LinearSampler;
-	        uint32_t MipNMinusOne;
-        };
-        Data data;
-        data.FilterRadius = _filterRadius;
-        data.MipN = _mipChain[i].RenderTarget->SRV();
-        data.LinearSampler = _linearClamp->BindlesssSampler();
-        data.MipNMinusOne = mip.RenderTarget->UAV();
-
-        cmdBuf->ImageBarrierBatch({
-            { _mipChain[i].RenderTarget, TextureLayout::ShaderResource },
-            { _mipChain[i - 1].RenderTarget, TextureLayout::Storage }
-        });
-        cmdBuf->BindComputePipeline(_upsamplePipeline.ComputePipeline);
-        cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
-        cmdBuf->Dispatch(std::max(uint32_t(mip.Size.x) / 8u, 1u),
-                         std::max(uint32_t(mip.Size.y) / 8u, 1u),
-                         1);
-    }
     cmdBuf->EndEvent();
 }
 
@@ -140,28 +103,7 @@ void Bloom::Composite(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
     OPTICK_GPU_EVENT("Bloom Composite");
 
-    BloomMip firstMip = _mipChain[1];
-
-    struct Data {
-        uint32_t Input;
-        uint32_t InputSampler;
-        uint32_t OutputHDR;
-        float BloomStrength;
-    };
-    Data data;
-    data.Input = firstMip.RenderTarget->SRV();
-    data.InputSampler = _linearClamp->BindlesssSampler();
-    data.OutputHDR = _output->UAV();
-    data.BloomStrength = _bloomStrenght;
-
     cmdBuf->BeginEvent("Bloom Composite");
-    cmdBuf->ImageBarrierBatch({
-        { firstMip.RenderTarget, TextureLayout::ShaderResource },
-        { _output, TextureLayout::Storage }
-    });
-    cmdBuf->BindComputePipeline(_compositePipeline.ComputePipeline);
-    cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
-    cmdBuf->Dispatch(std::max((uint32_t)std::ceil(width / 8u), 1u), std::max((uint32_t)std::ceil(height / 8u), 1u), 1);
     cmdBuf->EndEvent();
 }
 
