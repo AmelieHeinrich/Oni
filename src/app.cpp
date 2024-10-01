@@ -30,6 +30,8 @@
 #define SCENE_BALLS 0
 #define SCENE_SPONZA 0
 #define SCENE_BISTRO 1
+#define SCENE_EMERALDSQUARE 0
+#define SCENE_SUNTEMPLE 0
 #define SCENE_SMALL 0
 #define SCENE_TEXTURE_COMPRESSION_TEST 0
 
@@ -481,6 +483,22 @@ void App::SetupScene()
 #if SCENE_BISTRO
     Model bistro = {};
     bistro.Load(_renderContext, "assets/models/bistro/bistro.gltf");
+    scene.Lights.SetSun(glm::vec3(0.0f, 30.0f, 0.0f), glm::vec3(-90.0f, 30.0f, 0.0f), glm::vec4(5.0f));
+
+    scene.Models.push_back(bistro);
+#endif
+
+#if SCENE_EMERALDSQUARE
+    Model bistro = {};
+    bistro.Load(_renderContext, "assets/models/emeraldsquare/EmeraldSquare.gltf");
+    scene.Lights.SetSun(glm::vec3(0.0f, 30.0f, 0.0f), glm::vec3(-90.0f, 30.0f, 0.0f), glm::vec4(5.0f));
+
+    scene.Models.push_back(bistro);
+#endif
+
+#if SCENE_SUNTEMPLE
+    Model bistro = {};
+    bistro.Load(_renderContext, "assets/models/suntemple/SunTemple.gltf");
     scene.Lights.SetSun(glm::vec3(0.0f, 30.0f, 0.0f), glm::vec3(-90.0f, 30.0f, 0.0f), glm::vec4(5.0f));
 
     scene.Models.push_back(bistro);

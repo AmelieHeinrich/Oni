@@ -294,7 +294,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = float4(normals.rgb * 0.5 + 0.5, 1.0);
             break;
         case MODE_MR:
-            final = metallic;
+            final = roughness;
             break;
         case MODE_AO:
             final = float4(ao, ao, ao, 1.0);

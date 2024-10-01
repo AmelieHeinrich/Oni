@@ -59,7 +59,7 @@ VertexOut Main(VertexIn Input)
     Output.PrevPosition = mul(mul(Matrices.PrevCameraMatrix, Matrices.PrevTransform), pos);
     Output.CurrPosition = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos);
     Output.TexCoords = float4(Input.TexCoords, 0.0, 0.0);
-    Output.Normals = normalize(float4(mul(transpose(Matrices.Transform), float4(Input.Normals, 1.0))));
+    Output.Normals = normalize(float4(mul(Matrices.Transform, float4(Input.Normals, 1.0))));
     
     return Output;
 }
