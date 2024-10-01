@@ -7,6 +7,7 @@
 
 #include "core/bitmap.hpp"
 #include "core/log.hpp"
+#include "core/texture_compressor.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -67,9 +68,6 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
             Logger::Warn("[CGLTF] Failed to read all normal attributes!");
         }
 
-        // Pre-transform vertices
-        vertex.UV = glm::vec2(vertex.UV.x, 1.0 - vertex.UV.y);
-
         vertices.push_back(vertex);
     }
 
@@ -93,11 +91,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     Material meshMaterial = {};
     out.MaterialIndex = Materials.size();
 
-    Bitmap albedoImage;
-    Bitmap normalImage;
-    Bitmap pbrImage;
-    Bitmap emissiveImage;
-    Bitmap aoImage;
+    TextureFile albedoImage = {};
+    TextureFile normalImage = {};
+    TextureFile pbrImage = {};
+    TextureFile emissiveImage = {};
+    TextureFile aoImage = {};
 
     glm::vec3 flatColor(1.0f, 1.0f, 1.0f);
     meshMaterial.FlatColor = glm::vec3(flatColor.r, flatColor.g, flatColor.b);
@@ -113,10 +111,12 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
             if (TextureCache.count(texturePath) != 0)  {
                 meshMaterial.AlbedoTexture = TextureCache[texturePath];
             } else {
-                albedoImage.LoadFromFile(texturePath);
-                meshMaterial.AlbedoTexture = context->CreateTexture(albedoImage.Width, albedoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AlbedoPath);
+                albedoImage.Load(TextureCompressor::GetCachedPath(texturePath));
+
+                meshMaterial.AlbedoTexture = context->CreateTexture(albedoImage.Width(), albedoImage.Height(), albedoImage.Format(), TextureUsage::ShaderResource, true, meshMaterial.AlbedoPath);
                 meshMaterial.AlbedoTexture->BuildShaderResource();
-                uploader.CopyHostToDeviceTexture(albedoImage, meshMaterial.AlbedoTexture);
+
+                uploader.CopyHostToDeviceCompressedTexture(&albedoImage, meshMaterial.AlbedoTexture);
                 TextureCache[texturePath] = meshMaterial.AlbedoTexture;
             }
         }
@@ -131,10 +131,12 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
             if (TextureCache.count(texturePath) != 0) {
                 meshMaterial.NormalTexture = TextureCache[texturePath];
             } else {
-                normalImage.LoadFromFile(texturePath);
-                meshMaterial.NormalTexture = context->CreateTexture(normalImage.Width, normalImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.NormalPath);
+                std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
+                normalImage.Load(TextureCompressor::GetCachedPath(texturePath));
+                meshMaterial.NormalTexture = context->CreateTexture(normalImage.Width(), normalImage.Height(), normalImage.Format(), TextureUsage::ShaderResource, true, meshMaterial.NormalPath);
                 meshMaterial.NormalTexture->BuildShaderResource();
-                uploader.CopyHostToDeviceTexture(normalImage, meshMaterial.NormalTexture);
+
+                uploader.CopyHostToDeviceCompressedTexture(&normalImage, meshMaterial.NormalTexture);
                 TextureCache[texturePath] = meshMaterial.NormalTexture;
             }
         }
@@ -149,10 +151,12 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
             if (TextureCache.count(texturePath) != 0) {
                 meshMaterial.PBRTexture = TextureCache[texturePath];
             } else{
-                pbrImage.LoadFromFile(texturePath);
-                meshMaterial.PBRTexture = context->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
+                std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
+                pbrImage.Load(TextureCompressor::GetCachedPath(texturePath));
+                meshMaterial.PBRTexture = context->CreateTexture(pbrImage.Width(), pbrImage.Height(), pbrImage.Format(), TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
                 meshMaterial.PBRTexture->BuildShaderResource();
-                uploader.CopyHostToDeviceTexture(pbrImage, meshMaterial.PBRTexture);
+
+                uploader.CopyHostToDeviceCompressedTexture(&pbrImage, meshMaterial.PBRTexture);
                 TextureCache[texturePath] = meshMaterial.PBRTexture;
             }
         } else if (material->specular.specular_texture.texture) {
@@ -162,10 +166,12 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
             if (TextureCache.count(texturePath) != 0) {
                 meshMaterial.PBRTexture = TextureCache[texturePath];
             } else{
-                pbrImage.LoadFromFile(texturePath);
-                meshMaterial.PBRTexture = context->CreateTexture(pbrImage.Width, pbrImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
+                std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
+                pbrImage.Load(TextureCompressor::GetCachedPath(texturePath));
+                meshMaterial.PBRTexture = context->CreateTexture(pbrImage.Width(), pbrImage.Height(), pbrImage.Format(), TextureUsage::ShaderResource, true, meshMaterial.MetallicRoughnessPath);
                 meshMaterial.PBRTexture->BuildShaderResource();
-                uploader.CopyHostToDeviceTexture(pbrImage, meshMaterial.PBRTexture);
+
+                uploader.CopyHostToDeviceCompressedTexture(&pbrImage, meshMaterial.PBRTexture);
                 TextureCache[texturePath] = meshMaterial.PBRTexture;
             }
         }
@@ -180,10 +186,12 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
             if (TextureCache.count(meshMaterial.EmissivePath) != 0) {
                 meshMaterial.EmissiveTexture = TextureCache[texturePath];
             } else {
-                emissiveImage.LoadFromFile(texturePath);
-                meshMaterial.EmissiveTexture = context->CreateTexture(emissiveImage.Width, emissiveImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.EmissivePath);
+                std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
+                emissiveImage.Load(TextureCompressor::GetCachedPath(texturePath));
+                meshMaterial.EmissiveTexture = context->CreateTexture(emissiveImage.Width(), emissiveImage.Height(), emissiveImage.Format(), TextureUsage::ShaderResource, true, meshMaterial.EmissivePath);
                 meshMaterial.EmissiveTexture->BuildShaderResource();
-                uploader.CopyHostToDeviceTexture(emissiveImage, meshMaterial.EmissiveTexture);
+
+                uploader.CopyHostToDeviceCompressedTexture(&emissiveImage, meshMaterial.EmissiveTexture);
                 TextureCache[texturePath] = meshMaterial.EmissiveTexture;
             }
         }
@@ -198,10 +206,12 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
             if (TextureCache.count(meshMaterial.AOPath) != 0) {
                 meshMaterial.AOTexture = TextureCache[meshMaterial.AOPath];
             } else {
-                aoImage.LoadFromFile(texturePath);
-                meshMaterial.AOTexture = context->CreateTexture(aoImage.Width, aoImage.Height, TextureFormat::RGBA8, TextureUsage::ShaderResource, true, meshMaterial.AOPath);
+                std::replace(texturePath.begin(), texturePath.end(), '\\', '/');
+                aoImage.Load(TextureCompressor::GetCachedPath(texturePath));
+                meshMaterial.AOTexture = context->CreateTexture(aoImage.Width(), aoImage.Height(), aoImage.Format(), TextureUsage::ShaderResource, true, meshMaterial.AOPath);
                 meshMaterial.AOTexture->BuildShaderResource();
-                uploader.CopyHostToDeviceTexture(aoImage, meshMaterial.AOTexture);
+
+                uploader.CopyHostToDeviceCompressedTexture(&aoImage, meshMaterial.AOTexture);
                 TextureCache[texturePath] = meshMaterial.AOTexture;
             }
         }
@@ -232,22 +242,6 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
         out.ModelBuffer[i]->Map(0, 0, &pData);
         memcpy(pData, &temp, sizeof(ModelData));
         out.ModelBuffer[i]->Unmap(0, 0);
-    }
-
-    if (meshMaterial.HasAlbedo) {
-        context->GenerateMips(meshMaterial.AlbedoTexture);
-    }
-    if (meshMaterial.HasNormal) {
-        context->GenerateMips(meshMaterial.NormalTexture);
-    }
-    if (meshMaterial.HasMetallicRoughness) {
-        context->GenerateMips(meshMaterial.PBRTexture);
-    }
-    if (meshMaterial.HasAO) {
-        context->GenerateMips(meshMaterial.AOTexture);
-    }
-    if (meshMaterial.HasEmissive) {
-        context->GenerateMips(meshMaterial.EmissiveTexture);
     }
 
     Primitives.push_back(out);

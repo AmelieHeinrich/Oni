@@ -56,7 +56,6 @@ private:
         uint64_t size;
 
         TextureFile *textureFile;
-        std::vector<Buffer::Ptr> mipBuffers;
 
         Texture::Ptr sourceTexture;
         Texture::Ptr destTexture;

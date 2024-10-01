@@ -7,6 +7,8 @@
 
 #include <vector>
 
+#include "core/texture_file.hpp"
+
 #include "device.hpp"
 #include "buffer.hpp"
 #include "texture.hpp"
@@ -39,7 +41,7 @@ class CommandBuffer
 public:
     using Ptr = std::shared_ptr<CommandBuffer>;
 
-    CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps, CommandQueueType type, bool close = true);
+    CommandBuffer(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, CommandQueueType type, bool close = true);
     ~CommandBuffer();
 
     void Begin(bool reset = true);
@@ -93,6 +95,7 @@ public:
     void CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src);
 
     void CopyBufferToTextureLOD(Texture::Ptr dst, Buffer::Ptr src, int mip);
+    void CopyTextureFileToTexture(Texture::Ptr dst, Buffer::Ptr srcTexels, TextureFile *file);
 
     void BeginImGui(int width, int height);
     void EndImGui();
@@ -103,6 +106,7 @@ private:
     void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state);
     void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state, int subresource);
 
+    Allocator::Ptr _allocator;
     Device::Ptr _device;
     DescriptorHeap::Heaps _heaps;
     D3D12_COMMAND_LIST_TYPE _type;

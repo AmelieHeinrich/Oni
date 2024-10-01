@@ -52,7 +52,7 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     _swapChain = std::make_shared<SwapChain>(_device, _graphicsQueue, _heaps.RTVHeap, hwnd->GetHandle());
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        _commandBuffers[i] = std::make_shared<CommandBuffer>(_device, _heaps, CommandQueueType::Graphics);
+        _commandBuffers[i] = std::make_shared<CommandBuffer>(_device, _allocator, _heaps, CommandQueueType::Graphics);
         _frameValues[i] = 0;
     }
 
@@ -210,7 +210,7 @@ CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, Textu
 
 CommandBuffer::Ptr RenderContext::CreateCommandBuffer(CommandQueueType type, bool close)
 {
-    return std::make_shared<CommandBuffer>(_device, _heaps, type, close);
+    return std::make_shared<CommandBuffer>(_device, _allocator, _heaps, type, close);
 }
 
 RootSignature::Ptr RenderContext::CreateRootSignature()
@@ -260,26 +260,9 @@ void RenderContext::FlushUploader(Uploader& uploader, CommandBuffer::Ptr cmdBuf)
                 break;
             }
             case Uploader::UploadCommandType::HostToDeviceCompressedTexture: {
-                // Generate all source buffers
-                int textureSize = command.textureFile->Width();
-                int mipCount = command.textureFile->MipCount();
-                TextureFormat format = command.textureFile->Format();
-
-                std::vector<Buffer::Ptr> buffers(command.textureFile->MipCount());
-                for (int level = 0, size = textureSize; level < mipCount; ++level, size /= 2) {
-                    int bufferSize = command.textureFile->GetMipByteSize(level);
-                    buffers[level] = CreateBuffer(bufferSize, 0, BufferType::Copy, false);
-
-                    void *pData;
-                    command.destBuffer->Map(0, 0, &pData);
-                    memcpy(pData, command.textureFile->GetTexelsAtMip(level), bufferSize);
-                    command.destBuffer->Unmap(0, 0);
-
-                    auto state = command.destTexture->GetState(level);
-                    cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest, level);
-                    cmdBuf->CopyBufferToTextureLOD(command.destTexture, buffers[level], level);
-                    cmdBuf->ImageBarrier(command.destTexture, TextureLayout(state), level);
-                }
+                cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest);
+                cmdBuf->CopyTextureFileToTexture(command.destTexture, command.sourceBuffer, command.textureFile);
+                cmdBuf->ImageBarrier(command.destTexture, TextureLayout::ShaderResource);
                 break;
             }
             default: {
@@ -325,17 +308,9 @@ void RenderContext::FlushUploader(Uploader& uploader)
                 break;
             }
             case Uploader::UploadCommandType::HostToDeviceCompressedTexture: {
-                // Generate all source buffers
-                int textureSize = command.textureFile->Width();
-                int mipCount = command.textureFile->MipCount();
-                TextureFormat format = command.textureFile->Format();
-
-                for (int level = 0; level < mipCount; ++level) {
-                    auto state = command.destTexture->GetState(level);
-                    cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest, level);
-                    cmdBuf->CopyBufferToTextureLOD(command.destTexture, command.mipBuffers[level], level);
-                    cmdBuf->ImageBarrier(command.destTexture, TextureLayout::ShaderResource, level);
-                }
+                cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest);
+                cmdBuf->CopyTextureFileToTexture(command.destTexture, command.sourceBuffer, command.textureFile);
+                cmdBuf->ImageBarrier(command.destTexture, TextureLayout::ShaderResource);
                 break;
             }
             default: {

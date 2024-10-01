@@ -6,23 +6,37 @@
 
 #include "texture_file.hpp"
 #include "file_system.hpp"
+#include "log.hpp"
 
 TextureFile::TextureFile(const std::string& path)
 {
+    Load(path);
+}
+
+TextureFile::~TextureFile()
+{
+    if (_bytes != nullptr) {
+        free(_bytes);
+    }
+}
+
+void TextureFile::Load(const std::string& path)
+{
+    if (!FileSystem::Exists(path)) {
+        Logger::Error("[TEXTURE FILE] %s doesn't exist!", path.c_str());
+    }
+
     uint64_t size = FileSystem::GetFileSize(path);
     _byteSize = size - sizeof(Header);
 
     _bytes = malloc(_byteSize);
 
-    FILE* f = fopen(path.c_str(), "rb+");
+    // used to inspect the raw string in remedybg
+    const char* debugString = path.c_str();
+    FILE* f = fopen(debugString, "rb+");
     fread(&_header, sizeof(_header), 1, f);
     fread(_bytes, _byteSize, 1, f);
     fclose(f);
-}
-
-TextureFile::~TextureFile()
-{
-    delete _bytes;
 }
 
 Bitmap TextureFile::ToBitmap()
@@ -39,33 +53,4 @@ Bitmap TextureFile::ToBitmap()
     memcpy(result.Bytes, _bytes, _byteSize);
 
     return result;
-}
-
-void *TextureFile::GetTexelsAtMip(int level)
-{
-    if (level == 0) {
-        return (_bytes);
-    }
-
-    int offset = 0;
-    for (int i = 1; i < level; i++) {
-        offset += GetMipByteSize(level - 1);
-    }
-
-    return (void*)((char*)_bytes + offset); 
-}
-
-uint32_t TextureFile::GetMipDimension(int level)
-{
-    if (level == 0) {
-        return _header.width;
-    }
-
-    return (_header.width / (level * 2));
-}
-
-uint64_t TextureFile::GetMipByteSize(int level)
-{
-    int dimension = GetMipDimension(level);
-    return (dimension * dimension * Texture::GetComponentSize(Format()));
 }

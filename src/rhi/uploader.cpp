@@ -5,10 +5,12 @@
 
 #include "uploader.hpp"
 
+#include "core/log.hpp"
+
 Uploader::Uploader(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps)
     : _devicePtr(device), _allocator(allocator), _heaps(heaps)
 {
-    _commandBuffer = std::make_shared<CommandBuffer>(device, heaps, CommandQueueType::Graphics, false);
+    _commandBuffer = std::make_shared<CommandBuffer>(device, allocator, heaps, CommandQueueType::Graphics, false);
 }
 
 Uploader::~Uploader()
@@ -80,24 +82,37 @@ void Uploader::CopyHostToDeviceTexture(Bitmap& image, Texture::Ptr pDestTexture)
 
 void Uploader::CopyHostToDeviceCompressedTexture(TextureFile *file, Texture::Ptr pDestTexture)
 {
-    int textureSize = file->Width();
-    int mipCount = file->MipCount();
+    uint32_t numMips = file->MipCount();
+    
+    D3D12_RESOURCE_DESC desc = pDestTexture->GetResource().Resource->GetDesc();
+
+    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numMips);
+    std::vector<uint32_t> numRows(numMips);
+    std::vector<uint64_t> rowSizes(numMips);
+    uint64_t totalSize = 0;
+
+    _devicePtr->GetDevice()->GetCopyableFootprints(&desc, 0, numMips, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
+
+    Buffer::Ptr buf = std::make_shared<Buffer>(_devicePtr, _allocator, _heaps, totalSize, 0, BufferType::Copy, false, "Staging Buffer");
+    
+    uint8_t *pixels = reinterpret_cast<uint8_t*>(file->GetMipChainStart());
+    uint8_t *pData;
+    buf->Map(0, 0, reinterpret_cast<void**>(&pData));
+    for (int i = 0; i < numMips; i++) {
+        for (int j = 0; j < numRows[i]; j++) {
+            memcpy(pData, pixels, rowSizes[i]);
+
+            pData += footprints[i].Footprint.RowPitch;
+            pixels += rowSizes[i];
+        }
+    }
+    buf->Unmap(0, 0);
 
     UploadCommand command;
     command.type = UploadCommandType::HostToDeviceCompressedTexture;
     command.textureFile = file;
     command.destTexture = pDestTexture;
-
-    command.mipBuffers.resize(mipCount);
-    for (int level = 0; level < mipCount; ++level) {
-        int bufferSize = command.textureFile->GetMipByteSize(level);
-        command.mipBuffers[level] = std::make_shared<Buffer>(_devicePtr, _allocator, _heaps, bufferSize, 0, BufferType::Copy, false);
-
-        void *pData;
-        command.mipBuffers[level]->Map(0, 0, &pData);
-        memcpy(pData, command.textureFile->GetTexelsAtMip(level), bufferSize);
-        command.mipBuffers[level]->Unmap(0, 0);
-    }
+    command.sourceBuffer = buf;
 
     _commands.push_back(command);
 }

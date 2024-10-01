@@ -28,9 +28,10 @@
 #include "renderer/techniques/debug_renderer.hpp"
 
 #define SCENE_BALLS 0
-#define SCENE_SPONZA 1
-#define SCENE_BISTRO 0
+#define SCENE_SPONZA 0
+#define SCENE_BISTRO 1
 #define SCENE_SMALL 0
+#define SCENE_TEXTURE_COMPRESSION_TEST 0
 
 enum class SceneMode {
     Bistro,
@@ -38,14 +39,14 @@ enum class SceneMode {
     ThreeModels
 };
 
-constexpr int TEST_LIGHT_COUNT = 64;
+constexpr int TEST_LIGHT_COUNT = 0;
 
 App::App()
     : _camera(1920, 1080), _lastFrame(0.0f)
 {
     Logger::Init();
-    srand(time(NULL));
 
+    // Initializes engine directories if needed
     if (!FileSystem::Exists("screenshots")) {
         FileSystem::CreateDirectoryFromPath("screenshots");
     }
@@ -54,11 +55,12 @@ App::App()
     }
 
     // Compress every model texture
-    TextureCompressor::TraverseDirectory("assets/textures/", TextureCompressorFormat::BC7);
+    TextureCompressor::TraverseDirectory("assets/", TextureCompressorFormat::BC7);
 
     // Load/Cache every shader
     ShaderLoader::TraverseDirectory("shaders/");
 
+    // Make window
     _window = std::make_shared<Window>(1920, 1080, "ONI");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
@@ -66,74 +68,12 @@ App::App()
         _camera.Resize(width, height);
     });
 
+    // Create render context and renderer
     _renderContext = std::make_shared<RenderContext>(_window);
     _renderer = std::make_unique<Renderer>(_renderContext);
 
-    // Try to load a compressed texture
-    TextureFile file = TextureCompressor::GetFromCache("assets/textures/compression_test.png");
-    _test = _renderContext->CreateTexture(file.Width(), file.Height(), file.Format(), TextureUsage::ShaderResource, true, "Test Texture");
-    _test->BuildShaderResource();
-
-    Uploader uploader = _renderContext->CreateUploader();
-    uploader.CopyHostToDeviceCompressedTexture(&file, _test);
-    _renderContext->FlushUploader(uploader);
-
-    scene = {};
-
-#if SCENE_SMALL
-    Model platform = {};
-    platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
-
-    Model damagedHelmet = {};
-    damagedHelmet.Load(_renderContext, "assets/models/flighthelmet/FlightHelmet.gltf");
-
-    Model scifiHelmet = {};
-    scifiHelmet.Load(_renderContext, "assets/models/scifi/SciFiHelmet.gltf");
-    scifiHelmet.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)));
-
-    Model suzanne = {};
-    suzanne.Load(_renderContext, "assets/models/lantern/Lantern.gltf");
-    suzanne.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f)));
-
-    scene.Models.push_back(platform);
-    scene.Models.push_back(damagedHelmet);
-    scene.Models.push_back(scifiHelmet);
-    scene.Models.push_back(suzanne);
-
-    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
-#endif
-
-#if SCENE_SPONZA
-    Model sponza = {};
-    sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
-
-    scene.Models.push_back(sponza);
-    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
-#endif
-
-#if SCENE_BALLS
-    Model balls = {};
-    balls.Load(_renderContext, "assets/models/balls/MetalRoughSpheres.gltf");
-
-    scene.Models.push_back(balls);
-    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
-#endif
-
-#if SCENE_BISTRO
-    Model bistro = {};
-    bistro.Load(_renderContext, "assets/models/bistro/bistro.gltf");
-    scene.Lights.SetSun(glm::vec3(0.0f, 30.0f, 0.0f), glm::vec3(-90.0f, 30.0f, 0.0f), glm::vec4(5.0f));
-
-    scene.Models.push_back(bistro);
-#endif
-
-    for (int i = 0; i < TEST_LIGHT_COUNT; i++) {
-        scene.Lights.AddPointLight(PointLight(
-            glm::vec3(util::random_range(-6.0f, 6.0f), util::random_range(1.0f, 8.0f), util::random_range(-6.0f, 6.0f)),
-            glm::vec3(util::random_range(0.0f, 1.0f),  util::random_range(0.0f, 1.0f), util::random_range(0.0f, 1.0f)),
-            1.0f
-        ));
-    }
+    // Push models and lights
+    SetupScene();
 
     _renderContext->WaitForGPU();
 }
@@ -168,9 +108,6 @@ void App::Run()
         float time = _dtTimer.GetElapsed();
         float dt = (time - _lastFrame) / 1000.0f;
         _lastFrame = time;
-
-        //glm::vec3 translation = glm::vec3(2.0 * (sin(((time / 1000.0f) * 2.0 * 3.14159 + 3.14159 / 2.0)) + 1.0), 0, 0);
-        //scene.Models[0].Primitives[0].Transform = glm::translate(glm::mat4(1.0f), translation);
 
         _camera.Update(_updateFrustum);
 
@@ -488,4 +425,72 @@ void App::ShowLightEditor()
     }
 
     ImGui::End();
+}
+
+void App::SetupScene()
+{
+    scene = {};
+
+#if SCENE_SMALL
+    Model platform = {};
+    platform.Load(_renderContext, "assets/models/platform/Platform.gltf");
+
+    Model damagedHelmet = {};
+    damagedHelmet.Load(_renderContext, "assets/models/flighthelmet/FlightHelmet.gltf");
+
+    Model scifiHelmet = {};
+    scifiHelmet.Load(_renderContext, "assets/models/scifi/SciFiHelmet.gltf");
+    scifiHelmet.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)));
+
+    Model suzanne = {};
+    suzanne.Load(_renderContext, "assets/models/lantern/Lantern.gltf");
+    suzanne.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f)));
+
+    scene.Models.push_back(platform);
+    scene.Models.push_back(damagedHelmet);
+    scene.Models.push_back(scifiHelmet);
+    scene.Models.push_back(suzanne);
+
+    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
+#endif
+
+#if SCENE_SPONZA
+    Model sponza = {};
+    sponza.Load(_renderContext, "assets/models/sponza/Sponza.gltf");
+
+    scene.Models.push_back(sponza);
+    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 17.0f), glm::vec4(5.0f));
+#endif
+
+#if SCENE_BALLS
+    Model balls = {};
+    balls.Load(_renderContext, "assets/models/balls/MetalRoughSpheres.gltf");
+
+    scene.Models.push_back(balls);
+    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
+#endif
+
+#if SCENE_TEXTURE_COMPRESSION_TEST
+    Model scifiHelmet = {};
+    scifiHelmet.Load(_renderContext, "assets/models/scifi/SciFiHelmet.gltf");
+    
+    scene.Models.push_back(scifiHelmet);
+    scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
+#endif
+
+#if SCENE_BISTRO
+    Model bistro = {};
+    bistro.Load(_renderContext, "assets/models/bistro/bistro.gltf");
+    scene.Lights.SetSun(glm::vec3(0.0f, 30.0f, 0.0f), glm::vec3(-90.0f, 30.0f, 0.0f), glm::vec4(5.0f));
+
+    scene.Models.push_back(bistro);
+#endif
+
+    for (int i = 0; i < TEST_LIGHT_COUNT; i++) {
+        scene.Lights.AddPointLight(PointLight(
+            glm::vec3(util::random_range(-6.0f, 6.0f), util::random_range(1.0f, 8.0f), util::random_range(-6.0f, 6.0f)),
+            glm::vec3(util::random_range(0.0f, 1.0f),  util::random_range(0.0f, 1.0f), util::random_range(0.0f, 1.0f)),
+            1.0f
+        ));
+    }
 }

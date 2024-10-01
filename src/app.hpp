@@ -29,6 +29,8 @@ public:
 private:
     void ShowLightEditor();
 
+    void SetupScene();
+
     std::shared_ptr<Window> _window;
 
     RenderContext::Ptr _renderContext;
@@ -41,8 +43,6 @@ private:
 
     FreeCamera _camera;
     Scene scene;
-
-    Texture::Ptr _test;
 
     bool _vsync = false;
     bool _fpsAsGraph = false;

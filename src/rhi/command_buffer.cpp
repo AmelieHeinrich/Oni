@@ -15,6 +15,7 @@
 #include <sstream>
 #include <ctime>
 #include <algorithm>
+#include <vector>
 
 #include <pix3.h>
 
@@ -27,8 +28,8 @@ bool IsHDR(TextureFormat format)
     return false;
 }
 
-CommandBuffer::CommandBuffer(Device::Ptr devicePtr, DescriptorHeap::Heaps& heaps, CommandQueueType type, bool close)
-    : _type(D3D12_COMMAND_LIST_TYPE(type)), _heaps(heaps), _device(devicePtr)
+CommandBuffer::CommandBuffer(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, CommandQueueType type, bool close)
+    : _type(D3D12_COMMAND_LIST_TYPE(type)), _heaps(heaps), _device(devicePtr), _allocator(allocator)
 {
     HRESULT result = devicePtr->GetDevice()->CreateCommandAllocator(_type, IID_PPV_ARGS(&_commandAllocator));
     if (FAILED(result)) {
@@ -430,6 +431,34 @@ void CommandBuffer::CopyBufferToTextureLOD(Texture::Ptr dst, Buffer::Ptr src, in
     CopyDest.SubresourceIndex = mip;
 
     _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);
+}
+
+void CommandBuffer::CopyTextureFileToTexture(Texture::Ptr dst, Buffer::Ptr srcTexels, TextureFile *file)
+{
+    uint32_t numMips = file->MipCount();
+    
+    D3D12_RESOURCE_DESC desc = dst->GetResource().Resource->GetDesc();
+
+    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(numMips);
+    std::vector<uint32_t> numRows(numMips);
+    std::vector<uint64_t> rowSizes(numMips);
+    uint64_t totalSize = 0;
+
+    _device->GetDevice()->GetCopyableFootprints(&desc, 0, numMips, 0, footprints.data(), numRows.data(), rowSizes.data(), &totalSize);
+
+    for (uint32_t i = 0; i < numMips; i++) {
+        D3D12_TEXTURE_COPY_LOCATION srcCopy = {};
+        srcCopy.pResource = srcTexels->_resource->Resource;
+        srcCopy.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        srcCopy.PlacedFootprint = footprints[i];
+
+        D3D12_TEXTURE_COPY_LOCATION dstCopy = {};
+        dstCopy.pResource = dst->_resource->Resource;
+        dstCopy.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dstCopy.SubresourceIndex = i;
+
+        _commandList->CopyTextureRegion(&dstCopy, 0, 0, 0, &srcCopy, nullptr);
+    }
 }
 
 void CommandBuffer::CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src)

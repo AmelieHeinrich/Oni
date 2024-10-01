@@ -26,19 +26,18 @@ public:
     TextureFile(const std::string& path);
     ~TextureFile();
 
+    void Load(const std::string& path);
+
     uint32_t Width() { return _header.width; }
     uint32_t Height() { return _header.height; }
     uint32_t MipCount() { return _header.mipCount; }
     TextureFormat Format() { return _header.mode == 1 ? TextureFormat::BC1 : TextureFormat::BC7; }
 
     void *GetMipChainStart() { return _bytes; }
-    void *GetTexelsAtMip(int level);
-    uint32_t GetMipDimension(int level);
-    uint64_t GetMipByteSize(int level);
 
     Bitmap ToBitmap();
 private:
     Header _header;
-    void *_bytes;
+    void *_bytes = nullptr;
     uint64_t _byteSize;
 };

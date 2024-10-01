@@ -43,7 +43,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - UI powered by ImGui
 - In-engine screenshot system
 - Shader hot reloading and caching
-- Texture compression
+- In-engine BC7 texture compressor using custom texture format
 
 ## WIP
 
