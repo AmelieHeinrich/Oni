@@ -114,6 +114,7 @@ Deferred::Deferred(RenderContext::Ptr context)
         _modeBuffer[i]->BuildConstantBuffer();
     }
 
+    _anisotropicSampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Anistropic, true, 16);
     _sampler = context->CreateSampler(SamplerAddress::Wrap, SamplerFilter::Linear, true, 0);
     _cubeSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, true, 0);
     _shadowSampler = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, false, 0);
@@ -166,7 +167,6 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
 
     // Start rendering
     commandBuffer->BeginEvent("GBuffer");
-    commandBuffer->ClearState();
     commandBuffer->ImageBarrierBatch({
         { _normals, TextureLayout::RenderTarget },
         { _albedoEmission, TextureLayout::RenderTarget },
@@ -238,7 +238,7 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 data.PBRTexture = pbr->SRV();
                 data.EmissiveTexture = emissive->SRV();
                 data.AOTexture = ao->SRV();
-                data.Sampler = _sampler->BindlesssSampler();
+                data.Sampler = _anisotropicSampler->BindlesssSampler();
                 data.Jitter = _currJitter;
                 if (!_jitter) {
                     data.Jitter = glm::vec2(0.0f, 0.0f);
@@ -292,7 +292,6 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
     _modeBuffer[frameIndex]->Unmap(0, 0);
 
     commandBuffer->BeginEvent("Deferred Lighting");
-    commandBuffer->ClearState();
     commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
     if (_draw) {
         struct Constants {
@@ -343,7 +342,9 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
         commandBuffer->BindComputePipeline(_lightingPipeline.ComputePipeline);
         commandBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
         commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
+        commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
     }
+    
     commandBuffer->EndEvent();
 }
 

@@ -224,3 +224,20 @@ void Texture::BuildStorage(TextureFormat specificFormat)
         _uavs.push_back(uav);
     }
 }
+void Texture::SetState(D3D12_RESOURCE_STATES state, int mip)
+{
+    if (mip == 999)  {
+        std::fill(_states.begin(), _states.end(), state);
+    } else {
+        _states[mip] = state;
+    }
+}
+
+D3D12_RESOURCE_STATES Texture::GetState(int mip)
+{
+    if (mip == 999)  {
+        return _states[0];
+    } else {
+        return _states[mip];
+    }
+}

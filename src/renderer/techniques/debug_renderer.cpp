@@ -117,7 +117,6 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             LineTransferBuffer[frameIndex]->Unmap(0, 0);
 
             cmdBuffer->BeginEvent("Lines", 200, 200, 200);
-            cmdBuffer->ClearState();
             cmdBuffer->CopyBufferToBuffer(LineVertexBuffer[frameIndex], LineTransferBuffer[frameIndex]);
             cmdBuffer->SetViewport(0, 0, width, height);
             cmdBuffer->SetTopology(Topology::LineList);
@@ -143,7 +142,6 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             };
 
             cmdBuffer->BeginEvent("Motion Visualizer", 200, 200, 200);
-            cmdBuffer->ClearState();
             cmdBuffer->ImageBarrierBatch({
                 { VelocityBuffer, TextureLayout::ShaderResource },
                 { Output, TextureLayout::Storage }
@@ -151,7 +149,6 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             cmdBuffer->BindComputePipeline(MotionShader.ComputePipeline);
             cmdBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
             cmdBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
-            cmdBuffer->ImageBarrier(VelocityBuffer, TextureLayout::RenderTarget);
             cmdBuffer->EndEvent();
         }
     }

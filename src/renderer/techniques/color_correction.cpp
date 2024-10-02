@@ -41,12 +41,11 @@ void ColorCorrection::Render(Scene& scene, uint32_t width, uint32_t height)
         _settings.InputHDR = _inputHDR->UAV();
 
         cmdBuf->BeginEvent("Color Correction Pass");
-        cmdBuf->ClearState();
         cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
         cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
         cmdBuf->PushConstantsCompute(&_settings, sizeof(_settings), 0);
         cmdBuf->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
-        cmdBuf->ImageBarrier(_inputHDR, TextureLayout::RenderTarget);
+        cmdBuf->ImageBarrier(_inputHDR, TextureLayout::Storage);
         cmdBuf->EndEvent();
     }
 }

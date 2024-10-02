@@ -52,7 +52,6 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_EVENT("Shadow Pass");
 
     commandBuffer->BeginEvent("Shadow Pass");
-    commandBuffer->ClearState();
     commandBuffer->ImageBarrier(_shadowMap, TextureLayout::Depth);
     commandBuffer->ClearDepthTarget(_shadowMap);
 
@@ -86,7 +85,6 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
         }
     }
 
-    commandBuffer->ImageBarrier(_shadowMap, TextureLayout::ShaderResource);
     commandBuffer->EndEvent();
 }
 

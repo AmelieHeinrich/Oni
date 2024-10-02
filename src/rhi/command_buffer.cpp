@@ -96,40 +96,35 @@ void CommandBuffer::EndEvent()
     PIXEndEvent(_commandList);
 }
 
-void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout)
-{
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = texture->GetResource().Resource;
-    barrier.Transition.StateBefore = texture->GetState(0);
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATES(newLayout);
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-    if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
-        return;
-
-    _commandList->ResourceBarrier(1, &barrier);
-
-    for (int i = 0; i < texture->GetMips(); i++) {
-        texture->SetState(D3D12_RESOURCE_STATES(newLayout), i);
-    }
-}
-
 void CommandBuffer::ImageBarrier(Texture::Ptr texture, TextureLayout newLayout, int subresource)
 {
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = texture->GetResource().Resource;
-    barrier.Transition.StateBefore = texture->GetState(subresource);
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATES(newLayout);
-    barrier.Transition.Subresource = subresource;
+    TextureLayout oldLayout = TextureLayout(texture->GetState(subresource));
 
-    if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
-        return;
+    if (oldLayout == TextureLayout::Storage && newLayout == TextureLayout::Storage) {
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+        barrier.UAV.pResource = texture->GetResource().Resource;
 
-    _commandList->ResourceBarrier(1, &barrier);
+        _commandList->ResourceBarrier(1, &barrier);
+        texture->SetState(D3D12_RESOURCE_STATES(newLayout), subresource);
+    } else {
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATES(oldLayout);
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATES(newLayout);
+        barrier.Transition.pResource = texture->_resource->Resource;
+        if (subresource == SUBRESOURCE_ALL) {
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        } else {
+            barrier.Transition.Subresource = subresource;
+        }
 
-    texture->SetState(D3D12_RESOURCE_STATES(newLayout), subresource);
+        if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
+            return;
+    
+        _commandList->ResourceBarrier(1, &barrier);
+        texture->SetState(D3D12_RESOURCE_STATES(newLayout), subresource);
+    }
 }
 
 void CommandBuffer::ImageBarrierBatch(const std::vector<Barrier>& barrier)
@@ -137,17 +132,27 @@ void CommandBuffer::ImageBarrierBatch(const std::vector<Barrier>& barrier)
     std::vector<D3D12_RESOURCE_BARRIER> barrierList;
     for (int i = 0; i < barrier.size(); i++) {
         D3D12_RESOURCE_BARRIER pushBarrier = {};
-        pushBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        pushBarrier.Transition.pResource = barrier[i].Texture->GetResource().Resource;
-        pushBarrier.Transition.StateBefore = barrier[i].Texture->GetState(barrier[i].Subresource);
-        pushBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES(barrier[i].NewLayout);
-        pushBarrier.Transition.Subresource = barrier[i].Subresource;
+        TextureLayout oldLayout = TextureLayout(barrier[i].Texture->GetState(barrier[i].Subresource));
 
-        if (pushBarrier.Transition.StateBefore == pushBarrier.Transition.StateAfter)
-            continue;
+        if (barrier[i].NewLayout == TextureLayout::Storage && oldLayout == TextureLayout::Storage) {
+            pushBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+            pushBarrier.UAV.pResource = barrier[i].Texture->GetResource().Resource;
 
-        barrier[i].Texture->SetState(D3D12_RESOURCE_STATES(barrier[i].NewLayout), barrier[i].Subresource);
-        barrierList.push_back(pushBarrier);
+            barrier[i].Texture->SetState(D3D12_RESOURCE_STATES(barrier[i].NewLayout), barrier[i].Subresource);
+            barrierList.push_back(pushBarrier);
+        } else {
+            pushBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            pushBarrier.Transition.pResource = barrier[i].Texture->GetResource().Resource;
+            pushBarrier.Transition.StateBefore = barrier[i].Texture->GetState(barrier[i].Subresource);
+            pushBarrier.Transition.StateAfter = D3D12_RESOURCE_STATES(barrier[i].NewLayout);
+            pushBarrier.Transition.Subresource = barrier[i].Subresource;
+
+            if (pushBarrier.Transition.StateBefore == pushBarrier.Transition.StateAfter)
+                continue;
+
+            barrier[i].Texture->SetState(D3D12_RESOURCE_STATES(barrier[i].NewLayout), barrier[i].Subresource);
+            barrierList.push_back(pushBarrier);
+        }
     }
     if (barrierList.size() == 0) {
         return;
@@ -170,42 +175,6 @@ void CommandBuffer::CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout
     _commandList->ResourceBarrier(1, &barrier);
 
     cubemap->SetState(D3D12_RESOURCE_STATES(newLayout));
-}
-
-void CommandBuffer::ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state)
-{
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = texture->GetResource().Resource;
-    barrier.Transition.StateBefore = texture->GetState(0);
-    barrier.Transition.StateAfter = state;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-    if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
-        return;
-
-    _commandList->ResourceBarrier(1, &barrier);
-
-    for (int i = 0; i < texture->GetMips(); i++) {
-        texture->SetState(state, i);
-    }
-}
-
-void CommandBuffer::ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state, int subresource)
-{
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = texture->GetResource().Resource;
-    barrier.Transition.StateBefore = texture->GetState(subresource);
-    barrier.Transition.StateAfter = state;
-    barrier.Transition.Subresource = subresource;
-
-    if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
-        return;
-
-    _commandList->ResourceBarrier(1, &barrier);
-
-    texture->SetState(state, subresource);
 }
 
 void CommandBuffer::SetViewport(float x, float y, float width, float height)

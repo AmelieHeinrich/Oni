@@ -18,6 +18,8 @@
 #include "graphics_pipeline.hpp"
 #include "compute_pipeline.hpp"
 
+#define SUBRESOURCE_ALL 999
+
 enum class CommandQueueType;
 
 enum class Topology
@@ -53,12 +55,11 @@ public:
     void InsertMarker(const std::string& name, int r = 255, int g = 255, int b = 255);
     void EndEvent();
 
-    void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout);
-    void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout, int subresource);
+    void ImageBarrier(Texture::Ptr texture, TextureLayout newLayout, int subresource = SUBRESOURCE_ALL);
     void ImageBarrierBatch(const std::vector<Barrier>& barrier);
     
     void CubeMapBarrier(CubeMap::Ptr cubemap, TextureLayout newLayout);
-    
+
     void SetViewport(float x, float y, float width, float height);
     void SetTopology(Topology topology);
 
@@ -105,9 +106,6 @@ public:
 
     ID3D12GraphicsCommandList* GetCommandList() { return _commandList; }
 private:
-    void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state);
-    void ImageBarrier(Texture::Ptr texture, D3D12_RESOURCE_STATES state, int subresource);
-
     Allocator::Ptr _allocator;
     Device::Ptr _device;
     DescriptorHeap::Heaps _heaps;

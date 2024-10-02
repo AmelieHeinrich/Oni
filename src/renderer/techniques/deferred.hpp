@@ -60,6 +60,7 @@ private:
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _lightBuffer;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _modeBuffer;
 
+    Sampler::Ptr _anisotropicSampler;
     Sampler::Ptr _sampler;
     Sampler::Ptr _cubeSampler;
     Sampler::Ptr _shadowSampler;

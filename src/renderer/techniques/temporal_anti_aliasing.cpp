@@ -64,7 +64,6 @@ void TemporalAntiAliasing::AccumulateHistory(uint32_t width, uint32_t height)
     data.PointSampler = _pointSampler->BindlesssSampler();
 
     commandBuffer->BeginEvent("Resolve");
-    commandBuffer->ClearState();
     commandBuffer->BindComputePipeline(_taaPipeline.ComputePipeline);
     commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
     commandBuffer->ImageBarrierBatch({
@@ -73,6 +72,7 @@ void TemporalAntiAliasing::AccumulateHistory(uint32_t width, uint32_t height)
         { _velocityBuffer, TextureLayout::ShaderResource }
     });
     commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
+    commandBuffer->ImageBarrier(_output, TextureLayout::Storage);
     commandBuffer->EndEvent();
 }
 
@@ -90,10 +90,6 @@ void TemporalAntiAliasing::Resolve(uint32_t width, uint32_t height)
         { _output, TextureLayout::CopySource },
     });
     commandBuffer->CopyTextureToTexture(_history, _output);
-    commandBuffer->ImageBarrierBatch({
-        { _history, TextureLayout::ShaderResource },
-        { _output, TextureLayout::Storage },
-    });
     commandBuffer->EndEvent();
 }
 

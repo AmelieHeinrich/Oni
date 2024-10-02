@@ -145,7 +145,6 @@ void App::Run()
             OPTICK_EVENT("UI");
             stats.PushFrameTime("UI", [this, commandBuffer, texture, width, height]() {
                 commandBuffer->BeginEvent("ImGui");
-                commandBuffer->ClearState();
                 commandBuffer->ImageBarrier(texture, TextureLayout::RenderTarget);
                 commandBuffer->BindRenderTargets({ texture }, nullptr);
                 commandBuffer->BeginImGui(width, height);

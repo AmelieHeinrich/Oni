@@ -63,8 +63,8 @@ public:
     void BuildShaderResource(TextureFormat specificFormat = TextureFormat::None);
     void BuildStorage(TextureFormat specificFormat = TextureFormat::None);
 
-    void SetState(D3D12_RESOURCE_STATES state, int mip) { _states[mip] = state; }
-    D3D12_RESOURCE_STATES GetState(int mip) { return _states[mip]; }
+    void SetState(D3D12_RESOURCE_STATES state, int mip);
+    D3D12_RESOURCE_STATES GetState(int mip);
 
     GPUResource& GetResource() { return *_resource; }
 

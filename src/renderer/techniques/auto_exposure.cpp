@@ -70,7 +70,6 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             data.oneOverLogLuminanceRange = 1.0f / _luminanceRange;
 
             cmdBuf->BeginEvent("AE Histogram Compute Pass");
-            cmdBuf->ClearState();
             cmdBuf->BindComputePipeline(_computePipeline.ComputePipeline);
             cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
             cmdBuf->Dispatch(std::ceil(width / 16), std::ceil(height / 16), 1);
@@ -100,12 +99,10 @@ void AutoExposure::Render(Scene& scene, uint32_t width, uint32_t height, float d
             data.tau = _tau;
 
             cmdBuf->BeginEvent("AE Histogram Average Compute Pass");
-            cmdBuf->ClearState();
             cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::Storage);
             cmdBuf->BindComputePipeline(_averagePipeline.ComputePipeline);
             cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
             cmdBuf->Dispatch(std::ceil(width / 16), std::ceil(height / 16), 1);
-            cmdBuf->ImageBarrier(_luminanceTexture, TextureLayout::ShaderResource);
             cmdBuf->EndEvent();
         }
     }
@@ -118,8 +115,7 @@ void AutoExposure::Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR
 
 void AutoExposure::OnUI()
 {
-    if (ImGui::TreeNodeEx("Auto Exposure", ImGuiTreeNodeFlags_Framed))
-    {
+    if (ImGui::TreeNodeEx("Auto Exposure", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Enable", &_enable);
         ImGui::Separator();
 
