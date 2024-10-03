@@ -96,7 +96,7 @@ Deferred::Deferred(RenderContext::Ptr context)
     {
         _lightingPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            (sizeof(uint32_t) * 19)
+            80
         };
         _lightingPipeline.ReflectRootSignature(false);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
@@ -174,6 +174,7 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
         { _emissive, TextureLayout::RenderTarget },
         { _velocityBuffer, TextureLayout::RenderTarget }
     });
+    commandBuffer->ClearRenderTarget(_outputImage, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_normals, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_albedoEmission, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -251,6 +252,13 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
             }
         }
     }
+    commandBuffer->ImageBarrierBatch({
+        { _normals, TextureLayout::ShaderResource },
+        { _albedoEmission, TextureLayout::ShaderResource },
+        { _pbrData, TextureLayout::ShaderResource },
+        { _emissive, TextureLayout::ShaderResource },
+        { _velocityBuffer, TextureLayout::ShaderResource }
+    });
     commandBuffer->EndEvent();
 }
 
@@ -312,9 +320,9 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             uint32_t LightBuffer;
             uint32_t OutputData;
             uint32_t HDRBuffer;
-
             float direct;
             float indirect;
+            float _Pad0;
         };
         Constants constants = {
             _depthBuffer->SRV(),
@@ -333,18 +341,18 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             _sceneBufferLight[frameIndex]->CBV(),
             _lightBuffer[frameIndex]->CBV(),
             _modeBuffer[frameIndex]->CBV(),
-            _outputImage->SRV(),
+            _outputImage->UAV(),
             _directTerm,
-            _indirectTerm
+            _indirectTerm,
+            0.0f
         };
 
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->BindComputePipeline(_lightingPipeline.ComputePipeline);
         commandBuffer->PushConstantsCompute(&constants, sizeof(constants), 0);
         commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
-        commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
     }
-    
+    commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
     commandBuffer->EndEvent();
 }
 

@@ -54,7 +54,7 @@ Device::Device()
 {
     HRESULT Result = 0;
 
-#ifdef ONI_DEBUG
+#if ONI_DEBUG
     ID3D12Debug* debug;
     Result = D3D12GetDebugInterface(IID_PPV_ARGS(&debug));
     if (FAILED(Result))
@@ -76,7 +76,7 @@ Device::Device()
     if (FAILED(Result))
         Logger::Error("[D3D12] Failed to create device!");
 
-#ifdef ONI_DEBUG
+#if ONI_DEBUG
     Result = _device->QueryInterface(IID_PPV_ARGS(&_debugDevice));
     if (FAILED(Result))
         Logger::Error("[D3D12] Failed to query debug device!");

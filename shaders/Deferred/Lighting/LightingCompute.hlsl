@@ -51,23 +51,21 @@ struct Constants
     uint PbrAO;
     uint Velocity;
     uint Emissive;
-
     uint Irradiance;
     uint Prefilter;
     uint BRDF;
     uint ShadowMap;
-
     uint Sampler;
     uint CubeSampler;
     uint ShadowSampler;
-
     uint SceneBuffer;
     uint LightBuffer;
     uint OutputData;
     uint HDRBuffer;
-
     float Direct;
     float Indirect;
+
+    float _Pad0;
 };
 
 ConstantBuffer<Constants> Settings : register(b0);
@@ -203,6 +201,10 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 
     int width, height;
     HDRBuffer.GetDimensions(width, height);
+
+    if (ThreadID.x > width || ThreadID.y > height) {
+        return;
+    }
 
     float2 TexCoords = TexelToUV(ThreadID.xy, 1.0 / float2(width, height));
 
