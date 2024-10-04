@@ -28,7 +28,7 @@ struct FragmentOut
 
 struct SceneData
 {
-    // 36
+    // 40
     uint ModelBuffer;
     uint AlbedoTexture;
     uint NormalTexture; 
@@ -36,11 +36,11 @@ struct SceneData
     uint EmissiveTexture;
     uint AOTexture;
     uint Sampler;
+    float EmissiveStrength;
     float2 Jitter;
-    
-    // 28 bytes
-    float4 _Pad1;
-    float3 _Pad2;
+
+    //
+    float2 _Pad0;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);
@@ -112,7 +112,7 @@ FragmentOut Main(FragmentIn Input)
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
     output.AlbedoEmissive = float4(albedo.rgb, 1.0f);
     output.PbrAO = float4(float3(metallic, roughness, ao), 1.0f);
-    output.Emissive = float4(emission.rgb, 1.0f) * 2.0f;
+    output.Emissive = float4(emission.rgb, 1.0f) * Settings.EmissiveStrength;
     output.Velocity = positionDifference;
 
     return output;

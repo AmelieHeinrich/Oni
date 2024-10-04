@@ -70,6 +70,7 @@ private:
     glm::vec2 _prevJitter;
     int _jitterCounter = 0;
     bool _jitter = true;
+    float _emissiveStrength = 5.0f;
 
     float _directTerm = 1.0f;
     float _indirectTerm = 0.1f;

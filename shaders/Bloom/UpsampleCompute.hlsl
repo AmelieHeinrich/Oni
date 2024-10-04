@@ -59,7 +59,7 @@ float4 Upsample(uint3 ThreadID)
 	outColor += (a + c + g + i);
 	outColor *= 1.0 / 16.0;
 
-	return float4(lerp(currentColor, outColor, 0.5), 1.0);
+	return float4(lerp(currentColor, outColor, 1.0), 1.0);
 }
 
 [numthreads(8, 8, 1)]

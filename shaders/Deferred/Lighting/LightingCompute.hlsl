@@ -225,7 +225,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     data.LightPos = shadowPosition;
 
     // Albedo + Emissive
-    float4 albedo = AlbedoEmissive.Sample(Sampler, TexCoords) + (Emissive.Sample(Sampler, TexCoords) * 10.0f);
+    float4 albedo = AlbedoEmissive.Sample(Sampler, TexCoords) + (Emissive.Sample(Sampler, TexCoords) * 5.0f);
     albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
 
     // PBR + AO

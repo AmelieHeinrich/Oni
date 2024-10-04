@@ -85,7 +85,7 @@ Deferred::Deferred(RenderContext::Ptr context)
 
         _gbufferPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            64
+            48
         };
         _gbufferPipeline.ReflectRootSignature(false);
         _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferVert.hlsl", "Main", ShaderType::Vertex);
@@ -226,10 +226,10 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t EmissiveTexture;
                     uint32_t AOTexture;
                     uint32_t Sampler;
+                    float EmissiveStrength;
                     glm::vec2 Jitter;
 
-                    glm::vec4 _Pad0;
-                    glm::vec3 _Pad1;
+                    glm::vec2 _Pad0 = glm::vec2(0.0f);
                 };
                 Data data;
                 data.ModelBuffer = primitive.ModelBuffer[frameIndex]->CBV();
@@ -243,6 +243,7 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
                 if (!_jitter) {
                     data.Jitter = glm::vec2(0.0f, 0.0f);
                 }
+                data.EmissiveStrength = _emissiveStrength;
 
                 commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
                 commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
@@ -399,6 +400,7 @@ void Deferred::OnUI()
 
         ImGui::SliderFloat("Direct Light Term", &_directTerm, 0.0f, 2.0f, "%.1f");
         ImGui::SliderFloat("Indirect Light Term", &_indirectTerm, 0.0f, 2.0f, "%.1f");
+        ImGui::SliderFloat("Emission Strength", &_emissiveStrength, 0.1f, 10.0f, "%.1f");
 
         static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "AO", "Emissive", "Direct", "Indirect", "Position", "Velocity" };
         ImGui::Combo("Mode", (int*)&_mode, Modes, 10, 10);

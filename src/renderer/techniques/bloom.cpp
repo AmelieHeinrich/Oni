@@ -115,8 +115,8 @@ void Bloom::Upsample(Scene& scene, uint32_t width, uint32_t height)
         });
         cmdBuf->BindComputePipeline(_upsamplePipeline.ComputePipeline);
         cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
-        cmdBuf->Dispatch(std::max(uint32_t(width) / 8u, 1u),
-                         std::max(uint32_t(height) / 8u, 1u),
+        cmdBuf->Dispatch(std::max(uint32_t(width) / 4u, 1u),
+                         std::max(uint32_t(height) / 4u, 1u),
                          1);
         cmdBuf->ImageBarrierBatch({
             { _bloomFramebuffer, TextureLayout::ShaderResource, i },

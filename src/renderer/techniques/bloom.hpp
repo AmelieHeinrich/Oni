@@ -38,7 +38,7 @@ private:
     float _bloomStrenght = 3.0f;
 
     bool _enable = true;
-    int MIP_CAP = 7;
+    int MIP_CAP = 8;
 
     HotReloadablePipeline _downsamplePipeline;
     HotReloadablePipeline _upsamplePipeline;
