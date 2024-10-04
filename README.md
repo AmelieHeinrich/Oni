@@ -24,7 +24,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 
 ## Screenshots
 
-![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/NewBistro.png) ![](screenshots/Multiple%20Models.png)
+![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/NewBistro.png) ![](screenshots/Multiple%20Models.png) ![](screenshots/Bloom.png)
 
 ## Renderer features
 
@@ -35,6 +35,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - Color grading
 - TAA (Temporal Anti-Aliasing)
 - Film Grain
+- Bloom (Compute Downsample/Upsample)
 - Debug renderer (lines, motion vector visualizer)
 - PBR and emissive material workflow
 - Point, directional lights
