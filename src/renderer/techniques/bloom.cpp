@@ -43,32 +43,9 @@ Bloom::Bloom(RenderContext::Ptr context, Texture::Ptr inputHDR)
     _pointClamp = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Nearest, false, 0);
     _linearClamp = context->CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, false, 0);
 
-    // Create za mipchain!
-    {
-        glm::vec2 mipSize((float)width, (float)height);
-        glm::ivec2 mipIntSize(width, height);
-
-        BloomMip firstMip;
-        firstMip.Size = mipSize;
-        firstMip.IntSize = mipIntSize;
-        firstMip.RenderTarget = nullptr;
-
-        _mipChain.push_back(firstMip);
-
-        for (int i = 1; i < MIP_COUNT; i++) {
-            BloomMip mip;
-            
-            mipSize *= 0.5f;
-            mipIntSize /= 2;
-            mip.Size = mipSize;
-            mip.IntSize = mipIntSize;
-
-            mip.RenderTarget = context->CreateTexture((uint32_t)mipSize.x, (uint32_t)mipSize.y, TextureFormat::RGB11Float, TextureUsage::ShaderResource, false, "[BLOOM] Bloom Mip " + std::to_string(i));
-            mip.RenderTarget->BuildShaderResource();
-            mip.RenderTarget->BuildStorage();
-            _mipChain.push_back(mip);
-        }
-    }
+    _bloomFramebuffer = context->CreateTexture(width, height, TextureFormat::RGBA16Float, TextureUsage::Storage, true, "[BLOOM] Bloom Framebuffer");
+    _bloomFramebuffer->BuildStorage();
+    _bloomFramebuffer->BuildShaderResource();
 }
 
 void Bloom::Downsample(Scene& scene, uint32_t width, uint32_t height)
@@ -79,7 +56,31 @@ void Bloom::Downsample(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
     OPTICK_GPU_EVENT("Bloom Downsample");
 
+    cmdBuf->BeginEvent("Copy Emission to First Mip");
+    cmdBuf->ImageBarrierBatch({
+        { _bloomFramebuffer, TextureLayout::CopyDest },
+        { _emissionBuffer, TextureLayout::CopySource }
+    });
+    cmdBuf->CopyTextureToTexture(_bloomFramebuffer, _emissionBuffer);
+    cmdBuf->ImageBarrierBatch({
+        { _bloomFramebuffer, TextureLayout::Storage },
+        { _emissionBuffer, TextureLayout::RenderTarget }
+    });
+    cmdBuf->EndEvent();
+
     cmdBuf->BeginEvent("Bloom Downsample");
+    for (int i = 0; i < MIP_CAP; i++) {
+        int width = (int)(_bloomFramebuffer->GetWidth() * pow(0.5f, i));
+        int height = (int)(_bloomFramebuffer->GetHeight() * pow(0.5f, i));
+
+        cmdBuf->ImageBarrierBatch({
+            { _bloomFramebuffer, TextureLayout::ShaderResource, i },
+            { _bloomFramebuffer, TextureLayout::Storage, i + 1 }
+        });
+        cmdBuf->BindComputePipeline(_downsamplePipeline.ComputePipeline);
+        cmdBuf->PushConstantsCompute(glm::value_ptr(glm::ivec3(_bloomFramebuffer->SRV(i), _linearClamp->BindlesssSampler(), _bloomFramebuffer->UAV(i + 1))), sizeof(glm::ivec3), 0);
+        cmdBuf->Dispatch(std::max(uint32_t(width) / 8u, 1u), std::max(uint32_t(height) / 8u, 1u), 1);
+    }
     cmdBuf->EndEvent();
 }
 
@@ -92,6 +93,36 @@ void Bloom::Upsample(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_EVENT("Bloom Upsample");
 
     cmdBuf->BeginEvent("Bloom Upsample");
+    for (int i = MIP_CAP - 1; i > 0; i--) {
+        int width = (int)(_bloomFramebuffer->GetWidth() * pow(0.5f, i - 1));
+        int height = (int)(_bloomFramebuffer->GetHeight() * pow(0.5f, i - 1));
+        
+        struct Data {
+            float FilterRadius;
+            uint32_t MipN;
+            uint32_t LinearSampler;
+            uint32_t MipNMinusOne;
+        };
+        Data data;
+        data.FilterRadius = _filterRadius;
+        data.MipN = _bloomFramebuffer->SRV(i);
+        data.LinearSampler = _linearClamp->BindlesssSampler();
+        data.MipNMinusOne = _bloomFramebuffer->UAV(i - 1);
+
+        cmdBuf->ImageBarrierBatch({
+            { _bloomFramebuffer, TextureLayout::ShaderResource, i },
+            { _bloomFramebuffer, TextureLayout::Storage, i -1 }
+        });
+        cmdBuf->BindComputePipeline(_upsamplePipeline.ComputePipeline);
+        cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
+        cmdBuf->Dispatch(std::max(uint32_t(width) / 8u, 1u),
+                         std::max(uint32_t(height) / 8u, 1u),
+                         1);
+        cmdBuf->ImageBarrierBatch({
+            { _bloomFramebuffer, TextureLayout::ShaderResource, i },
+            { _bloomFramebuffer, TextureLayout::ShaderResource, i -1 }
+        });
+    }
     cmdBuf->EndEvent();
 }
 
@@ -103,54 +134,52 @@ void Bloom::Composite(Scene& scene, uint32_t width, uint32_t height)
     OPTICK_GPU_CONTEXT(cmdBuf->GetCommandList());
     OPTICK_GPU_EVENT("Bloom Composite");
 
+    struct Data {
+        uint32_t Input;
+        uint32_t InputSampler;
+        uint32_t OutputHDR;
+        float BloomStrength;
+    };
+    Data data;
+    data.Input = _bloomFramebuffer->SRV(0);
+    data.InputSampler = _linearClamp->BindlesssSampler();
+    data.OutputHDR = _output->UAV();
+    data.BloomStrength = _bloomStrenght;
+
     cmdBuf->BeginEvent("Bloom Composite");
+    cmdBuf->ImageBarrierBatch({
+        { _bloomFramebuffer, TextureLayout::ShaderResource },
+        { _output, TextureLayout::Storage }
+    });
+    cmdBuf->BindComputePipeline(_compositePipeline.ComputePipeline);
+    cmdBuf->PushConstantsCompute(&data, sizeof(data), 0);
+    cmdBuf->Dispatch(std::max((uint32_t)std::ceil(width / 8u), 1u), std::max((uint32_t)std::ceil(height / 8u), 1u), 1);
     cmdBuf->EndEvent();
 }
 
 void Bloom::Render(Scene& scene, uint32_t width, uint32_t height)
 {
     if (_enable) {
+        CommandBuffer::Ptr cmdBuf = _context->GetCurrentCommandBuffer();
+
+        cmdBuf->BeginEvent("Bloom");
         Downsample(scene, width, height);
         Upsample(scene, width, height);
         Composite(scene, width, height);
+        cmdBuf->EndEvent();
     }
 }
 
 void Bloom::Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR)
 {
-    _mipChain.clear();
 
-    glm::vec2 mipSize((float)width, (float)height);
-    glm::ivec2 mipIntSize(width, height);
-
-    BloomMip firstMip;
-    firstMip.Size = mipSize;
-    firstMip.IntSize = mipIntSize;
-    firstMip.RenderTarget = _emissionBuffer;
-
-    _mipChain.push_back(firstMip);
-
-    for (int i = 1; i < MIP_COUNT; i++) {
-        BloomMip mip;
-        
-        mipSize *= 0.5f;
-        mipIntSize /= 2;
-        mip.Size = mipSize;
-        mip.IntSize = mipIntSize;
-
-        mip.RenderTarget = _context->CreateTexture((uint32_t)mipSize.x, (uint32_t)mipSize.y, TextureFormat::RGB11Float, TextureUsage::ShaderResource, false, "[BLOOM] Bloom Mip " + std::to_string(i));
-        mip.RenderTarget->BuildShaderResource();
-        mip.RenderTarget->BuildStorage();
-        _mipChain.push_back(mip);
-    }
 }
 
 void Bloom::OnUI()
 {
     if (ImGui::TreeNodeEx("Bloom", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Enable", &_enable);
-        //ImGui::SliderFloat("Filter Radius", &_filterRadius, 0.0f, 0.01f, "%.3f");
-        //ImGui::SliderFloat("Bloom Strength", &_bloomStrenght, 0.0f, 0.7f, "%.2f");
+        ImGui::SliderFloat("Strength", &_bloomStrenght, 0.0f, 4.0f, "%.1f");
         ImGui::TreePop();
     }
 }
@@ -165,5 +194,4 @@ void Bloom::Reconstruct()
 void Bloom::ConnectEmissiveBuffer(Texture::Ptr texture)
 {
     _emissionBuffer = texture;
-    _mipChain[0].RenderTarget = _emissionBuffer;
 }

@@ -34,6 +34,7 @@
 #define SCENE_SUNTEMPLE 0
 #define SCENE_SMALL 0
 #define SCENE_TEXTURE_COMPRESSION_TEST 0
+#define SCENE_CUBE 0
 
 enum class SceneMode {
     Bistro,

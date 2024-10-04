@@ -33,26 +33,18 @@ private:
     Texture::Ptr _emissionBuffer;
     Texture::Ptr _output;
 
-    int MIP_COUNT = 8;
-
-    struct BloomMip
-    {
-        glm::vec2 Size;
-        glm::ivec2 IntSize;
-        Texture::Ptr RenderTarget;
-    };
-
     RenderContext::Ptr _context;
     float _filterRadius = 0.005f;
-    float _bloomStrenght = 0.30f;
+    float _bloomStrenght = 3.0f;
 
     bool _enable = true;
+    int MIP_CAP = 7;
 
     HotReloadablePipeline _downsamplePipeline;
     HotReloadablePipeline _upsamplePipeline;
     HotReloadablePipeline _compositePipeline;
 
-    std::vector<BloomMip> _mipChain;
+    Texture::Ptr _bloomFramebuffer;
     
     Sampler::Ptr _linearClamp;
     Sampler::Ptr _linearBorder;

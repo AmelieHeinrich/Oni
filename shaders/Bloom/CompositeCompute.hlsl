@@ -25,11 +25,11 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     RWTexture2D<float4> OutputHDR = ResourceDescriptorHeap[Settings.OutputHDR];
 
     uint width, height;
-    OutputHDR.GetDimensions(width, height);
+    Input.GetDimensions(width, height);
 
     float2 UVs = TexelToUV(ThreadID.xy, 1.0 / float2(width, height));
     float3 InputColor = Input.Sample(InputSampler, UVs);
 
-    float4 color = lerp(OutputHDR[ThreadID.xy] * 1.5, float4(InputColor, 1.0), Settings.BloomStrength);
+    float4 color = OutputHDR[ThreadID.xy] + (float4(InputColor, 1.0) * Settings.BloomStrength);
     OutputHDR[ThreadID.xy] = color;
 }

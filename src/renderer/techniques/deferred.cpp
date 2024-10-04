@@ -174,7 +174,6 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
         { _emissive, TextureLayout::RenderTarget },
         { _velocityBuffer, TextureLayout::RenderTarget }
     });
-    commandBuffer->ClearRenderTarget(_outputImage, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_normals, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_albedoEmission, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);

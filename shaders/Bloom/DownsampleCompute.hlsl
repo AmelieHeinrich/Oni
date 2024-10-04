@@ -39,14 +39,14 @@ float3 Downsample(uint3 ThreadID)
 {
 	Texture2D InputHDR = ResourceDescriptorHeap[Settings.InputHDR];
 	SamplerState InputSampler = SamplerDescriptorHeap[Settings.InputSampler];
-	RWTexture2D<float3> Downsampled = SamplerDescriptorHeap[Settings.Downsampled];
+	RWTexture2D<float4> Downsampled = SamplerDescriptorHeap[Settings.Downsampled];
 
     int width, height;
     Downsampled.GetDimensions(width, height);
 
     float2 uv = TexelToUV(ThreadID.xy, 1.0 / float2(width, height));
 
-	float3 outColor = 0;
+	float4 outColor = float4(0.0, 0.0, 0.0, 1.0);
 	float3 M0 = InputHDR.SampleLevel(InputSampler, uv, 0, int2(-1.0f,  1.0f)).xyz;
 	float3 M1 = InputHDR.SampleLevel(InputSampler, uv, 0, int2( 1.0f,  1.0f)).xyz;
 	float3 M2 = InputHDR.SampleLevel(InputSampler, uv, 0, int2(-1.0f, -1.0f)).xyz;
@@ -62,13 +62,13 @@ float3 Downsample(uint3 ThreadID)
 	float3 B  = InputHDR.SampleLevel(InputSampler, uv, 0, int2( 0.0f,-2.0f)).xyz;
 	float3 BR = InputHDR.SampleLevel(InputSampler, uv, 0, int2( 2.0f,-2.0f)).xyz;
 
-	outColor += ComputePartialAverage(M0, M1, M2, M3) * 0.5f;
-	outColor += ComputePartialAverage(TL, T, C, L) * 0.125f;
-	outColor += ComputePartialAverage(TR, T, C, R) * 0.125f;
-	outColor += ComputePartialAverage(BL, B, C, L) * 0.125f;
-	outColor += ComputePartialAverage(BR, B, C, R) * 0.125f;
+	outColor.rgb += ComputePartialAverage(M0, M1, M2, M3) * 0.5f;
+	outColor.rgb += ComputePartialAverage(TL, T, C, L) * 0.125f;
+	outColor.rgb += ComputePartialAverage(TR, T, C, R) * 0.125f;
+	outColor.rgb += ComputePartialAverage(BL, B, C, L) * 0.125f;
+	outColor.rgb += ComputePartialAverage(BR, B, C, R) * 0.125f;
 
-    return outColor * 1.5f;
+    return outColor.rgb;
 }
 
 [numthreads(8, 8, 1)]
@@ -76,7 +76,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
 	Texture2D InputHDR = ResourceDescriptorHeap[Settings.InputHDR];
 	SamplerState InputSampler = SamplerDescriptorHeap[Settings.InputSampler];
-	RWTexture2D<float3> Downsampled = SamplerDescriptorHeap[Settings.Downsampled];
+	RWTexture2D<float4> Downsampled = SamplerDescriptorHeap[Settings.Downsampled];
 
-    Downsampled[ThreadID.xy] = Downsample(ThreadID);
+    Downsampled[ThreadID.xy] = float4(Downsample(ThreadID), 1.0);
 }
