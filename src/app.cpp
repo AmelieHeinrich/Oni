@@ -1,7 +1,8 @@
-/**
- * @Author: Amélie Heinrich
- * @Create Time: 2024-03-28 20:06:52
- */
+//
+// $Notice: Xander Studios @ 2024
+// $Author: Amélie Heinrich
+// $Create Time: 2024-03-28 20:06:52
+//
 
 #include <ImGui/imgui.h>
 #include <ImGuizmo/ImGuizmo.h>

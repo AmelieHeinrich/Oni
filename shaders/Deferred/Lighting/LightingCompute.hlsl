@@ -13,12 +13,13 @@
 #define MODE_ALBEDO 1
 #define MODE_NORMAL 2
 #define MODE_MR 3
-#define MODE_AO 4
-#define MODE_EMISSIVE 5
-#define MODE_SPECULAR 6
-#define MODE_AMBIENT 7
-#define MODE_POSITION 8
-#define MODE_VELOCITY 9
+#define MODE_BAKED_AO 4
+#define MODE_SSAO 5
+#define MODE_EMISSIVE 6
+#define MODE_SPECULAR 7
+#define MODE_AMBIENT 8
+#define MODE_POSITION 9
+#define MODE_VELOCITY 10
 
 struct SceneData
 {
@@ -51,21 +52,24 @@ struct Constants
     uint PbrAO;
     uint Velocity;
     uint Emissive;
+    uint SSAO;
+
     uint Irradiance;
     uint Prefilter;
     uint BRDF;
+    
     uint ShadowMap;
     uint Sampler;
     uint CubeSampler;
     uint ShadowSampler;
+    
     uint SceneBuffer;
     uint LightBuffer;
     uint OutputData;
     uint HDRBuffer;
+    
     float Direct;
     float Indirect;
-
-    float _Pad0;
 };
 
 ConstantBuffer<Constants> Settings : register(b0);
@@ -183,6 +187,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     Texture2D Normals = ResourceDescriptorHeap[Settings.Normals];
     Texture2D AlbedoEmissive = ResourceDescriptorHeap[Settings.AlbedoEmissive];
     Texture2D PbrAO = ResourceDescriptorHeap[Settings.PbrAO];
+    Texture2D<float> SSAO = ResourceDescriptorHeap[Settings.SSAO];
     Texture2D<float2> Velocity = ResourceDescriptorHeap[Settings.Velocity];
     Texture2D<float4> Emissive = ResourceDescriptorHeap[Settings.Emissive];
     TextureCube Irradiance = ResourceDescriptorHeap[Settings.Irradiance];
@@ -224,15 +229,16 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     data.WorldPos = position;
     data.LightPos = shadowPosition;
 
-    // Albedo + Emissive
-    float4 albedo = AlbedoEmissive.Sample(Sampler, TexCoords) + (Emissive.Sample(Sampler, TexCoords) * 5.0f);
-    albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
-
     // PBR + AO
     float4 PBRAO = PbrAO.Sample(Sampler, TexCoords);
     float metallic = PBRAO.r;
     float roughness = PBRAO.g;
     float ao = PBRAO.b;
+    float ssao = SSAO.Sample(Sampler, TexCoords);
+
+    // Albedo + Emissive
+    float4 albedo = AlbedoEmissive.Sample(Sampler, TexCoords) + (Emissive.Sample(Sampler, TexCoords) * 5.0f);
+    albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
 
     // Shadow
     float shadow = ShadowCalculation(data, ShadowMap, ShadowSampler, LightBuffer);
@@ -279,6 +285,8 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
         indirectLighting = diffuseIBL + specularIBL;
     }
 
+    directLighting *= ssao;
+
     directLighting *= Settings.Direct;
     indirectLighting *= Settings.Indirect;
 
@@ -298,8 +306,11 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
         case MODE_MR:
             final = roughness;
             break;
-        case MODE_AO:
+        case MODE_BAKED_AO:
             final = float4(ao, ao, ao, 1.0);
+            break;
+        case MODE_SSAO:
+            final = float4(ssao, ssao, ssao, 1.0);
             break;
         case MODE_EMISSIVE:
             final = Emissive.Sample(Sampler, TexCoords);

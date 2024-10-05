@@ -26,17 +26,19 @@ public:
 
     void ConnectEnvironmentMap(EnvironmentMap& map);
     void ConnectShadowMap(Texture::Ptr texture);
-    
+    void ConnectSSAO(Texture::Ptr texture) { _ssao = texture; }
+
     void ShouldJitter(bool jitter) { _jitter = jitter; }
 
     Texture::Ptr GetOutput() { return _outputImage; }
     Texture::Ptr GetDepthBuffer() { return _depthBuffer; }
+    Texture::Ptr GetNormalBuffer() { return _normals; }
     Texture::Ptr GetVelocityBuffer() { return _velocityBuffer; }
     Texture::Ptr GetEmissiveBuffer() { return _emissive; }
-private:
+
     void GBufferPass(Scene& scene, uint32_t width, uint32_t height);
     void LightingPass(Scene& scene, uint32_t width, uint32_t height);
-
+private:
     RenderContext::Ptr _context;
     EnvironmentMap _map;
     Texture::Ptr _shadowMap;
@@ -52,6 +54,8 @@ private:
     Texture::Ptr _blackTexture;
     Texture::Ptr _outputImage;
     Texture::Ptr _depthBuffer;
+
+    Texture::Ptr _ssao;
 
     HotReloadablePipeline _gbufferPipeline;
     HotReloadablePipeline _lightingPipeline;

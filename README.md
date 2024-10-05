@@ -48,6 +48,8 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 
 ## WIP
 
+- SSAO
+- Frustum culling and AABB viz
 - Cascaded shadow mapping
 
 ## Dependencies

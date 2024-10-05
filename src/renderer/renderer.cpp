@@ -19,12 +19,11 @@
 Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
 {
+    // Create
     _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
+    _ssao = std::make_shared<SSAO>(context);
     _deferred = std::make_shared<Deferred>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _deferred->GetOutput(), _deferred->GetDepthBuffer());
-
-    _deferred->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
-    _deferred->ConnectShadowMap(_shadows->GetOutput());
 
     _taa = std::make_shared<TemporalAntiAliasing>(context, _deferred->GetOutput());
     _motionBlur = std::make_shared<MotionBlur>(context, _deferred->GetOutput());
@@ -35,13 +34,23 @@ Renderer::Renderer(RenderContext::Ptr context)
     _autoExposure = std::make_shared<AutoExposure>(context, _deferred->GetOutput());
     _tonemapping = std::make_shared<Tonemapping>(context, _deferred->GetOutput());
 
+    _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
+
+    // Connect
+    _ssao->SetDepthBuffer(_deferred->GetDepthBuffer());
+    _ssao->SetNormalBuffer(_deferred->GetNormalBuffer());
+
+    _deferred->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
+    _deferred->ConnectShadowMap(_shadows->GetOutput());
+    _deferred->ConnectSSAO(_ssao->GetOutput());
+
     _taa->SetVelocityBuffer(_deferred->GetVelocityBuffer());
     _motionBlur->SetVelocityBuffer(_deferred->GetVelocityBuffer());
     _bloom->ConnectEmissiveBuffer(_deferred->GetEmissiveBuffer());
 
-    _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
     _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());
 
+    //
     DebugRenderer::SetDebugRenderer(_debugRenderer);
 }
 
@@ -62,8 +71,14 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
         _stats.PushFrameTime("Shadows", [this, &scene, width, height]() {
             _shadows->Render(scene, width, height);
         });
-        _stats.PushFrameTime("Deferred", [this, &scene, width, height]() {
-            _deferred->Render(scene, width, height);
+        _stats.PushFrameTime("GBuffer", [this, &scene, width, height]() {
+            _deferred->GBufferPass(scene, width, height);
+        });
+        _stats.PushFrameTime("SSAO", [this, &scene, width, height]() {
+            _ssao->Render(scene, width, height);
+        });
+        _stats.PushFrameTime("Lighting", [this, &scene, width, height]() {
+            _deferred->LightingPass(scene, width, height);
         });
         _stats.PushFrameTime("Environment Map", [this, &scene, width, height]() {
             _envMapForward->Render(scene, width, height);
@@ -122,6 +137,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 void Renderer::Resize(uint32_t width, uint32_t height)
 {
     _shadows->Resize(width, height);
+    _ssao->Resize(width, height);
     _deferred->Resize(width, height);
     _envMapForward->Resize(width, height, _deferred->GetOutput(), _deferred->GetDepthBuffer());
 
@@ -142,6 +158,7 @@ void Renderer::OnUI()
     ImGui::Begin("Renderer Settings");
 
     _shadows->OnUI();
+    _ssao->OnUI();
     _deferred->OnUI();
     _envMapForward->OnUI();
 
@@ -207,6 +224,7 @@ void Renderer::Screenshot(Texture::Ptr screenshotTexture, TextureLayout newLayou
 void Renderer::Reconstruct()
 {
     _shadows->Reconstruct();
+    _ssao->Reconstruct();
     _deferred->Reconstruct();
     _envMapForward->Reconstruct();
 

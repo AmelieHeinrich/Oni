@@ -9,6 +9,7 @@
 #include "core/timer.hpp"
 
 #include "techniques/shadows.hpp"
+#include "techniques/ssao.hpp"
 #include "techniques/deferred.hpp"
 #include "techniques/envmap_forward.hpp"
 
@@ -62,8 +63,9 @@ private:
     Statistics _stats;
     RenderContext::Ptr _renderContext;
 
-    // Geometry
+    // Geometry and lighting
     std::shared_ptr<Shadows> _shadows;
+    std::shared_ptr<SSAO> _ssao;
     std::shared_ptr<Deferred> _deferred;
     std::shared_ptr<EnvMapForward> _envMapForward;
 
