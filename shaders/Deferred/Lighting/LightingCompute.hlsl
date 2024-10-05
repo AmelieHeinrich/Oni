@@ -260,7 +260,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     float3 Lr = 2.0 * NdotV * N - V;
     float3 Lo = 0.0;
 
-    float3 directLighting = Epsilon;
+    float3 directLighting = 0.0;
     {
         for (int i = 0; i < LightBuffer.PointLightCount; i++) {
             Lo += CalcPointLight(data, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
@@ -271,21 +271,19 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
         directLighting += Lo;
     }
 
-    float3 indirectLighting = Epsilon;
+    float3 indirectLighting = 0.0;
     {
         float3 irradiance = Irradiance.Sample(CubeSampler, N).rgb;
         float3 F = FresnelSchlick(NdotV, F0);
         float3 kd = lerp(1.0 - F, 0.0, metallic);
-        float3 diffuseIBL = kd * albedo.rgb * irradiance;
+        float3 diffuseIBL = kd * albedo.rgb;
 
         uint maxReflectionLOD = GetMaxReflectionLOD();
         float3 specularIrradiance = Prefilter.SampleLevel(CubeSampler, Lr, roughness * maxReflectionLOD).rgb;
         float2 specularBRDF = BRDF.Sample(Sampler, float2(NdotV, roughness)).rg;
         float3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
-        indirectLighting = diffuseIBL + specularIBL;
+        indirectLighting = (diffuseIBL + specularIBL) * irradiance;
     }
-
-    directLighting *= ssao;
 
     directLighting *= Settings.Direct;
     indirectLighting *= Settings.Indirect;

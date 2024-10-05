@@ -16,7 +16,7 @@ SSAO::SSAO(RenderContext::Ptr renderContext)
     // Create pipelines
     _ssaoPipeline.SignatureInfo = {
         { RootSignatureEntry::PushConstants },
-        48
+        sizeof(glm::vec4) * 3
     };
     _ssaoPipeline.ReflectRootSignature(false);
     _ssaoPipeline.AddShaderWatch("shaders/SSAO/SSAOCompute.hlsl", "Main", ShaderType::Compute);
@@ -24,7 +24,7 @@ SSAO::SSAO(RenderContext::Ptr renderContext)
 
     _ssaoBlur.SignatureInfo = {
         { RootSignatureEntry::PushConstants },
-        16
+        sizeof(glm::uvec4)
     };
     _ssaoBlur.ReflectRootSignature(false);
     _ssaoBlur.AddShaderWatch("shaders/SSAO/SSAOBoxBlurCompute.hlsl", "Main", ShaderType::Compute);
@@ -75,14 +75,16 @@ SSAO::SSAO(RenderContext::Ptr renderContext)
 
     // Upload noise bitmap
     Bitmap noiseBitmap;
-    noiseBitmap.Width = 4;
-    noiseBitmap.Height = 4;
+    noiseBitmap.Width = _noise->GetWidth();
+    noiseBitmap.Height = _noise->GetHeight();
     noiseBitmap.Delete = false;
     noiseBitmap.Bytes = reinterpret_cast<char*>(noiseData.data());
 
     Uploader uploader = _context->CreateUploader();
     uploader.CopyHostToDeviceTexture(noiseBitmap, _noise);
     _context->FlushUploader(uploader);
+
+    _kernelSize = 16;
 }
 
 void SSAO::Render(Scene& scene, uint32_t width, uint32_t height)
@@ -116,14 +118,16 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
         uint32_t Normal;
         uint32_t NoiseTexture;
         uint32_t KernelBuffer;
+        
         uint32_t CameraBuffer;
         uint32_t KernelSize;
         float Radius;
         float Bias;
+        
         uint32_t PointSampler;
         uint32_t PointClampSampler;
         uint32_t Output;
-        glm::uvec2 Pad;
+        uint32_t Power;
     };
     Data data = {
         _depth->SRV(),
@@ -137,7 +141,7 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
         _pointSampler->BindlesssSampler(),
         _pointClampSampler->BindlesssSampler(),
         _ssao->UAV(),
-        glm::uvec2(0u)
+        _power
     };
 
     commandBuffer->BeginEvent("SSAO Generation");
@@ -151,7 +155,8 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
     commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
     commandBuffer->ImageBarrierBatch({
-        { _ssao, TextureLayout::Storage }
+        { _ssao, TextureLayout::Storage },
+        { _depth, TextureLayout::Depth }
     });
     commandBuffer->EndEvent();
 }
@@ -192,6 +197,8 @@ void SSAO::Resize(uint32_t width, uint32_t height)
 void SSAO::OnUI()
 {
     if (ImGui::TreeNodeEx("SSAO", ImGuiTreeNodeFlags_Framed)) {
+        ImGui::SliderInt("Strength", reinterpret_cast<int*>(&_power), 0, 10);
+        ImGui::SliderInt("Kernel Size", reinterpret_cast<int*>(&_kernelSize), 0, 64);
         ImGui::TreePop();
     }
 }

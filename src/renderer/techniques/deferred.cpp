@@ -96,7 +96,7 @@ Deferred::Deferred(RenderContext::Ptr context)
     {
         _lightingPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            80
+            84
         };
         _lightingPipeline.ReflectRootSignature(false);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
@@ -168,18 +168,19 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
     // Start rendering
     commandBuffer->BeginEvent("GBuffer");
     commandBuffer->ImageBarrierBatch({
+        { _depthBuffer, TextureLayout::Depth },
         { _normals, TextureLayout::RenderTarget },
         { _albedoEmission, TextureLayout::RenderTarget },
         { _pbrData, TextureLayout::RenderTarget },
         { _emissive, TextureLayout::RenderTarget },
         { _velocityBuffer, TextureLayout::RenderTarget }
     });
+    commandBuffer->ClearDepthTarget(_depthBuffer);
     commandBuffer->ClearRenderTarget(_normals, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_albedoEmission, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_emissive, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_velocityBuffer, 0.0f, 0.0f, 0.0f, 1.0f);
-    commandBuffer->ClearDepthTarget(_depthBuffer);
     if (_draw) {
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->SetTopology(Topology::TriangleList);

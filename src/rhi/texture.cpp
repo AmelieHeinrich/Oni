@@ -44,6 +44,9 @@ float Texture::GetComponentSize(TextureFormat format)
         case TextureFormat::RGBA32Float: {
             return 4.0f * sizeof(float);
         }
+        case TextureFormat::RGB32Float: {
+            return 3.0f * sizeof(float);
+        }
         case TextureFormat::RG16Float: {
             return 2.0f * sizeof(short);
         }
