@@ -14,8 +14,11 @@
 
 struct AABB
 {
+    glm::vec3 Min;
+    glm::vec3 Max;
+
     glm::vec3 Center;
-    float Extent;
+    glm::vec3 Extent;
 };
 
 struct Vertex
@@ -60,8 +63,9 @@ struct Primitive
 
     glm::mat4 PrevTransform;
     glm::mat4 Transform;
-    AABB BoundingBox;
     std::string Name;
+
+    AABB BoundingBox;
 };
 
 class Model

@@ -84,4 +84,7 @@ private:
     bool _pbr = true;
     bool _ibl = true;
     bool _draw = true;
+
+    int _totalMeshes;
+    int _culledMeshes;
 };

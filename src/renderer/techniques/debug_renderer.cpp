@@ -21,11 +21,12 @@ std::shared_ptr<DebugRenderer> DebugRenderer::Get()
 }
 
 DebugRenderer::DebugRenderer(RenderContext::Ptr context, Texture::Ptr output)
-    : LineShader(PipelineType::Graphics), _context(context), MotionShader(PipelineType::Compute)
+    : LineShader(PipelineType::Graphics), _context(context), MotionShader(PipelineType::Compute), AABBShader(PipelineType::Graphics)
 {
     Context = context;
     Output = output;
 
+    // Line shader
     LineShader.Specs.Fill = FillMode::Solid;
     LineShader.Specs.Cull = CullMode::None;
     LineShader.Specs.DepthEnabled = false;
@@ -49,6 +50,30 @@ DebugRenderer::DebugRenderer(RenderContext::Ptr context, Texture::Ptr output)
         LineVertexBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(LineVertex), sizeof(LineVertex), BufferType::Vertex, false, "[DEBUG] Line Vertex Buffer");
     }
 
+    // AABB shader
+    AABBShader.Specs.Fill = FillMode::Line;
+    AABBShader.Specs.Cull = CullMode::None;
+    AABBShader.Specs.DepthEnabled = false;
+    AABBShader.Specs.Depth = DepthOperation::None;
+    AABBShader.Specs.DepthFormat = TextureFormat::None;
+    AABBShader.Specs.Formats[0] = TextureFormat::RGBA8;
+    AABBShader.Specs.FormatCount = 1;
+
+    AABBShader.SignatureInfo = {
+        { RootSignatureEntry::PushConstants },
+        sizeof(glm::mat4)
+    };
+    AABBShader.ReflectRootSignature(false);
+    AABBShader.AddShaderWatch("shaders/DebugRenderer/AABBRendererVert.hlsl", "Main", ShaderType::Vertex);
+    AABBShader.AddShaderWatch("shaders/DebugRenderer/AABBRendererFrag.hlsl", "Main", ShaderType::Fragment);
+    AABBShader.Build(context);
+
+    for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+        AABBTransferBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(CubeVertex), 0, BufferType::Constant, false, "[DEBUG] AABB Transfer Buffer");
+        AABBVertexBuffer[i] = context->CreateBuffer(MAX_LINES * sizeof(CubeVertex), sizeof(CubeVertex), BufferType::Vertex, false, "[DEBUG] AABB Vertex Buffer");
+    }
+
+    // Motion viz
     MotionShader.SignatureInfo = {
         { RootSignatureEntry::PushConstants },
         sizeof(uint32_t) * 3
@@ -69,8 +94,12 @@ void DebugRenderer::OnUI()
 {
     if (ImGui::TreeNodeEx("Debug Renderer", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Draw Lines", &DrawLines);
+        ImGui::Checkbox("Draw AABB", &DrawAABB);
         ImGui::Checkbox("Visualize Motion Vectors", &DrawMotion);
+
+        ImGui::Separator();
         ImGui::Text("Line Count: %d", List.Lines.size());
+        ImGui::Text("AABB Count: %d", List.BoundingBoxes.size());
         ImGui::TreePop();
     }
 }
@@ -84,6 +113,11 @@ void DebugRenderer::PushLine(glm::vec3 a, glm::vec3 b, glm::vec3 color)
     });
 }
 
+void DebugRenderer::PushAABB(AABB aabb, glm::mat4 transform)
+{
+    List.BoundingBoxes.push_back({ aabb, transform });
+}
+
 void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr cmdBuffer = Context->GetCurrentCommandBuffer();
@@ -91,6 +125,14 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
 
     OPTICK_GPU_CONTEXT(cmdBuffer->GetCommandList());
     OPTICK_GPU_EVENT("Debug Renderer");
+
+    if (DrawAABB) {
+        for (auto& model : scene.Models) {
+            for (auto& primitive : model.Primitives) {
+                PushAABB(primitive.BoundingBox, primitive.Transform);
+            }
+        }
+    }
 
     cmdBuffer->BeginEvent("Debug Renderer");
     cmdBuffer->ImageBarrier(Output, TextureLayout::RenderTarget);
@@ -127,6 +169,49 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
             cmdBuffer->Draw(vertices.size());
             cmdBuffer->EndEvent();
         }
+    }
+    if (DrawAABB) {
+        // Generate points of cube
+        std::vector<glm::vec4> vertices;
+        for (int i = 0; i < List.BoundingBoxes.size(); i++) {
+            AABB boundingBox = List.BoundingBoxes[i].BoundingBox;
+            glm::mat4 transform = List.BoundingBoxes[i].Transform;
+
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x - boundingBox.Extent.x, boundingBox.Center.y - boundingBox.Extent.y, boundingBox.Center.z - boundingBox.Extent.z), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x,                        boundingBox.Center.y,                        boundingBox.Center.z                       ), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x - boundingBox.Extent.x, boundingBox.Center.y - boundingBox.Extent.y, boundingBox.Center.z                       ), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x,                        boundingBox.Center.y,                        boundingBox.Center.z + boundingBox.Extent.z), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x - boundingBox.Extent.x, boundingBox.Center.y,                        boundingBox.Center.z - boundingBox.Extent.z), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x,                        boundingBox.Center.y + boundingBox.Extent.y, boundingBox.Center.z                       ), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x - boundingBox.Extent.x, boundingBox.Center.y,                        boundingBox.Center.z                       ), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x,                        boundingBox.Center.y + boundingBox.Extent.y, boundingBox.Center.z + boundingBox.Extent.z), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x,                        boundingBox.Center.y - boundingBox.Extent.y, boundingBox.Center.z - boundingBox.Extent.z), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x + boundingBox.Extent.x, boundingBox.Center.y,                        boundingBox.Center.z                       ), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x,                        boundingBox.Center.y - boundingBox.Extent.y, boundingBox.Center.z                       ), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x + boundingBox.Extent.x, boundingBox.Center.y,                        boundingBox.Center.z + boundingBox.Extent.z), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x,                        boundingBox.Center.y,                        boundingBox.Center.z - boundingBox.Extent.z), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x + boundingBox.Extent.x, boundingBox.Center.y + boundingBox.Extent.y, boundingBox.Center.z                       ), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x,                        boundingBox.Center.y,                        boundingBox.Center.z                       ), transform));
+            vertices.push_back(ApplyTransform(glm::vec3(boundingBox.Center.x + boundingBox.Extent.x, boundingBox.Center.y + boundingBox.Extent.y, boundingBox.Center.z + boundingBox.Extent.z), transform));
+        }
+
+        glm::mat4 mvp = scene.Camera.Projection() * scene.Camera.View();
+
+        void *pData;
+        AABBTransferBuffer[frameIndex]->Map(0, 0, &pData);
+        memcpy(pData, vertices.data(), sizeof(CubeVertex) * vertices.size());
+        AABBTransferBuffer[frameIndex]->Unmap(0, 0);
+
+        cmdBuffer->BeginEvent("AABB", 200, 200, 200);
+        cmdBuffer->CopyBufferToBuffer(AABBVertexBuffer[frameIndex], AABBTransferBuffer[frameIndex]);
+        cmdBuffer->SetViewport(0, 0, width, height);
+        cmdBuffer->SetTopology(Topology::TriangleStrip);
+        cmdBuffer->BindRenderTargets({ Output }, nullptr);
+        cmdBuffer->BindGraphicsPipeline(AABBShader.GraphicsPipeline);
+        cmdBuffer->PushConstantsGraphics(glm::value_ptr(mvp), sizeof(glm::mat4), 0);
+        cmdBuffer->BindVertexBuffer(AABBVertexBuffer[frameIndex]);
+        cmdBuffer->Draw(vertices.size());
+        cmdBuffer->EndEvent();
     }
     if (DrawMotion) {
         if (VelocityBuffer) {
@@ -165,6 +250,7 @@ Texture::Ptr DebugRenderer::GetOutput()
 void DebugRenderer::Reset()
 {
     List.Lines.clear();
+    List.BoundingBoxes.clear();
 }
 
 void DebugRenderer::SetVelocityBuffer(Texture::Ptr texture)
@@ -176,4 +262,5 @@ void DebugRenderer::Reconstruct()
 {
     LineShader.CheckForRebuild(_context, "Line Shader");
     MotionShader.CheckForRebuild(_context, "Motion Visualization");
+    AABBShader.CheckForRebuild(_context, "AABB Shader");
 }

@@ -13,6 +13,9 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#undef min
+#undef max
+
 void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform, std::string name)
 {
     if (primitive->type != cgltf_primitive_type_triangles) {
@@ -77,6 +80,17 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
 
     out.VertexCount = vertices.size();
     out.IndexCount = indices.size();
+
+    out.BoundingBox.Min = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    out.BoundingBox.Max = glm::vec3(FLT_MIN, FLT_MIN, FLT_MIN);
+
+    for (uint32_t j = 0; j < vertices.size(); ++j) {
+        out.BoundingBox.Min = glm::min(out.BoundingBox.Min, vertices[j].Position);
+        out.BoundingBox.Max = glm::max(out.BoundingBox.Max, vertices[j].Position);
+    }
+
+    out.BoundingBox.Center = (out.BoundingBox.Min + out.BoundingBox.Max) / glm::vec3(2);
+    out.BoundingBox.Extent = (out.BoundingBox.Max - out.BoundingBox.Min);
 
     out.VertexBuffer = context->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
     out.IndexBuffer = context->CreateBuffer(out.IndexCount * sizeof(uint32_t), 0, BufferType::Index, false, "Index Buffer");

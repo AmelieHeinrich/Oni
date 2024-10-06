@@ -181,14 +181,21 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_emissive, 0.0f, 0.0f, 0.0f, 1.0f);
     commandBuffer->ClearRenderTarget(_velocityBuffer, 0.0f, 0.0f, 0.0f, 1.0f);
-    if (_draw) {
+    if (_draw) { 
         commandBuffer->SetViewport(0, 0, width, height);
         commandBuffer->SetTopology(Topology::TriangleList);
         commandBuffer->BindRenderTargets({ _normals, _albedoEmission, _pbrData, _emissive, _velocityBuffer }, _depthBuffer);
         commandBuffer->BindGraphicsPipeline(_gbufferPipeline.GraphicsPipeline);
 
         for (auto model : scene.Models) {
+            _totalMeshes += model.Primitives.size();
             for (auto primitive : model.Primitives) {
+                // Cull
+                if (!scene.Camera.InFrustum(primitive.BoundingBox)) {
+                    _culledMeshes++;
+                    continue;
+                }
+
                 auto material = model.Materials[primitive.MaterialIndex];
 
                 Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
@@ -401,19 +408,31 @@ void Deferred::Resize(uint32_t width, uint32_t height)
 void Deferred::OnUI()
 {
     if (ImGui::TreeNodeEx("Deferred", ImGuiTreeNodeFlags_Framed)) {
+        ImGui::Text("Total Meshes: %d", _totalMeshes);
+        ImGui::Text("Culled Meshes: %d", _culledMeshes);
+
+        ImGui::Separator();
+        
         ImGui::Checkbox("Draw Geometry", &_draw);
         ImGui::Checkbox("Enable IBL", &_ibl);
         ImGui::Checkbox("Visualize Shadows", &_visualizeShadow);
 
+        ImGui::Separator();
+
         ImGui::SliderFloat("Direct Light Term", &_directTerm, 0.0f, 2.0f, "%.1f");
         ImGui::SliderFloat("Indirect Light Term", &_indirectTerm, 0.0f, 2.0f, "%.1f");
         ImGui::SliderFloat("Emission Strength", &_emissiveStrength, 0.1f, 10.0f, "%.1f");
+
+        ImGui::Separator();
 
         static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "Baked AO", "SSAO", "Emissive", "Direct", "Indirect", "Position", "Velocity" };
         ImGui::Combo("Mode", (int*)&_mode, Modes, 11, 11);
 
         ImGui::TreePop();
     }
+
+    _totalMeshes = 0;
+    _culledMeshes = 0;
 }
 
 void Deferred::Reconstruct()

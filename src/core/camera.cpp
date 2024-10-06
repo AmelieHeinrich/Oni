@@ -43,7 +43,7 @@ void FreeCamera::Update(bool updateFrustum)
         const float halfVSide = 10000.0f * tanf(glm::radians(_FOV) * .5f);
         const float halfHSide = halfVSide * (float(_Width) / float(_Height));
         const glm::vec3 frontMultFar = 10000.0f * _Front;
-    
+
         _Frustum.Near = { _Position + 0.05f * _Front, _Front };
         _Frustum.Far = { _Position + frontMultFar, -_Front };
         _Frustum.Right = { _Position, glm::cross(frontMultFar - _Right * halfHSide, _Up) };
@@ -128,15 +128,49 @@ void FreeCamera::GetMousePosition(int& x, int& y)
 bool FreeCamera::InFrustum(AABB aabb)
 {
     return (IsOnOrForwardPlane(_Frustum.Left, aabb) &&
-			IsOnOrForwardPlane(_Frustum.Right, aabb) &&
-			IsOnOrForwardPlane(_Frustum.Top, aabb) &&
-			IsOnOrForwardPlane(_Frustum.Bottom, aabb) &&
-			IsOnOrForwardPlane(_Frustum.Near, aabb) &&
-			IsOnOrForwardPlane(_Frustum.Far, aabb));
+            IsOnOrForwardPlane(_Frustum.Right, aabb) &&
+            IsOnOrForwardPlane(_Frustum.Top, aabb) &&
+            IsOnOrForwardPlane(_Frustum.Bottom, aabb) &&
+            IsOnOrForwardPlane(_Frustum.Near, aabb) &&
+            IsOnOrForwardPlane(_Frustum.Far, aabb));
 }
 
 bool FreeCamera::IsOnOrForwardPlane(const Plane& plane, AABB aabb)
 {
-    const float r = aabb.Extent * (std::abs(plane.Normal.x) + std::abs(plane.Normal.y) + std::abs(plane.Normal.z));
-	return -r <= plane.GetSignedDistanceToPlane(aabb.Center);
+    glm::vec3 vmin, vmax;
+
+    for(int i = 0; i < 6; ++i) {
+        // X axis
+        if (plane.Normal.x > 0) {
+            vmin.x = aabb.Min.x;
+            vmax.x = aabb.Max.x;
+        } else {
+            vmin.x = aabb.Max.x;
+            vmax.x = aabb.Min.x;
+        }
+
+        // Y axis
+        if (plane.Normal.y > 0) {
+            vmin.y = aabb.Min.y;
+            vmax.y = aabb.Max.y;
+        } else {
+            vmin.y = aabb.Max.y;
+            vmax.y = aabb.Min.y;
+        }
+
+        // Z axis
+        if (plane.Normal.z > 0) {
+            vmin.z = aabb.Min.z;
+            vmax.z = aabb.Max.z;
+        } else {
+            vmin.z = aabb.Max.z;
+            vmax.z = aabb.Min.z;
+        }
+
+        if (glm::dot(plane.Normal, vmin) + plane.Distance > 0)
+            return false;
+        if (glm::dot(plane.Normal, vmax) + plane.Distance >= 0)
+            return true;
+   }
+   return true;
 }
