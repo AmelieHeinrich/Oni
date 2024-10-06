@@ -49,9 +49,9 @@ float4 GetViewFromDepth(float2 uv, float depth, column_major float4x4 inversePro
 [numthreads(8, 8, 1)]
 void Main(uint3 ThreadID : SV_DispatchThreadID)
 {
-    Texture2D Depth = ResourceDescriptorHeap[Settings.Depth];
-    Texture2D Normal = ResourceDescriptorHeap[Settings.Normal];
-    Texture2D Noise = ResourceDescriptorHeap[Settings.NoiseTexture];
+    Texture2D<float> Depth = ResourceDescriptorHeap[Settings.Depth];
+    Texture2D<float3> Normal = ResourceDescriptorHeap[Settings.Normal];
+    Texture2D<float4> Noise = ResourceDescriptorHeap[Settings.NoiseTexture];
     ConstantBuffer<KernelInfo> Kernels = ResourceDescriptorHeap[Settings.KernelBuffer];
     ConstantBuffer<CameraInfo> Camera = ResourceDescriptorHeap[Settings.CameraBuffer];
     SamplerState PointWrap = SamplerDescriptorHeap[Settings.PointSampler];
@@ -68,13 +68,14 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     int noiseWidth, noiseHeight;
     Noise.GetDimensions(noiseWidth, noiseHeight);
 
-    float2 NoiseScale = float2(width / noiseWidth, height / noiseHeight);
     float2 TexCoords = TexelToUV(ThreadID.xy, 1.0 / float2(width, height));
-    
+    float2 NoiseTexCoords = TexelToUV(ThreadID.xy, 1.0 / float2(noiseWidth, noiseHeight));
+
     // Get input data for SSAO
-    float3 position = GetViewFromDepth(TexCoords, Depth.Sample(PointClamp, TexCoords).r, Camera.Projection).xyz;
+    float depth = Depth.Sample(PointClamp, TexCoords).r;
+    float3 position = GetViewFromDepth(TexCoords, depth, Camera.ProjectionInv).xyz;
     float3 normal = normalize(Normal.Sample(PointClamp, TexCoords).xyz);
-    float3 randomVec = Noise.Sample(PointWrap, TexCoords * NoiseScale).xyz;
+    float3 randomVec = Noise.Sample(PointWrap, NoiseTexCoords).xyz;
 
     // Create TBN
     float3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
@@ -97,7 +98,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 
         // Get sample depth
         float sampleDepth = Depth.Sample(PointClamp, float2(offset.x * 0.5 + 0.5, -offset.y * 0.5 + 0.5)).r;
-        sampleDepth = GetViewFromDepth(offset.xy, sampleDepth, Camera.Projection).z;
+        sampleDepth = GetViewFromDepth(offset.xy, sampleDepth, Camera.ProjectionInv).z;
 
         // Range check & accumulate
         float rangeCheck = smoothstep(0.0, 1.0, Settings.Radius / abs(position.z - sampleDepth));

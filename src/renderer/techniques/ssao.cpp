@@ -103,7 +103,7 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
     uint32_t frameIndex = _context->GetBackBufferIndex();
 
     // Upload camera buffer
-    glm::mat4 matrices[3] = {
+    glm::mat4 matrices[2] = {
         scene.Camera.Projection(),
         glm::inverse(scene.Camera.Projection())
     };
