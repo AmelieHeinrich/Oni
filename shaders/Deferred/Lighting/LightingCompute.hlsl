@@ -305,10 +305,10 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = roughness;
             break;
         case MODE_BAKED_AO:
-            final = float4(ao, ao, ao, 1.0);
+            final = ao;
             break;
         case MODE_SSAO:
-            final = float4(ssao, ssao, ssao, 1.0);
+            final = ssao;
             break;
         case MODE_EMISSIVE:
             final = Emissive.Sample(Sampler, TexCoords);

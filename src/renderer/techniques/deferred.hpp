@@ -79,7 +79,7 @@ private:
     float _directTerm = 1.0f;
     float _indirectTerm = 0.1f;
 
-    int _mode = 0;
+    int _mode = 5;
     bool _visualizeShadow = false;
     bool _pbr = true;
     bool _ibl = true;

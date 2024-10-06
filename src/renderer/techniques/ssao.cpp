@@ -33,8 +33,10 @@ SSAO::SSAO(RenderContext::Ptr renderContext)
     // Generate kernels and noise
     std::vector<glm::vec3> kernels;
     for (int i = 0; i < _kernelSize; i++) {
-        glm::vec3 sample(util::random_range(-1.0, 1.0), util::random_range(-1.0, 1.0), util::random_range(0.0, 1.0));
-        
+        glm::vec3 sample(util::random_range(0.0, 1.0) * 2.0 - 1.0, util::random_range(0.0, 1.0) * 2.0 - 1.0, util::random_range(0.0, 1.0));
+        sample = glm::normalize(sample);
+        sample *= util::random_range(0.0, 1.0);
+
         float scale = (float)i / (float)_kernelSize;
         float scaleMul = util::lerp(0.1f, 1.0f, scale * scale);
         sample *= scaleMul;
@@ -44,7 +46,7 @@ SSAO::SSAO(RenderContext::Ptr renderContext)
 
     std::vector<glm::vec4> noiseData;
     for (int i = 0; i < 16; i++) {
-        glm::vec3 noise(util::random_range(-1.0, 1.0), util::random_range(-1.0, 1.0), 0.0f);
+        glm::vec3 noise(util::random_range(0.0, 1.0) * 2.0 - 1.0, util::random_range(0.0, 1.0) * 2.0 - 1.0, 0.0f);
         noiseData.push_back(glm::vec4(noise, 1.0f));
     }
 
@@ -83,8 +85,6 @@ SSAO::SSAO(RenderContext::Ptr renderContext)
     Uploader uploader = _context->CreateUploader();
     uploader.CopyHostToDeviceTexture(noiseBitmap, _noise);
     _context->FlushUploader(uploader);
-
-    _kernelSize = 16;
 }
 
 void SSAO::Render(Scene& scene, uint32_t width, uint32_t height)
@@ -103,9 +103,9 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
     uint32_t frameIndex = _context->GetBackBufferIndex();
 
     // Upload camera buffer
-    glm::mat4 matrices[2] = {
+    glm::mat4 matrices[3] = {
         scene.Camera.Projection(),
-        glm::inverse(scene.Camera.Projection() * scene.Camera.View())
+        glm::inverse(scene.Camera.Projection())
     };
     void *pData;
     _cameraBuffer[frameIndex]->Map(0, 0, &pData);
@@ -134,10 +134,12 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
         _normals->SRV(),
         _noise->SRV(),
         _kernelBuffer->CBV(),
+
         _cameraBuffer[frameIndex]->CBV(),
         _kernelSize,
         _radius,
         _bias,
+        
         _pointSampler->BindlesssSampler(),
         _pointClampSampler->BindlesssSampler(),
         _ssao->UAV(),

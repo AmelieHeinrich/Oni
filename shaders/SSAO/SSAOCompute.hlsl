@@ -15,7 +15,7 @@ struct KernelInfo
 struct CameraInfo
 {
     column_major float4x4 Projection;
-    column_major float4x4 CameraProjViewInv;
+    column_major float4x4 ProjectionInv;
 };
 
 struct Constants
@@ -38,24 +38,12 @@ struct Constants
 
 ConstantBuffer<Constants> Settings : register(b0);
 
-float3 ComputePositionViewFromZ(uint2 coords, float zbuffer)
+float4 GetViewFromDepth(float2 uv, float depth, column_major float4x4 inverseProj)
 {
-    ConstantBuffer<CameraInfo> Camera = ResourceDescriptorHeap[Settings.CameraBuffer];
-    Texture2D Depth = ResourceDescriptorHeap[Settings.Depth];
-
-    int screenWidth, screenHeight;
-    Depth.GetDimensions(screenWidth, screenHeight);
-
-	float2 screenPixelOffset = float2(2.0f, -2.0f) / float2(screenWidth, screenHeight);
-    float2 positionScreen = (float2(coords.xy) + 0.5f) * screenPixelOffset.xy + float2(-1.0f, 1.0f);
-	float viewSpaceZ = Camera.Projection._43 / (zbuffer - Camera.Projection._33);
-	
-    float2 screenSpaceRay = float2(positionScreen.x / Camera.Projection._11, positionScreen.y / Camera.Projection._22);
-    float3 positionView;
-    positionView.z = viewSpaceZ;
-    positionView.xy = screenSpaceRay.xy * positionView.z;
-    
-    return positionView;
+    float4 result = float4(uv * 2.0 - 1.0, depth, 1);
+    result = mul(inverseProj, result);
+    result.xyz /= result.w;
+    return result;
 }
 
 [numthreads(8, 8, 1)]
@@ -73,21 +61,20 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     // Start shader
     int width, height;
     Depth.GetDimensions(width, height);
-
-    int noiseWidth, noiseHeight;
-    Noise.GetDimensions(noiseWidth, noiseHeight);
-    float2 NoiseScale = float2(width / noiseWidth, height / noiseHeight);
-
     if (ThreadID.x > width || ThreadID.y > height) {
         return;
     }
+
+    int noiseWidth, noiseHeight;
+    Noise.GetDimensions(noiseWidth, noiseHeight);
+
+    float2 NoiseScale = float2(width / noiseWidth, height / noiseHeight);
     float2 TexCoords = TexelToUV(ThreadID.xy, 1.0 / float2(width, height));
     
     // Get input data for SSAO
-    float depth = Depth.Sample(PointClamp, TexCoords).r;
-    float3 position = ComputePositionViewFromZ(TexCoords, depth).xyz;
+    float3 position = GetViewFromDepth(TexCoords, Depth.Sample(PointClamp, TexCoords).r, Camera.Projection).xyz;
     float3 normal = normalize(Normal.Sample(PointClamp, TexCoords).xyz);
-    float3 randomVec = normalize(Noise.Sample(PointWrap, TexCoords * NoiseScale).xyz);
+    float3 randomVec = Noise.Sample(PointWrap, TexCoords * NoiseScale).xyz;
 
     // Create TBN
     float3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
@@ -99,19 +86,22 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     for (int i = 0; i < Settings.KernelSize; i++) {
         // Get sample position
         float3 samplePos = mul(Kernels.Samples[i], TBN);
-        samplePos += samplePos + Settings.Radius * position;
+        samplePos = samplePos * Settings.Radius + position;
 
-        float4 offset = float4(samplePos, 1.0);
-        offset = mul(offset, Camera.Projection);
-        offset.xyz /= offset.w;
+        float3 sampleDir = normalize(samplePos - position);
+        float nDotS = max(dot(normal, sampleDir), 0);
+
+        // Create new sample point
+        float4 offset = mul(float4(samplePos, 1.0), Camera.Projection);
+        offset.xy /= offset.w;
 
         // Get sample depth
-        float sampleDepth = Depth.Sample(PointClamp, offset.xy).r;
-        sampleDepth = ComputePositionViewFromZ(offset.xy, sampleDepth).z;
+        float sampleDepth = Depth.Sample(PointClamp, float2(offset.x * 0.5 + 0.5, -offset.y * 0.5 + 0.5)).r;
+        sampleDepth = GetViewFromDepth(offset.xy, sampleDepth, Camera.Projection).z;
 
         // Range check & accumulate
         float rangeCheck = smoothstep(0.0, 1.0, Settings.Radius / abs(position.z - sampleDepth));
-        occlusion += (sampleDepth >= samplePos.z + Settings.Bias ? 1.0 : 0.0) * rangeCheck;
+        occlusion += rangeCheck * step(sampleDepth, samplePos.z) * nDotS;
     }
     occlusion = 1.0 - (occlusion / Settings.KernelSize);
     occlusion = pow(occlusion, Settings.Power);
