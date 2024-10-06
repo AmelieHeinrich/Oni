@@ -228,6 +228,12 @@ void CommandBuffer::ClearDepthTarget(Texture::Ptr depthTarget)
     _commandList->ClearDepthStencilView(depthTarget->_dsv.CPU, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
+void CommandBuffer::ClearUAV(Texture::Ptr texture, float r, float g, float b, float a, int subresource)
+{
+    float clearValues[4] = { r, g, b, a };
+    _commandList->ClearUnorderedAccessViewFloat(texture->_uavs[subresource].GPU, texture->_uavs[subresource].CPU, texture->_resource->Resource, clearValues, 0, nullptr);
+}
+
 void CommandBuffer::BindVertexBuffer(Buffer::Ptr buffer)
 {
     _commandList->IASetVertexBuffers(0, 1, &buffer->_VBV);

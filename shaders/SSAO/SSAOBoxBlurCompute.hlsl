@@ -19,11 +19,11 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     RWTexture2D<float> Output = ResourceDescriptorHeap[Settings.Output];
     
     float result = 0.0;
-    for (int x = -2; x < 2; x++) {
-        for (int y = -2; y < 2; y++) {
+    for (int x = -2; x <= 2; x++) {
+        for (int y = -2; y <= 2; y++) {
             float2 offset = ThreadID.xy + uint2(x, y);
             result += Output[offset];
         }
     }
-    Output[ThreadID.xy] = result / (4.0 * 4.0);
+    Output[ThreadID.xy] = result / (5.0 * 5.0);
 }

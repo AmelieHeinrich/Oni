@@ -29,11 +29,11 @@
 #include "renderer/techniques/debug_renderer.hpp"
 
 #define SCENE_BALLS 0
-#define SCENE_SPONZA 1
+#define SCENE_SPONZA 0
 #define SCENE_BISTRO 0
 #define SCENE_EMERALDSQUARE 0
 #define SCENE_SUNTEMPLE 0
-#define SCENE_SMALL 0
+#define SCENE_SMALL 1
 #define SCENE_TEXTURE_COMPRESSION_TEST 0
 #define SCENE_CUBE 0
 
@@ -447,7 +447,7 @@ void App::SetupScene()
     scifiHelmet.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)));
 
     Model suzanne = {};
-    suzanne.Load(_renderContext, "assets/models/lantern/Lantern.gltf");
+    suzanne.Load(_renderContext, "assets/models/suzanne/Suzanne.gltf");
     suzanne.ApplyTransform(glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f)));
 
     scene.Models.push_back(platform);

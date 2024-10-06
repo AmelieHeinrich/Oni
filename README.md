@@ -39,6 +39,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - Debug renderer (lines, motion vector visualizer)
 - PBR and emissive material workflow
 - Point, directional lights
+- Screen Space Ambient Occlusion
 
 ## Other features
 - UI powered by ImGui
@@ -48,7 +49,6 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 
 ## WIP
 
-- SSAO
 - Frustum culling and AABB viz
 - Cascaded shadow mapping
 

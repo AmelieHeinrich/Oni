@@ -48,9 +48,10 @@ private:
     Sampler::Ptr _pointClampSampler;
 
     // Settings
-    uint32_t _kernelSize = 64;
+    bool _enable = false;
+    uint32_t _kernelSize = 32;
     float _radius = 0.5;
     float _bias = 0.025;
     uint32_t _blurSize = 2;
-    uint32_t _power = 5;
+    uint32_t _power = 2;
 };

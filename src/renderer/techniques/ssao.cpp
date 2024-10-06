@@ -46,7 +46,7 @@ SSAO::SSAO(RenderContext::Ptr renderContext)
 
     std::vector<glm::vec4> noiseData;
     for (int i = 0; i < 16; i++) {
-        glm::vec3 noise(util::random_range(0.0, 1.0) * 2.0 - 1.0, util::random_range(0.0, 1.0) * 2.0 - 1.0, 0.0f);
+        glm::vec3 noise(util::random_range(0.0, 1.0), util::random_range(0.0, 1.0), 0.0f);
         noiseData.push_back(glm::vec4(noise, 1.0f));
     }
 
@@ -146,6 +146,7 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
         _power
     };
 
+    
     commandBuffer->BeginEvent("SSAO Generation");
     commandBuffer->ImageBarrierBatch({
         { _depth, TextureLayout::ShaderResource },
@@ -153,9 +154,14 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
         { _noise, TextureLayout::ShaderResource },
         { _ssao, TextureLayout::Storage }
     });
-    commandBuffer->BindComputePipeline(_ssaoPipeline.ComputePipeline);
-    commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
-    commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
+    commandBuffer->ClearUAV(_ssao, 1.0f, 1.0f, 1.0f, 1.0f);
+
+    if (_enable) {
+        commandBuffer->BindComputePipeline(_ssaoPipeline.ComputePipeline);
+        commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
+        commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
+    }
+    
     commandBuffer->ImageBarrierBatch({
         { _ssao, TextureLayout::Storage },
         { _depth, TextureLayout::Depth }
@@ -178,17 +184,19 @@ void SSAO::BlurPass(Scene& scene, uint32_t width, uint32_t height)
         glm::uvec2(0u)
     };
 
-    commandBuffer->BeginEvent("SSAO Blur");
-    commandBuffer->ImageBarrierBatch({
-        { _ssao, TextureLayout::Storage }
-    });
-    commandBuffer->BindComputePipeline(_ssaoBlur.ComputePipeline);
-    commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
-    commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
-    commandBuffer->ImageBarrierBatch({
-        { _ssao, TextureLayout::ShaderResource }
-    });
-    commandBuffer->EndEvent();
+    if (_enable) {
+        commandBuffer->BeginEvent("SSAO Blur");
+        commandBuffer->ImageBarrierBatch({
+            { _ssao, TextureLayout::Storage }
+        });
+        commandBuffer->BindComputePipeline(_ssaoBlur.ComputePipeline);
+        commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
+        commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
+        commandBuffer->ImageBarrierBatch({
+            { _ssao, TextureLayout::ShaderResource }
+        });
+        commandBuffer->EndEvent();
+    }
 }
 
 void SSAO::Resize(uint32_t width, uint32_t height)
@@ -199,8 +207,11 @@ void SSAO::Resize(uint32_t width, uint32_t height)
 void SSAO::OnUI()
 {
     if (ImGui::TreeNodeEx("SSAO", ImGuiTreeNodeFlags_Framed)) {
+        ImGui::Checkbox("Enable", &_enable);
         ImGui::SliderInt("Strength", reinterpret_cast<int*>(&_power), 0, 10);
-        ImGui::SliderInt("Kernel Size", reinterpret_cast<int*>(&_kernelSize), 0, 64);
+        ImGui::SliderInt("Samples", reinterpret_cast<int*>(&_kernelSize), 0, 64);
+        ImGui::SliderFloat("Radius", &_radius, 0.1, 1.0, "%.1f");
+        ImGui::SliderFloat("Bias", &_bias, 0.025, 0.1, "%.3f");
         ImGui::TreePop();
     }
 }

@@ -282,7 +282,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
         float3 specularIrradiance = Prefilter.SampleLevel(CubeSampler, Lr, roughness * maxReflectionLOD).rgb;
         float2 specularBRDF = BRDF.Sample(Sampler, float2(NdotV, roughness)).rg;
         float3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
-        indirectLighting = (diffuseIBL + specularIBL) * irradiance;
+        indirectLighting = ((diffuseIBL * ao * ssao) + specularIBL) * irradiance;
     }
 
     directLighting *= Settings.Direct;

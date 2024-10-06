@@ -77,9 +77,9 @@ private:
     float _emissiveStrength = 5.0f;
 
     float _directTerm = 1.0f;
-    float _indirectTerm = 0.1f;
+    float _indirectTerm = 0.4f;
 
-    int _mode = 5;
+    int _mode = 0;
     bool _visualizeShadow = false;
     bool _pbr = true;
     bool _ibl = true;
