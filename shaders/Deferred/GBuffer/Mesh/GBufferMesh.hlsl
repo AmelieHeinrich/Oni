@@ -13,18 +13,10 @@ struct Vertex
 
 struct Meshlet
 {
-    uint VertCount;
     uint VertOffset;
-    uint PrimCount;
     uint PrimOffset;
-};
-
-struct MeshletTriangle
-{
-    uint32_t V0;
-	uint32_t V1;
-	uint32_t V2;
-	uint32_t Pad;
+    uint VertCount;
+    uint PrimCount;
 };
 
 struct ModelMatrices
@@ -64,18 +56,10 @@ struct PushConstants
     uint DrawMeshlets;
     float EmissiveStrength;
     float2 Jitter;
+    float Pad;
 };
 
 ConstantBuffer<PushConstants> Constants : register(b0);
-
-uint GetVertexIndex(Meshlet m, uint localIndex)
-{
-    ByteAddressBuffer UniqueVertexIndices = ResourceDescriptorHeap[Constants.UniqueVertexIndices];
-
-    // -------- //
-    localIndex = m.VertOffset + localIndex;
-    return UniqueVertexIndices.Load(localIndex * 4);
-}
 
 VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
 {
@@ -103,24 +87,29 @@ void Main(
     uint GroupThreadID: SV_GroupThreadID,
     uint GroupID : SV_GroupID,
     out indices uint3 Triangles[124],
-    out vertices VertexOut Verts[64]
+    out vertices VertexOut Verts[48]
 )
 {
     StructuredBuffer<Meshlet> Meshlets = ResourceDescriptorHeap[Constants.Meshlets];
-    StructuredBuffer<MeshletTriangle> MeshletTriangles = ResourceDescriptorHeap[Constants.Triangles];
+    StructuredBuffer<uint32_t> Indices = ResourceDescriptorHeap[Constants.UniqueVertexIndices];
+    StructuredBuffer<uint32_t> MeshletTriangles = ResourceDescriptorHeap[Constants.Triangles];
 
     // -------- //
     Meshlet m = Meshlets[GroupID];
     SetMeshOutputCounts(m.VertCount, m.PrimCount);
 
     if (GroupThreadID < m.PrimCount) {
-        Triangles[GroupThreadID] = uint3(MeshletTriangles[m.PrimOffset + GroupThreadID].V0,
-                                         MeshletTriangles[m.PrimOffset + GroupThreadID].V1,
-                                         MeshletTriangles[m.PrimOffset + GroupThreadID].V2);
+        uint packed = MeshletTriangles[m.PrimOffset + GroupThreadID];
+        uint vIdx0 = (packed >>  0) & 0xFF;
+        uint vIdx1 = (packed >>  8) & 0xFF;
+        uint vIdx2 = (packed >> 16) & 0xFF;
+        Triangles[GroupThreadID] = uint3(vIdx0, vIdx1, vIdx2);
     }
 
     if (GroupThreadID < m.VertCount) {
-        uint VertexIndex = GetVertexIndex(m, GroupThreadID);
-        Verts[GroupThreadID] = GetVertexAttributes(GroupID, VertexIndex);
+        uint vertexIndex = m.VertOffset + GroupThreadID;
+        vertexIndex = Indices[vertexIndex];
+
+        Verts[GroupThreadID] = GetVertexAttributes(GroupThreadID, vertexIndex);
     }
 }

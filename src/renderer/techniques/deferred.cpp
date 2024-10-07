@@ -109,7 +109,7 @@ Deferred::Deferred(RenderContext::Ptr context)
 
         _gbufferPipelineMesh.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            15 * sizeof(uint32_t)
+            16 * sizeof(uint32_t)
         };
         _gbufferPipelineMesh.ReflectRootSignature(false);
         _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/Mesh/GBufferMesh.hlsl", "Main", ShaderType::Mesh);
@@ -260,8 +260,6 @@ void Deferred::GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t Sampler;
                     float EmissiveStrength;
                     glm::vec2 Jitter;
-
-                    glm::vec2 _Pad0 = glm::vec2(0.0f);
                 };
                 Data data;
                 data.ModelBuffer = primitive.ModelBuffer[frameIndex]->CBV();
@@ -371,15 +369,18 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t Indices;
                     uint32_t Meshlets;
                     uint32_t Triangles;
+
                     uint32_t Albedo;
                     uint32_t Normal;
                     uint32_t PBR;
                     uint32_t Emissive;
                     uint32_t AO;
                     uint32_t Sampler;
+                    
                     uint32_t DrawMeshlets;
                     float EmissiveStrenght;
                     glm::vec2 Jitter;
+                    float Pad;
                 };
                 Data data = {
                     primitive.ModelBuffer[frameIndex]->CBV(),
@@ -397,7 +398,8 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
 
                     _drawMeshlets,
                     _emissiveStrength,
-                    _currJitter
+                    _currJitter,
+                    0.0
                 };
                 if (!_jitter) {
                     data.Jitter = glm::vec2(0.0f);

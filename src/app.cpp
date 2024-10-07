@@ -37,12 +37,6 @@
 #define SCENE_TEXTURE_COMPRESSION_TEST 0
 #define SCENE_CUBE 0
 
-enum class SceneMode {
-    Bistro,
-    Sponza,
-    ThreeModels
-};
-
 constexpr int TEST_LIGHT_COUNT = 0;
 
 App::App()
@@ -476,7 +470,7 @@ void App::SetupScene()
 
 #if SCENE_TEXTURE_COMPRESSION_TEST
     Model scifiHelmet = {};
-    scifiHelmet.Load(_renderContext, "assets/models/scifi/SciFiHelmet.gltf");
+    scifiHelmet.Load(_renderContext, "assets/models/lantern/Lantern.gltf");
     
     scene.Models.push_back(scifiHelmet);
     scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));

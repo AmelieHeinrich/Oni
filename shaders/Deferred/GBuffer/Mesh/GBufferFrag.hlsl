@@ -35,15 +35,18 @@ struct SceneData
     uint UniqueVertexIndices;
     uint Meshlets;
     uint Triangles;
+
     uint AlbedoTexture;
     uint NormalTexture;
     uint PBRTexture;
     uint EmissiveTexture;
     uint AOTexture;
     uint Sampler;
+    
     uint DrawMeshlets;
     float EmissiveStrength;
     float2 Jitter;
+    float Pad;
 };
 
 ConstantBuffer<SceneData> Settings : register(b0);
