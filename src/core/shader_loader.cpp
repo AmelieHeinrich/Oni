@@ -104,6 +104,9 @@ ShaderType ShaderLoader::GetTypeFromPath(const std::string& path)
     if (path.find("Compute") != std::string::npos) {
         return ShaderType::Compute;
     }
+    if (path.find("Mesh") != std::string::npos) {
+        return ShaderType::Mesh;
+    }
     return ShaderType::None;
 }
 

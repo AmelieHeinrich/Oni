@@ -25,6 +25,9 @@ const char *GetProfileFromType(ShaderType type)
         case ShaderType::Compute: {
             return "cs_6_8";
         }
+        case ShaderType::Mesh: {
+            return "ms_6_8";
+        }
     }
     return "???";
 }

@@ -88,8 +88,8 @@ Deferred::Deferred(RenderContext::Ptr context)
             48
         };
         _gbufferPipeline.ReflectRootSignature(false);
-        _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferVert.hlsl", "Main", ShaderType::Vertex);
-        _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
+        _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/Classic/GBufferVert.hlsl", "Main", ShaderType::Vertex);
+        _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/Classic/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
         _gbufferPipeline.Build(context);
     }
     

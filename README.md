@@ -47,7 +47,10 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - Shader hot reloading and caching
 - In-engine BC7 texture compressor using custom texture format
 
-## WIP
+## WIP (GPU Driven and latest GPU tech)
+- Mesh shaders
+
+## WIP (Shading and Math)
 
 - Frustum culling and AABB viz
 - Cascaded shadow mapping

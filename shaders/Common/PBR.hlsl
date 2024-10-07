@@ -4,6 +4,8 @@
 // $Create Time: 2024-09-19 15:19:31
 //
 
+#include "shaders/Common/Math.hlsl"
+
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
 	float a = roughness * roughness;

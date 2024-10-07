@@ -33,7 +33,7 @@ struct SceneData
     // 36
     uint ModelBuffer;
     uint AlbedoTexture;
-    uint NormalTexture; 
+    uint NormalTexture;
     uint PBRTexture;
     uint EmissiveTexture;
     uint AOTexture;
