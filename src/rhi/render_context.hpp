@@ -20,6 +20,7 @@
 #include "rhi/command_buffer.hpp"
 #include "rhi/graphics_pipeline.hpp"
 #include "rhi/compute_pipeline.hpp"
+#include "rhi/mesh_pipeline.hpp"
 #include "rhi/uploader.hpp"
 #include "rhi/cube_map.hpp"
 
@@ -54,6 +55,7 @@ public:
     Buffer::Ptr CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback, const std::string& name = "Buffer");
     GraphicsPipeline::Ptr CreateGraphicsPipeline(GraphicsPipelineSpecs& specs);
     ComputePipeline::Ptr CreateComputePipeline(ShaderBytecode& shader, RootSignature::Ptr rootSignature = nullptr);
+    MeshPipeline::Ptr CreateMeshPipeline(GraphicsPipelineSpecs& specs);
     Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
     Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
     CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, int mips = 1, const std::string& name = "Cube Map");

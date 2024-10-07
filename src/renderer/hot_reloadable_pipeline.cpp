@@ -63,6 +63,18 @@ void HotReloadablePipeline::Build(RenderContext::Ptr context)
             GraphicsPipeline = context->CreateGraphicsPipeline(Specs);
             break;
         }
+        case PipelineType::Mesh: {
+            if (_reflectRootSignature) {
+                Logger::Error("Shader reflection for mesh shaders is currently unsupported!");
+            } else {
+                Signature = context->CreateRootSignature(SignatureInfo);
+            }
+            Specs.Bytecodes[ShaderType::Mesh] = GetBytecode(ShaderType::Mesh);
+            Specs.Bytecodes[ShaderType::Fragment] = GetBytecode(ShaderType::Fragment);
+            Specs.Signature = Signature;
+            MeshPipeline = context->CreateMeshPipeline(Specs);
+            break;
+        }
     }
 }
 
@@ -95,6 +107,18 @@ void HotReloadablePipeline::CheckForRebuild(RenderContext::Ptr context, const st
                     }
 
                     ComputePipeline.reset();
+                    Build(context);
+                    break;
+                }
+                case PipelineType::Mesh: {
+                    ShaderBytecode temp;
+                    if (!ShaderCompiler::CompileShader(watch.Path, watch.EntryPoint, shader.first, temp)) {
+                        return;
+                    } else {
+                        watch.Bytecode.bytecode = temp.bytecode;
+                    }
+
+                    MeshPipeline.reset();
                     Build(context);
                     break;
                 }

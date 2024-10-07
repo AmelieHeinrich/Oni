@@ -13,9 +13,10 @@ struct FragmentIn
     float4 Position : SV_POSITION;
     float4 PrevPosition : POSITION0;
     float4 CurrPosition : POSITION1;
-    float4 TexCoords : TEXCOORD;
-    float4 Normals: NORMAL;
+    float3 Normals: NORMAL;
     uint MeshletIndex : COLOR0;
+    float2 TexCoords : TEXCOORD;
+    float2 Pad : POSITION2;
 };
 
 struct FragmentOut
@@ -30,14 +31,10 @@ struct FragmentOut
 struct SceneData
 {
     uint Matrices;
-    uint Mesh;
     uint Vertices;
-    uint Meshlets;
     uint UniqueVertexIndices;
-    uint PrimitiveIndices;
-    uint IndexBytes;
-    uint MeshletOffset;
-
+    uint Meshlets;
+    uint Triangles;
     uint AlbedoTexture;
     uint NormalTexture;
     uint PBRTexture;
@@ -46,7 +43,6 @@ struct SceneData
     uint Sampler;
     uint DrawMeshlets;
     float EmissiveStrength;
-
     float2 Jitter;
 };
 
@@ -128,7 +124,7 @@ FragmentOut Main(FragmentIn Input)
     positionDifference *= float2(-1.0f, 1.0f);
 
     output.Normals = float4(GetNormalFromMap(Input), 1.0f);
-    if (Settings.DrawMeshlets) {
+    if (Settings.DrawMeshlets == 1) {
         uint meshletHash = hash(Input.MeshletIndex);
         float3 meshletColor = float3(float(meshletHash & 255), float((meshletHash >> 8) & 255), float((meshletHash >> 16) & 255)) / 255.0;
         output.AlbedoEmissive = float4(meshletColor, 1.0f);

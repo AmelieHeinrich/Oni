@@ -30,6 +30,7 @@ public:
 
     void BuildConstantBuffer();
     void BuildStorage();
+    void BuildShaderResource();
 
     void Map(int start, int end, void **data);
     void Unmap(int start, int end);
@@ -38,9 +39,7 @@ public:
 
     uint32_t CBV() { return _cbv.HeapIndex; }
     uint32_t UAV() { return _uav.HeapIndex; }
-
-    // TODO: SRVs for StructuredBuffer (used in raytracing and a bunch of other stuff iirc)
-    // uint32_t SRV() { return _cbv.HeapIndex; }
+    uint32_t SRV() { return _srv.HeapIndex; }
 private:
     friend class CommandBuffer;
 
@@ -49,9 +48,11 @@ private:
 
     BufferType _type;
     uint64_t _size;
+    uint64_t _stride;
 
     DescriptorHeap::Descriptor _cbv;
     DescriptorHeap::Descriptor _uav;
+    DescriptorHeap::Descriptor _srv;
 
     GPUResource *_resource = nullptr;
     D3D12_RESOURCE_STATES _state;

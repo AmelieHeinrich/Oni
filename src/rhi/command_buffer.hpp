@@ -17,6 +17,7 @@
 #include "descriptor_heap.hpp"
 #include "graphics_pipeline.hpp"
 #include "compute_pipeline.hpp"
+#include "mesh_pipeline.hpp"
 
 #define SUBRESOURCE_ALL 999
 
@@ -71,6 +72,7 @@ public:
     void BindVertexBuffer(Buffer::Ptr buffer);
     void BindIndexBuffer(Buffer::Ptr buffer);
 
+    void BindMeshPipeline(MeshPipeline::Ptr pipeline);
     void BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline);
     void BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index);
     void BindGraphicsShaderResource(Texture::Ptr texture, int index);
@@ -92,6 +94,7 @@ public:
     void Draw(int vertexCount);
     void DrawIndexed(int indexCount);
     void Dispatch(int x, int y, int z);
+    void DispatchMesh(int x, int y, int z);
 
     void CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src);
     void CopyBufferToBuffer(Buffer::Ptr dst, Buffer::Ptr src);
@@ -111,6 +114,6 @@ private:
     Device::Ptr _device;
     DescriptorHeap::Heaps _heaps;
     D3D12_COMMAND_LIST_TYPE _type;
-    ID3D12GraphicsCommandList* _commandList; // TODO(ahi): Switch to newer version of command list to get access to DXR, Mesh shaders and Work Graphs
+    ID3D12GraphicsCommandList6* _commandList; // TODO(ahi): Switch to newer version of command list to get access to DXR, Mesh shaders and Work Graphs
     ID3D12CommandAllocator* _commandAllocator;
 };

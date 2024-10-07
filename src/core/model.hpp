@@ -12,6 +12,9 @@
 
 #include "rhi/render_context.hpp"
 
+#define MAX_MESHLET_TRIANGLES 124
+#define MAX_MESHLET_VERTICES 64
+
 struct AABB
 {
     glm::vec3 Min;
@@ -21,7 +24,7 @@ struct AABB
     glm::vec3 Extent;
 };
 
-struct Vertex
+struct __declspec(align(16)) Vertex
 {
     glm::vec3 Position;
     glm::vec2 UV;
@@ -51,19 +54,40 @@ struct Material
     glm::vec3 FlatColor;
 };
 
+struct __declspec(align(16)) MeshletTriangle
+{
+    uint32_t V0;
+	uint32_t V1;
+	uint32_t V2;
+	uint32_t Pad;
+};
+
+struct Meshlet
+{
+    uint32_t VertCount;
+    uint32_t VertOffset;
+    uint32_t PrimCount;
+    uint32_t PrimOffset;
+};
+
 struct Primitive
 {
     Buffer::Ptr VertexBuffer;
     Buffer::Ptr IndexBuffer;
-    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> ModelBuffer;
+    Buffer::Ptr MeshletBuffer;
+    Buffer::Ptr MeshletTriangles;
 
     uint32_t VertexCount;
     uint32_t IndexCount;
-    uint32_t MaterialIndex;
+    uint32_t MeshletCount;
+
+    std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> ModelBuffer;
 
     glm::mat4 PrevTransform;
     glm::mat4 Transform;
     std::string Name;
+
+    uint32_t MaterialIndex;
 
     AABB BoundingBox;
 };
@@ -77,6 +101,7 @@ public:
 
     uint32_t VertexCount;
     uint32_t IndexCount;
+    uint32_t MeshletCount;
 
     std::string Directory;
     std::string Name;

@@ -8,6 +8,8 @@
 
 #include "graphics_pipeline.hpp"
 
+#include <d3dx12/d3dx12.h>
+
 class MeshPipeline
 {
 public:

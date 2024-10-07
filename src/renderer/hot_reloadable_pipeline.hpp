@@ -10,6 +10,7 @@
 #include "rhi/render_context.hpp"
 #include "rhi/graphics_pipeline.hpp"
 #include "rhi/compute_pipeline.hpp"
+#include "rhi/mesh_pipeline.hpp"
 
 #include <unordered_map>
 
@@ -17,6 +18,7 @@ enum class PipelineType
 {
     Graphics,
     Compute,
+    Mesh
     // Raytracing
     // Mesh
     // Graph Node
@@ -43,8 +45,9 @@ public:
 
     GraphicsPipeline::Ptr GraphicsPipeline;
     ComputePipeline::Ptr ComputePipeline;
-    RootSignature::Ptr Signature;
+    MeshPipeline::Ptr MeshPipeline;
 
+    RootSignature::Ptr Signature;
 private:
     PipelineType _type;
     bool _reflectRootSignature = true;

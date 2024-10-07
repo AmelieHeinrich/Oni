@@ -19,6 +19,14 @@ struct Meshlet
     uint PrimOffset;
 };
 
+struct MeshletTriangle
+{
+    uint32_t V0;
+	uint32_t V1;
+	uint32_t V2;
+	uint32_t Pad;
+};
+
 struct ModelMatrices
 {
     column_major float4x4 CameraMatrix;
@@ -32,21 +40,19 @@ struct VertexOut
     float4 Position : SV_POSITION;
     float4 PrevPosition : POSITION0;
     float4 CurrPosition : POSITION1;
-    float4 TexCoords : TEXCOORD;
-    float4 Normals: NORMAL;
+    float3 Normals: NORMAL;
     uint MeshletIndex : COLOR0;
+    float2 TexCoords : TEXCOORD;
+    float2 Pad : POSITION2;
 };
 
 struct PushConstants
 {
     uint Matrices;
-    uint Mesh;
     uint Vertices;
-    uint Meshlets;
     uint UniqueVertexIndices;
-    uint PrimitiveIndices;
-    uint IndexBytes;
-    uint MeshletOffset;
+    uint Meshlets;
+    uint Triangles;
 
     uint AlbedoTexture;
     uint NormalTexture;
@@ -54,25 +60,13 @@ struct PushConstants
     uint EmissiveTexture;
     uint AOTexture;
     uint Sampler;
+    
     uint DrawMeshlets;
     float EmissiveStrength;
-
     float2 Jitter;
 };
 
 ConstantBuffer<PushConstants> Constants : register(b0);
-
-uint3 UnpackPrimitive(uint primitive)
-{
-    return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
-}
-
-uint3 GetPrimitive(Meshlet m, uint index)
-{
-    StructuredBuffer<uint> PrimitiveIndices = ResourceDescriptorHeap[Constants.PrimitiveIndices];
-    // -------- //
-    return UnpackPrimitive(PrimitiveIndices[m.PrimOffset + index]);
-}
 
 uint GetVertexIndex(Meshlet m, uint localIndex)
 {
@@ -80,22 +74,7 @@ uint GetVertexIndex(Meshlet m, uint localIndex)
 
     // -------- //
     localIndex = m.VertOffset + localIndex;
-
-    if (Constants.IndexBytes == 4) {
-        return UniqueVertexIndices.Load(localIndex * 4);
-    }
-    else // 16-bit Vertex Indices
-    {
-        // Byte address must be 4-byte aligned.
-        uint wordOffset = (localIndex & 0x1);
-        uint byteOffset = (localIndex / 2) * 4;
-
-        // Grab the pair of 16-bit indices, shift & mask off proper 16-bits.
-        uint indexPair = UniqueVertexIndices.Load(byteOffset);
-        uint index = (indexPair >> (wordOffset * 16)) & 0xffff;
-
-        return index;
-    }
+    return UniqueVertexIndices.Load(localIndex * 4);
 }
 
 VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
@@ -111,8 +90,8 @@ VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
     Output.Position = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos) + float4(Constants.Jitter, 0.0, 0.0);
     Output.PrevPosition = mul(mul(Matrices.PrevCameraMatrix, Matrices.PrevTransform), pos);
     Output.CurrPosition = mul(mul(Matrices.CameraMatrix, Matrices.Transform), pos);
-    Output.TexCoords = float4(v.TexCoords, 0.0, 0.0);
-    Output.Normals = normalize(float4(mul(Matrices.Transform, float4(v.Normals, 1.0))));
+    Output.TexCoords = v.TexCoords;
+    Output.Normals = normalize(float4(mul(Matrices.Transform, float4(v.Normals, 1.0)))).xyz;
     Output.MeshletIndex = meshletIndex;
 
     return Output;
@@ -123,18 +102,21 @@ VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
 void Main(
     uint GroupThreadID: SV_GroupThreadID,
     uint GroupID : SV_GroupID,
-    out indices uint3 Triangles[126],
+    out indices uint3 Triangles[124],
     out vertices VertexOut Verts[64]
 )
 {
     StructuredBuffer<Meshlet> Meshlets = ResourceDescriptorHeap[Constants.Meshlets];
+    StructuredBuffer<MeshletTriangle> MeshletTriangles = ResourceDescriptorHeap[Constants.Triangles];
 
     // -------- //
-    Meshlet m = Meshlets[Constants.MeshletOffset + GroupID];
+    Meshlet m = Meshlets[GroupID];
     SetMeshOutputCounts(m.VertCount, m.PrimCount);
 
     if (GroupThreadID < m.PrimCount) {
-        Triangles[GroupThreadID] = GetPrimitive(m, GroupThreadID);
+        Triangles[GroupThreadID] = uint3(MeshletTriangles[m.PrimOffset + GroupThreadID].V0,
+                                         MeshletTriangles[m.PrimOffset + GroupThreadID].V1,
+                                         MeshletTriangles[m.PrimOffset + GroupThreadID].V2);
     }
 
     if (GroupThreadID < m.VertCount) {

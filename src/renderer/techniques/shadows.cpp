@@ -92,7 +92,6 @@ void Shadows::OnUI()
 {
     if (ImGui::TreeNodeEx("Shadows", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Render Shadows", &_renderShadows);
-        ImGui::Image((ImTextureID)_shadowMap->GetImGuiImage().ptr, ImVec2(256, 256));
         ImGui::TreePop();
     }
 }

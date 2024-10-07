@@ -36,7 +36,10 @@ public:
     Texture::Ptr GetVelocityBuffer() { return _velocityBuffer; }
     Texture::Ptr GetEmissiveBuffer() { return _emissive; }
 
-    void GBufferPass(Scene& scene, uint32_t width, uint32_t height);
+    bool UseMeshShaders() { return _useMesh; }
+
+    void GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height);
+    void GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height);
     void LightingPass(Scene& scene, uint32_t width, uint32_t height);
 private:
     RenderContext::Ptr _context;
@@ -58,6 +61,7 @@ private:
     Texture::Ptr _ssao;
 
     HotReloadablePipeline _gbufferPipeline;
+    HotReloadablePipeline _gbufferPipelineMesh;
     HotReloadablePipeline _lightingPipeline;
 
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _sceneBufferLight;
@@ -74,17 +78,19 @@ private:
     glm::vec2 _prevJitter;
     int _jitterCounter = 0;
     bool _jitter = true;
-    float _emissiveStrength = 5.0f;
 
-    float _directTerm = 1.0f;
-    float _indirectTerm = 0.4f;
+    bool _draw = true;
+    bool _useMesh = true;
+    bool _drawMeshlets = false;
 
     int _mode = 0;
     bool _visualizeShadow = false;
     bool _pbr = true;
+    float _directTerm = 1.0f;
+    float _indirectTerm = 0.4f;
+    float _emissiveStrength = 5.0f;
     bool _ibl = true;
-    bool _draw = true;
 
-    int _totalMeshes;
-    int _culledMeshes;
+    int _totalMeshes = 0;
+    int _culledMeshes = 0;
 };

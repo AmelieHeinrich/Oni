@@ -51,9 +51,10 @@ SSAO::SSAO(RenderContext::Ptr renderContext)
     }
 
     // Create textures and buffer
-    _ssao = _context->CreateTexture(width, height, TextureFormat::R32Float, TextureUsage::Storage, false, "[SSAO] SSAO Texture");
+    _ssao = _context->CreateTexture(width, height, TextureFormat::R32Float, TextureUsage::RenderTarget, false, "[SSAO] SSAO Texture");
     _ssao->BuildStorage();
     _ssao->BuildShaderResource();
+    _ssao->BuildRenderTarget();
 
     _noise = _context->CreateTexture(4, 4, TextureFormat::RGBA32Float, TextureUsage::ShaderResource, false, "[SSAO] Noise Texture");
     _noise->BuildShaderResource();
@@ -147,6 +148,18 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
     };
 
     
+    // Clear SSAO
+    commandBuffer->BeginEvent("SSAO Clear");
+    commandBuffer->ImageBarrierBatch({
+        { _ssao, TextureLayout::RenderTarget }
+    });
+    commandBuffer->ClearRenderTarget(_ssao, 1.0f, 1.0f, 1.0f, 1.0f);
+    commandBuffer->ImageBarrierBatch({
+        { _ssao, TextureLayout::Storage }
+    });
+    commandBuffer->EndEvent();
+
+    // SSAO Gen
     commandBuffer->BeginEvent("SSAO Generation");
     commandBuffer->ImageBarrierBatch({
         { _depth, TextureLayout::ShaderResource },
@@ -154,14 +167,11 @@ void SSAO::SSAOPass(Scene& scene, uint32_t width, uint32_t height)
         { _noise, TextureLayout::ShaderResource },
         { _ssao, TextureLayout::Storage }
     });
-    commandBuffer->ClearUAV(_ssao, 1.0f, 1.0f, 1.0f, 1.0f);
-
     if (_enable) {
         commandBuffer->BindComputePipeline(_ssaoPipeline.ComputePipeline);
         commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
         commandBuffer->Dispatch(std::ceil(width / 8), std::ceil(height / 8), 1);
     }
-    
     commandBuffer->ImageBarrierBatch({
         { _ssao, TextureLayout::Storage },
         { _depth, TextureLayout::Depth }

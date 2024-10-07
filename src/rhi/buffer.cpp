@@ -8,7 +8,7 @@
 #include <core/log.hpp>
 
 Buffer::Buffer(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, uint64_t size, uint64_t stride, BufferType type, bool readback, const std::string& name)
-    : _size(size), _heaps(heaps), _devicePtr(devicePtr)
+    : _size(size), _heaps(heaps), _devicePtr(devicePtr), _stride(stride)
 {
     D3D12MA::ALLOCATION_DESC AllocationDesc = {};
     AllocationDesc.HeapType = readback == true ? D3D12_HEAP_TYPE_READBACK : ((type == BufferType::Constant || type == BufferType::Copy) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT);
@@ -57,8 +57,11 @@ Buffer::~Buffer()
     if (_cbv.Valid) {
         _heaps.ShaderHeap->Free(_cbv);
     }
-    if (_cbv.Valid) {
+    if (_uav.Valid) {
         _heaps.ShaderHeap->Free(_uav);
+    }
+    if (_srv.Valid) {
+        _heaps.ShaderHeap->Free(_srv);
     }
     _resource->Resource->Release();
     _resource->Allocation->Release();
@@ -87,6 +90,22 @@ void Buffer::BuildStorage()
     if (_uav.Valid == false)
         _uav = _heaps.ShaderHeap->Allocate();
     _devicePtr->GetDevice()->CreateUnorderedAccessView(_resource->Resource, nullptr, &_UAVD, _uav.CPU);
+}
+
+void Buffer::BuildShaderResource()
+{
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+    srv.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_BUFFER;
+    srv.Format = DXGI_FORMAT_UNKNOWN;
+    srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+    srv.Buffer.FirstElement = 0;
+    srv.Buffer.NumElements = _size / _stride;
+    srv.Buffer.StructureByteStride = _stride;
+    if (_srv.Valid == false)
+        _srv = _heaps.ShaderHeap->Allocate();
+
+    _devicePtr->GetDevice()->CreateShaderResourceView(_resource->Resource, &srv, _srv.CPU);
 }
 
 void Buffer::Map(int start, int end, void **data)

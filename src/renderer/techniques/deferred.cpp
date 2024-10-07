@@ -9,7 +9,7 @@
 #include "core/log.hpp"
 
 Deferred::Deferred(RenderContext::Ptr context)
-    : _context(context), _gbufferPipeline(PipelineType::Graphics), _lightingPipeline(PipelineType::Compute)
+    : _context(context), _gbufferPipeline(PipelineType::Graphics), _gbufferPipelineMesh(PipelineType::Mesh), _lightingPipeline(PipelineType::Compute)
 {
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
@@ -92,6 +92,30 @@ Deferred::Deferred(RenderContext::Ptr context)
         _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/Classic/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
         _gbufferPipeline.Build(context);
     }
+
+    {
+        _gbufferPipelineMesh.Specs.FormatCount = 5;
+        _gbufferPipelineMesh.Specs.Formats[0] = TextureFormat::RGBA16Float;
+        _gbufferPipelineMesh.Specs.Formats[1] = TextureFormat::RGBA8;
+        _gbufferPipelineMesh.Specs.Formats[2] = TextureFormat::RGBA8;
+        _gbufferPipelineMesh.Specs.Formats[3] = TextureFormat::RGBA16Float;
+        _gbufferPipelineMesh.Specs.Formats[4] = TextureFormat::RG16Float;
+        _gbufferPipelineMesh.Specs.DepthFormat = TextureFormat::R32Depth;
+        _gbufferPipelineMesh.Specs.Depth = DepthOperation::Less;
+        _gbufferPipelineMesh.Specs.DepthEnabled = true;
+        _gbufferPipelineMesh.Specs.Cull = CullMode::Front;
+        _gbufferPipelineMesh.Specs.Fill = FillMode::Solid;
+        _gbufferPipelineMesh.Specs.CCW = false;
+
+        _gbufferPipelineMesh.SignatureInfo = {
+            { RootSignatureEntry::PushConstants },
+            15 * sizeof(uint32_t)
+        };
+        _gbufferPipelineMesh.ReflectRootSignature(false);
+        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/Mesh/GBufferMesh.hlsl", "Main", ShaderType::Mesh);
+        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/Mesh/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
+        _gbufferPipelineMesh.Build(context);
+    }
     
     {
         _lightingPipeline.SignatureInfo = {
@@ -149,7 +173,7 @@ Deferred::~Deferred()
 
 }
 
-void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
+void Deferred::GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
     uint32_t frameIndex = _context->GetBackBufferIndex();
@@ -270,6 +294,130 @@ void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->EndEvent();
 }
 
+void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
+{
+    CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
+    uint32_t frameIndex = _context->GetBackBufferIndex();
+    
+    OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
+    OPTICK_GPU_EVENT("Construct GBuffer");
+
+    // Construct matrices
+    glm::mat4 depthProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 0.05f, 50.0f);
+    glm::mat4 depthView = glm::lookAt(scene.Lights.SunTransform.Position, scene.Lights.SunTransform.Position - scene.Lights.SunTransform.GetFrontVector(), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    // Apply jitter
+    _currJitter = _haltonSequence[_jitterCounter];
+    _jitterCounter = (_jitterCounter + 1) % (_haltonSequence.size());
+
+    // Start
+    commandBuffer->BeginEvent("GBuffer");
+    commandBuffer->ImageBarrierBatch({
+        { _depthBuffer, TextureLayout::Depth },
+        { _normals, TextureLayout::RenderTarget },
+        { _albedoEmission, TextureLayout::RenderTarget },
+        { _pbrData, TextureLayout::RenderTarget },
+        { _emissive, TextureLayout::RenderTarget },
+        { _velocityBuffer, TextureLayout::RenderTarget }
+    });
+    commandBuffer->ClearDepthTarget(_depthBuffer);
+    commandBuffer->ClearRenderTarget(_normals, 0.0f, 0.0f, 0.0f, 1.0f);
+    commandBuffer->ClearRenderTarget(_albedoEmission, 0.0f, 0.0f, 0.0f, 1.0f);
+    commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);
+    commandBuffer->ClearRenderTarget(_emissive, 0.0f, 0.0f, 0.0f, 1.0f);
+    commandBuffer->ClearRenderTarget(_velocityBuffer, 0.0f, 0.0f, 0.0f, 1.0f);
+    if (_draw) { 
+        commandBuffer->SetViewport(0, 0, width, height);
+        commandBuffer->SetTopology(Topology::TriangleList);
+        commandBuffer->BindRenderTargets({ _normals, _albedoEmission, _pbrData, _emissive, _velocityBuffer }, _depthBuffer);
+        commandBuffer->BindMeshPipeline(_gbufferPipelineMesh.MeshPipeline);
+
+        for (auto model : scene.Models) {
+            _totalMeshes += model.Primitives.size();
+            for (auto primitive : model.Primitives) {
+                auto material = model.Materials[primitive.MaterialIndex];
+
+                Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
+                Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
+                Texture::Ptr pbr = material.HasMetallicRoughness ? material.PBRTexture : _blackTexture;
+                Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _blackTexture;
+                Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
+
+                struct ModelUpload {
+                    glm::mat4 CameraMatrix;
+                    glm::mat4 PrevCameraMatrix;
+                    glm::mat4 Transform;
+                    glm::mat4 PrevTransform;
+                };
+                ModelUpload matrices = {
+                    scene.Camera.Projection() * scene.Camera.View(),
+                    scene.PrevViewProj,
+                    primitive.Transform,
+                    primitive.PrevTransform
+                };
+                if (_visualizeShadow) {
+                    matrices.CameraMatrix = depthProjection * depthView;
+                    matrices.PrevCameraMatrix = depthProjection * depthView;
+                }
+
+                void *pData;
+                primitive.ModelBuffer[frameIndex]->Map(0, 0, &pData);
+                memcpy(pData, &matrices, sizeof(matrices));
+                primitive.ModelBuffer[frameIndex]->Unmap(0, 0);
+
+                struct Data {
+                    uint32_t Matrices;
+                    uint32_t Vertices;
+                    uint32_t Indices;
+                    uint32_t Meshlets;
+                    uint32_t Triangles;
+                    uint32_t Albedo;
+                    uint32_t Normal;
+                    uint32_t PBR;
+                    uint32_t Emissive;
+                    uint32_t AO;
+                    uint32_t Sampler;
+                    uint32_t DrawMeshlets;
+                    float EmissiveStrenght;
+                    glm::vec2 Jitter;
+                };
+                Data data = {
+                    primitive.ModelBuffer[frameIndex]->CBV(),
+                    primitive.VertexBuffer->SRV(),
+                    primitive.IndexBuffer->SRV(),
+                    primitive.MeshletBuffer->SRV(),
+                    primitive.MeshletTriangles->SRV(),
+                    
+                    albedo->SRV(),
+                    normal->SRV(),
+                    pbr->SRV(),
+                    emissive->SRV(),
+                    ao->SRV(),
+                    _sampler->BindlesssSampler(),
+
+                    _drawMeshlets,
+                    _emissiveStrength,
+                    _currJitter
+                };
+                if (!_jitter) {
+                    data.Jitter = glm::vec2(0.0f);
+                }
+
+                commandBuffer->PushConstantsGraphics(&data, sizeof(data), 0);
+                commandBuffer->DispatchMesh(primitive.MeshletCount, 1, 1);
+            }
+        }
+    }
+    commandBuffer->ImageBarrierBatch({
+        { _normals, TextureLayout::ShaderResource },
+        { _albedoEmission, TextureLayout::ShaderResource },
+        { _pbrData, TextureLayout::ShaderResource },
+        { _emissive, TextureLayout::ShaderResource },
+        { _velocityBuffer, TextureLayout::ShaderResource }
+    });
+    commandBuffer->EndEvent();
+}
+
 void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
@@ -372,7 +520,11 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
 
 void Deferred::Render(Scene& scene, uint32_t width, uint32_t height)
 {
-    GBufferPass(scene, width, height);
+    if (_useMesh) {
+        GBufferPassClassic(scene, width, height);
+    } else {
+        GBufferPassMesh(scene, width, height);
+    }
     LightingPass(scene, width, height);
 }
 
@@ -407,26 +559,30 @@ void Deferred::Resize(uint32_t width, uint32_t height)
 
 void Deferred::OnUI()
 {
-    if (ImGui::TreeNodeEx("Deferred", ImGuiTreeNodeFlags_Framed)) {
-        ImGui::Text("Total Meshes: %d", _totalMeshes);
-        ImGui::Text("Culled Meshes: %d", _culledMeshes);
+    if (ImGui::TreeNodeEx("Deferred", ImGuiTreeNodeFlags_Framed)) {        
+        if (ImGui::TreeNodeEx("Geometry", ImGuiTreeNodeFlags_Framed)) {
+            ImGui::Text("Total Meshes: %d", _totalMeshes);
+            ImGui::Text("Culled Meshes: %d", _culledMeshes);
 
-        ImGui::Separator();
+            // TODO: Freeze frustum
+            ImGui::Checkbox("Use Mesh Shaders", &_useMesh);
+            ImGui::Checkbox("Show Meshlets", &_drawMeshlets);
+
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("Shading", ImGuiTreeNodeFlags_Framed)) {
+            ImGui::Checkbox("Visualize Shadows", &_visualizeShadow);
+
+            ImGui::SliderFloat("Direct Light Term", &_directTerm, 0.0f, 2.0f, "%.1f");
+            ImGui::SliderFloat("Indirect Light Term", &_indirectTerm, 0.0f, 2.0f, "%.1f");
+            ImGui::SliderFloat("Emission Strength", &_emissiveStrength, 0.1f, 10.0f, "%.1f");
         
-        ImGui::Checkbox("Draw Geometry", &_draw);
-        ImGui::Checkbox("Enable IBL", &_ibl);
-        ImGui::Checkbox("Visualize Shadows", &_visualizeShadow);
+            static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "Baked AO", "SSAO", "Emissive", "Direct", "Indirect", "Position", "Velocity" };
+            ImGui::Combo("Mode", (int*)&_mode, Modes, 11, 11);
 
-        ImGui::Separator();
-
-        ImGui::SliderFloat("Direct Light Term", &_directTerm, 0.0f, 2.0f, "%.1f");
-        ImGui::SliderFloat("Indirect Light Term", &_indirectTerm, 0.0f, 2.0f, "%.1f");
-        ImGui::SliderFloat("Emission Strength", &_emissiveStrength, 0.1f, 10.0f, "%.1f");
-
-        ImGui::Separator();
-
-        static const char* Modes[] = { "Default", "Albedo", "Normal", "Metallic Roughness", "Baked AO", "SSAO", "Emissive", "Direct", "Indirect", "Position", "Velocity" };
-        ImGui::Combo("Mode", (int*)&_mode, Modes, 11, 11);
+            ImGui::TreePop();
+        }
 
         ImGui::TreePop();
     }
@@ -437,7 +593,8 @@ void Deferred::OnUI()
 
 void Deferred::Reconstruct()
 {
-    _gbufferPipeline.CheckForRebuild(_context, "GBuffer");
+    _gbufferPipeline.CheckForRebuild(_context, "GBuffer Classic");
+    _gbufferPipelineMesh.CheckForRebuild(_context, "GBuffer Mesh");
     _lightingPipeline.CheckForRebuild(_context, "Deferred");
 }
 

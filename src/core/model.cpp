@@ -13,11 +13,14 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <meshopt/meshoptimizer.h>
+
 #undef min
 #undef max
 
 void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform, std::string name)
 {
+    // Start
     if (primitive->type != cgltf_primitive_type_triangles) {
         Logger::Warn("[CGLTF] GLTF primitive isn't a triangle list, discarding.");
         return;
@@ -31,7 +34,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
         out.Name = name;
     }
 
-    // Geometry
+    // Get attributes
     cgltf_attribute* pos_attribute = nullptr;
     cgltf_attribute* uv_attribute = nullptr;
     cgltf_attribute* norm_attribute = nullptr;
@@ -52,6 +55,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
         return;
     }
 
+    // Load vertices
     int vertexCount = pos_attribute->data->count;
     int indexCount = primitive->indices->count;
 
@@ -92,9 +96,86 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.BoundingBox.Center = (out.BoundingBox.Min + out.BoundingBox.Max) / glm::vec3(2);
     out.BoundingBox.Extent = (out.BoundingBox.Max - out.BoundingBox.Min);
 
-    out.VertexBuffer = context->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
-    out.IndexBuffer = context->CreateBuffer(out.IndexCount * sizeof(uint32_t), 0, BufferType::Index, false, "Index Buffer");
+    // Optimization
+    meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
+    meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), &vertices[0].Position.x, vertices.size(), sizeof(Vertex), 1.05f);
+
+    // Generate meshlets
+    std::vector<Meshlet> meshlets;
+    std::vector<uint32_t> meshletVertices;
+    std::vector<MeshletTriangle> meshletTriangles;
+
+    const size_t maxVertices = MAX_MESHLET_VERTICES;
+    const size_t maxTriangles = MAX_MESHLET_TRIANGLES;
+    const size_t maxMeshlets = meshopt_buildMeshletsBound(indices.size(), maxVertices, maxTriangles);
+
+    meshlets.resize(maxMeshlets);
+    meshletVertices.resize(maxMeshlets * maxVertices);
+    std::vector<unsigned char> tempTris(maxMeshlets * maxTriangles * 3);
+    std::vector<meshopt_Meshlet> tempMeshlets(maxMeshlets);
+
+    size_t meshlet_count = meshopt_buildMeshlets(tempMeshlets.data(),
+                                                 meshletVertices.data(),
+                                                 tempTris.data(),
+                                                 indices.data(),
+                                                 indices.size(),
+                                                 &vertices[0].Position.x,
+                                                 vertices.size(),
+                                                 sizeof(Vertex),
+                                                 maxVertices,
+                                                 maxTriangles,
+                                                 0);
+
+    // Trimming meshlets
+    const meshopt_Meshlet& last = tempMeshlets[meshlet_count - 1];
+	tempTris.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
+	tempMeshlets.resize(meshlet_count);
+
+    meshlets.resize(meshlet_count);
+    meshletVertices.resize(last.vertex_offset + last.vertex_count);
+	meshletTriangles.resize(tempTris.size() / 3);
+
+    uint32_t triangleOffset = 0;
+    for (size_t i = 0; i < meshlet_count; ++i) {
+        const meshopt_Meshlet& meshlet = tempMeshlets[i];
     
+        // TODO: Generate bounding box and sphere
+
+        unsigned char* pSourceTriangles = tempTris.data() + meshlet.triangle_offset;
+        meshopt_optimizeMeshlet(&meshletVertices[meshlet.vertex_offset], pSourceTriangles, meshlet.triangle_count, meshlet.vertex_count);
+
+        for (uint32_t triIdx = 0; triIdx < meshlet.triangle_count; ++triIdx) {
+			MeshletTriangle& tri = meshletTriangles[triIdx + triangleOffset];
+			tri.V0 = *pSourceTriangles++;
+			tri.V1 = *pSourceTriangles++;
+			tri.V2 = *pSourceTriangles++;
+		}
+
+		Meshlet& outMeshlet = meshlets[i];
+		outMeshlet.PrimCount = meshlet.triangle_count;
+		outMeshlet.PrimOffset = triangleOffset;
+		outMeshlet.VertCount = meshlet.vertex_count;
+		outMeshlet.VertOffset = meshlet.vertex_offset;
+		triangleOffset += meshlet.triangle_count;
+    }
+    meshletTriangles.resize(triangleOffset);
+    
+    out.MeshletCount = meshlet_count;
+
+    // GPU UPLOADING
+
+    out.VertexBuffer = context->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
+    out.VertexBuffer->BuildShaderResource();
+
+    out.IndexBuffer = context->CreateBuffer(out.IndexCount * sizeof(uint32_t), sizeof(uint32_t), BufferType::Index, false, "Index Buffer");
+    out.IndexBuffer->BuildShaderResource();
+
+    out.MeshletBuffer = context->CreateBuffer(out.MeshletCount * sizeof(Meshlet), sizeof(Meshlet), BufferType::Storage, false, "Meshlet Buffer");
+    out.MeshletBuffer->BuildShaderResource();
+
+    out.MeshletTriangles = context->CreateBuffer(meshletTriangles.size() * sizeof(MeshletTriangle), sizeof(MeshletTriangle), BufferType::Storage, false, "Meshlet Triangle Buffer");
+    out.MeshletTriangles->BuildShaderResource();
+
     for (int i = 0; i < 3; i++) {
         out.ModelBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer");
         out.ModelBuffer[i]->BuildConstantBuffer();
@@ -233,6 +314,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
 
     uploader.CopyHostToDeviceLocal(vertices.data(), vertices.size() * sizeof(Vertex), out.VertexBuffer);
     uploader.CopyHostToDeviceLocal(indices.data(), indices.size() * sizeof(uint32_t), out.IndexBuffer);
+    uploader.CopyHostToDeviceLocal(meshlets.data(), meshlets.size() * sizeof(Meshlet), out.MeshletBuffer);
+    uploader.CopyHostToDeviceLocal(meshletTriangles.data(), meshletTriangles.size() * sizeof(MeshletTriangle), out.MeshletTriangles);
     context->FlushUploader(uploader);
 
     struct ModelData {
@@ -249,6 +332,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
 
     VertexCount += out.VertexCount;
     IndexCount += out.IndexCount;
+    MeshletCount += out.MeshletCount;
+
     Materials.push_back(meshMaterial);
 
     for (int i = 0; i < 3; i++) {

@@ -12,7 +12,7 @@ target("Oni")
     set_languages("c++17")
     add_files("src/**.cpp")
     add_includedirs("src", "ext", "ext/PIX/include", "ext/optick/", "ext/nvtt")
-    add_deps("D3D12MA", "ImGui", "stb", "optick", "ImGuizmo", "cgltf")
+    add_deps("D3D12MA", "ImGui", "stb", "optick", "ImGuizmo", "cgltf", "meshopt")
     add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", "USE_PIX")
 
     add_linkdirs("ext/PIX/lib")

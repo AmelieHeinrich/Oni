@@ -31,7 +31,7 @@ public:
     Device();
     ~Device();
 
-    ID3D12Device* GetDevice() { return _device; }
+    ID3D12Device2* GetDevice() { return _device; }
     IDXGIFactory3* GetFactory() { return _factory; }
     IDXGIAdapter1* GetAdapter() { return _adapter; }
 
@@ -41,7 +41,7 @@ private:
     std::string _name;
     DeviceFeatures _features;
 
-    ID3D12Device* _device;
+    ID3D12Device2* _device;
     ID3D12Debug1* _debug;
     ID3D12DebugDevice* _debugDevice;
     IDXGIAdapter1* _adapter;

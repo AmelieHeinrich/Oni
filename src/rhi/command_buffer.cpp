@@ -244,6 +244,12 @@ void CommandBuffer::BindIndexBuffer(Buffer::Ptr buffer)
     _commandList->IASetIndexBuffer(&buffer->_IBV);
 }
 
+void CommandBuffer::BindMeshPipeline(MeshPipeline::Ptr pipeline)
+{
+    _commandList->SetPipelineState(pipeline->GetPipeline());
+    _commandList->SetGraphicsRootSignature(pipeline->GetSignature()->GetSignature());
+}
+
 void CommandBuffer::BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline)
 {
     _commandList->SetPipelineState(pipeline->GetPipeline());
@@ -334,6 +340,11 @@ void CommandBuffer::DrawIndexed(int indexCount)
 void CommandBuffer::Dispatch(int x, int y, int z)
 {
     _commandList->Dispatch(x, y, z);
+}
+
+void CommandBuffer::DispatchMesh(int x, int y, int z)
+{
+    _commandList->DispatchMesh(x, y, z);
 }
 
 void CommandBuffer::CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src)
