@@ -99,19 +99,6 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.BoundingBox.Center = (out.BoundingBox.Min + out.BoundingBox.Max) / glm::vec3(2);
     out.BoundingBox.Extent = (out.BoundingBox.Max - out.BoundingBox.Min);
 
-    // Optimize
-    //std::vector<uint32_t> remap_table(vertices.size());
-	//uint32_t unique_vertices = meshopt_generateVertexRemap(remap_table.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
-//
-	//vertices.resize(unique_vertices);
-	//
-    //meshopt_remapIndexBuffer(indices.data(), indices.data(), indices.size(), remap_table.data());
-	//meshopt_remapVertexBuffer(vertices.data(), vertices.data(), vertices.size(), sizeof(Vertex), remap_table.data());
-    //
-	//meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
-	//meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), (float*)vertices.data(), vertices.size(), sizeof(Vertex), 1.05f);
-	//meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
-
     // Generate meshlets
     const size_t maxVertices = MAX_MESHLET_VERTICES;
     const size_t maxTriangles = MAX_MESHLET_TRIANGLES;
