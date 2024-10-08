@@ -66,3 +66,4 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - [stb](https://github.com/nothings/stb)
 - [Agility SDK](https://devblogs.microsoft.com/directx/directx12agility/)
 - [cgltf](https://github.com/jkuhlmann/cgltf)
+- [meshopt](https://github.com/zeux/meshoptimizer)

@@ -217,7 +217,7 @@ void Deferred::GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height)
                 // Cull
                 if (!scene.Camera.InFrustum(primitive.BoundingBox)) {
                     _culledMeshes++;
-                    continue;
+                    //continue;
                 }
 
                 auto material = model.Materials[primitive.MaterialIndex];

@@ -4,6 +4,8 @@
 // $Create Time: 2024-10-07 19:15:54
 //
 
+#define DEBUG_TRIANGLE
+
 struct Vertex
 {
     float3 Position : POSITION;
@@ -87,12 +89,12 @@ void Main(
     uint GroupThreadID: SV_GroupThreadID,
     uint GroupID : SV_GroupID,
     out indices uint3 Triangles[124],
-    out vertices VertexOut Verts[48]
+    out vertices VertexOut Verts[64]
 )
 {
     StructuredBuffer<Meshlet> Meshlets = ResourceDescriptorHeap[Constants.Meshlets];
-    StructuredBuffer<uint32_t> Indices = ResourceDescriptorHeap[Constants.UniqueVertexIndices];
-    StructuredBuffer<uint32_t> MeshletTriangles = ResourceDescriptorHeap[Constants.Triangles];
+    StructuredBuffer<uint> Indices = ResourceDescriptorHeap[Constants.UniqueVertexIndices];
+    StructuredBuffer<uint> MeshletTriangles = ResourceDescriptorHeap[Constants.Triangles];
 
     // -------- //
     Meshlet m = Meshlets[GroupID];

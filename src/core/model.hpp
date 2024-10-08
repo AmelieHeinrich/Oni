@@ -13,7 +13,7 @@
 #include "rhi/render_context.hpp"
 
 #define MAX_MESHLET_TRIANGLES 124
-#define MAX_MESHLET_VERTICES 48
+#define MAX_MESHLET_VERTICES 64
 
 struct AABB
 {
@@ -54,13 +54,7 @@ struct Material
     glm::vec3 FlatColor;
 };
 
-struct __declspec(align(16)) MeshletTriangle
-{
-    uint32_t V0 : 10;
-	uint32_t V1 : 10;
-	uint32_t V2 : 10;
-	uint32_t : 2;
-};
+typedef uint32_t MeshletTriangle;
 
 struct __declspec(align(16)) Meshlet
 {

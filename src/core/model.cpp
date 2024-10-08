@@ -100,16 +100,28 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.BoundingBox.Extent = (out.BoundingBox.Max - out.BoundingBox.Min);
 
     // Optimize
-    meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
+    //std::vector<uint32_t> remap_table(vertices.size());
+	//uint32_t unique_vertices = meshopt_generateVertexRemap(remap_table.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
+//
+	//vertices.resize(unique_vertices);
+	//
+    //meshopt_remapIndexBuffer(indices.data(), indices.data(), indices.size(), remap_table.data());
+	//meshopt_remapVertexBuffer(vertices.data(), vertices.data(), vertices.size(), sizeof(Vertex), remap_table.data());
+    //
+	//meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
+	//meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), (float*)vertices.data(), vertices.size(), sizeof(Vertex), 1.05f);
+	//meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 
     // Generate meshlets
     const size_t maxVertices = MAX_MESHLET_VERTICES;
     const size_t maxTriangles = MAX_MESHLET_TRIANGLES;
+    const float coneWeight = 0.0f;
+
     const size_t maxMeshlets = meshopt_buildMeshletsBound(indices.size(), maxVertices, maxTriangles);
 
     std::vector<meshopt_Meshlet> meshlets(maxMeshlets);
     std::vector<uint32_t> meshletVertices(maxMeshlets * maxVertices);
-    std::vector<unsigned char> meshletTriangles(maxMeshlets * maxTriangles * 3);
+    std::vector<uint8_t> meshletTriangles(maxMeshlets * maxTriangles * 3);
 
     size_t meshletCount = meshopt_buildMeshlets(
             meshlets.data(),
@@ -122,25 +134,25 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
             sizeof(glm::vec3),
             maxVertices,
             maxTriangles,
-            0.0f);
+            coneWeight);
 
-    auto& last = meshlets[meshletCount - 1];
-    meshletVertices.resize(last.vertex_offset + last.vertex_count);
-    meshletTriangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
     meshlets.resize(meshletCount);
+    meshletVertices.resize(meshletCount * 64);
+    meshletTriangles.resize(meshletCount * 124 * 3);
 
     // Repack triangles from 3 consecutive byes to 4-byte uint32_t to
     // make it easier to unpack on the GPU.
     //
     std::vector<uint32_t> meshletTrianglesU32;
-    for (auto& m : meshlets)
-    {
+    for (auto& m : meshlets) {
         // Save triangle offset for current meshlet
         uint32_t triangleOffset = static_cast<uint32_t>(meshletTrianglesU32.size());
+        
+        // Bugs out for some reason
+        // meshopt_optimizeMeshlet(meshletVertices.data(), meshletTriangles.data(), maxTriangles, maxVertices);
 
         // Repack to uint32_t
-        for (uint32_t i = 0; i < m.triangle_count; ++i)
-        {
+        for (uint32_t i = 0; i < m.triangle_count; ++i) {
             uint32_t i0 = 3 * i + 0 + m.triangle_offset;
             uint32_t i1 = 3 * i + 1 + m.triangle_offset;
             uint32_t i2 = 3 * i + 2 + m.triangle_offset;
@@ -194,6 +206,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     meshMaterial.FlatColor = glm::vec3(flatColor.r, flatColor.g, flatColor.b);
 
     Uploader uploader = context->CreateUploader();
+
+    uploader.CopyHostToDeviceLocal(vertices.data(), vertices.size() * sizeof(Vertex), out.VertexBuffer);
+    uploader.CopyHostToDeviceLocal(indices.data(), indices.size() * sizeof(uint32_t), out.IndexBuffer);
+    uploader.CopyHostToDeviceLocal(meshlets.data(), meshlets.size() * sizeof(Meshlet), out.MeshletBuffer);
+    uploader.CopyHostToDeviceLocal(meshletTrianglesU32.data(), meshletTrianglesU32.size() * sizeof(MeshletTriangle), out.MeshletTriangles);
     
     // ALBEDO TEXTURE
     {
@@ -310,10 +327,6 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
         }
     }
 
-    uploader.CopyHostToDeviceLocal(vertices.data(), vertices.size() * sizeof(Vertex), out.VertexBuffer);
-    uploader.CopyHostToDeviceLocal(indices.data(), indices.size() * sizeof(uint32_t), out.IndexBuffer);
-    uploader.CopyHostToDeviceLocal(meshlets.data(), meshlets.size() * sizeof(Meshlet), out.MeshletBuffer);
-    uploader.CopyHostToDeviceLocal(meshletTrianglesU32.data(), meshletTrianglesU32.size() * sizeof(uint32_t), out.MeshletTriangles);
     context->FlushUploader(uploader);
 
     struct ModelData {
