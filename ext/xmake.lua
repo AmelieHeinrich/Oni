@@ -9,6 +9,8 @@ target("D3D12MA")
     add_files("D3D12MA/*.cpp")
     add_headerfiles("D3D12MA/*.h")
 
+    
+
 target("ImGui")
     add_includedirs(".")
     set_kind("static")
@@ -16,11 +18,15 @@ target("ImGui")
     add_headerfiles("ImGui/**.h")
     add_syslinks("d3d12", "dxgi")
 
+    
+
 target("stb")
     add_includedirs(".")
     set_kind("static")
     add_files("stb/*.cpp")
     add_headerfiles("stb/*.h")
+
+    
 
 target("optick")
     add_includedirs(".")
@@ -29,6 +35,8 @@ target("optick")
     add_headerfiles("optick/*.h")
     add_defines("OPTICK_ENABLE_GPU", "OPTICK_ENABLE_GPU_D3D12")
 
+    
+
 target("ImGuizmo")
     add_includedirs(".", "ImGui")
     set_kind("static")
@@ -36,14 +44,20 @@ target("ImGuizmo")
     add_headerfiles("ImGuizmo/*.h")
     add_deps("ImGui")
 
+    
+
 target("cgltf")
     add_includedirs(".")
     set_kind("static")
     add_files("cgltf/cgltf.c")
     add_headerfiles("cgltf/cgltf.h")
 
+    
+
 target("meshopt")
     add_includedirs(".")
     set_kind("static")
     add_files("meshopt/*.cpp")
     add_headerfiles("meshopt/*.h")
+
+    

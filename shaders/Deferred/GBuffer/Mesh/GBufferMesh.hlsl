@@ -43,10 +43,10 @@ struct VertexOut
 struct PushConstants
 {
     uint Matrices;
-    uint Vertices;
-    uint UniqueVertexIndices;
-    uint Meshlets;
-    uint Triangles;
+    uint VertexBuffer;
+    uint IndexBuffer;
+    uint MeshletBuffer;
+    uint MeshletTriangleBuffer;
 
     uint AlbedoTexture;
     uint NormalTexture;
@@ -65,7 +65,7 @@ ConstantBuffer<PushConstants> Constants : register(b0);
 
 VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
 {
-    StructuredBuffer<Vertex> Vertices = ResourceDescriptorHeap[Constants.Vertices];
+    StructuredBuffer<Vertex> Vertices = ResourceDescriptorHeap[Constants.VertexBuffer];
     ConstantBuffer<ModelMatrices> Matrices = ResourceDescriptorHeap[Constants.Matrices];
 
     // -------- //
@@ -92,9 +92,9 @@ void Main(
     out vertices VertexOut Verts[64]
 )
 {
-    StructuredBuffer<Meshlet> Meshlets = ResourceDescriptorHeap[Constants.Meshlets];
-    StructuredBuffer<uint> Indices = ResourceDescriptorHeap[Constants.UniqueVertexIndices];
-    StructuredBuffer<uint> MeshletPrimitives = ResourceDescriptorHeap[Constants.Triangles];
+    StructuredBuffer<uint> Indices = ResourceDescriptorHeap[Constants.IndexBuffer];
+    StructuredBuffer<Meshlet> Meshlets = ResourceDescriptorHeap[Constants.MeshletBuffer];
+    StructuredBuffer<uint> MeshletPrimitives = ResourceDescriptorHeap[Constants.MeshletTriangleBuffer];
 
     // -------- //
     Meshlet m = Meshlets[GroupID];

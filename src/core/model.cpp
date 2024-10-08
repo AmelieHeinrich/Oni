@@ -97,14 +97,14 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.BoundingBox.Extent = (out.BoundingBox.Max - out.BoundingBox.Min);
 
     // Generate meshlets
-    std::vector<Vertex> outVertices(vertices.size());
+    std::vector<Vertex> outVertices;
     std::vector<meshopt_Meshlet> meshlets = {};
     std::vector<uint32_t> meshletVertices = {};
     std::vector<uint32_t> meshletPrimitives = {};
     std::vector<uint8_t> meshletTriangles = {};
 
-    const size_t kMaxTriangles = 124;
-    const size_t kMaxVertices = 64;
+    const size_t kMaxTriangles = MAX_MESHLET_TRIANGLES;
+    const size_t kMaxVertices = MAX_MESHLET_VERTICES;
     const float kConeWeight = 0.0f;
 
     size_t maxMeshlets = meshopt_buildMeshletsBound(indices.size(), kMaxVertices, kMaxTriangles);
@@ -131,29 +131,30 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     meshletTriangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
     meshlets.resize(meshletCount);
 
+    outVertices.resize(meshletVertices.size());
     for (uint32_t i = 0; i < meshletVertices.size(); i++) {
         outVertices[i] = vertices[meshletVertices[i]];
     }
 
     // PUSH
     for (auto& val : meshletTriangles) {
-        meshletPrimitives.push_back(val);
+        meshletPrimitives.push_back(static_cast<uint32_t>(val));
     }
 
     out.MeshletCount = meshlets.size();
 
     // GPU UPLOADING
 
-    out.VertexBuffer = context->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
+    out.VertexBuffer = context->CreateBuffer(vertices.size() * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
     out.VertexBuffer->BuildShaderResource();
 
-    out.VertexBufferRemapped = context->CreateBuffer(out.VertexCount * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
+    out.VertexBufferRemapped = context->CreateBuffer(outVertices.size() * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
     out.VertexBufferRemapped->BuildShaderResource();
 
-    out.IndexBuffer = context->CreateBuffer(out.IndexCount * sizeof(uint32_t), sizeof(uint32_t), BufferType::Index, false, "Index Buffer");
+    out.IndexBuffer = context->CreateBuffer(indices.size() * sizeof(uint32_t), sizeof(uint32_t), BufferType::Index, false, "Index Buffer");
     out.IndexBuffer->BuildShaderResource();
 
-    out.MeshletBuffer = context->CreateBuffer(out.MeshletCount * sizeof(Meshlet), sizeof(Meshlet), BufferType::Storage, false, "Meshlet Buffer");
+    out.MeshletBuffer = context->CreateBuffer(meshlets.size() * sizeof(Meshlet), sizeof(Meshlet), BufferType::Storage, false, "Meshlet Buffer");
     out.MeshletBuffer->BuildShaderResource();
 
     out.MeshletTriangles = context->CreateBuffer(meshletPrimitives.size() * sizeof(uint32_t), sizeof(uint32_t), BufferType::Storage, false, "Meshlet Triangle Buffer");
