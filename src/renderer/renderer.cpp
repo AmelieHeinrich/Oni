@@ -77,6 +77,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
             } else {
                 _deferred->GBufferPassClassic(scene, width, height);
             }
+            //_deferred->TestPass(scene, width, height);
         });
         _stats.PushFrameTime("SSAO", [this, &scene, width, height]() {
             _ssao->Render(scene, width, height);

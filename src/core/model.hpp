@@ -7,6 +7,7 @@
 
 #include <string>
 #include <array>
+#include <queue>
 #include <glm/glm.hpp>
 #include <cgltf/cgltf.h>
 
@@ -24,7 +25,7 @@ struct AABB
     glm::vec3 Extent;
 };
 
-struct __declspec(align(16)) Vertex
+struct Vertex
 {
     glm::vec3 Position;
     glm::vec2 UV;
@@ -54,9 +55,7 @@ struct Material
     glm::vec3 FlatColor;
 };
 
-typedef uint32_t MeshletTriangle;
-
-struct __declspec(align(16)) Meshlet
+struct Meshlet
 {
     uint32_t VertCount;
     uint32_t VertOffset;
@@ -67,6 +66,7 @@ struct __declspec(align(16)) Meshlet
 struct Primitive
 {
     Buffer::Ptr VertexBuffer;
+    Buffer::Ptr VertexBufferRemapped;
     Buffer::Ptr IndexBuffer;
     Buffer::Ptr MeshletBuffer;
     Buffer::Ptr MeshletTriangles;

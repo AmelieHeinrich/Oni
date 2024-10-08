@@ -41,6 +41,7 @@ public:
     void GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height);
     void GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height);
     void LightingPass(Scene& scene, uint32_t width, uint32_t height);
+    void TestPass(Scene& scene, uint32_t width, uint32_t height);
 private:
     RenderContext::Ptr _context;
     EnvironmentMap _map;
@@ -63,6 +64,12 @@ private:
     HotReloadablePipeline _gbufferPipeline;
     HotReloadablePipeline _gbufferPipelineMesh;
     HotReloadablePipeline _lightingPipeline;
+
+    HotReloadablePipeline _testShader;
+    Buffer::Ptr _vertexBuffer;
+    Buffer::Ptr _indexBuffer;
+    Buffer::Ptr _meshletBuffer;
+    Buffer::Ptr _meshletTrianglesBuffer;
 
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _sceneBufferLight;
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> _lightBuffer;

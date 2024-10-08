@@ -83,7 +83,7 @@ VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
     return Output;
 }
 
-[numthreads(128, 1, 1)]
+[numthreads(32, 1, 1)]
 [OutputTopology("triangle")]
 void Main(
     uint GroupThreadID: SV_GroupThreadID,
@@ -94,24 +94,32 @@ void Main(
 {
     StructuredBuffer<Meshlet> Meshlets = ResourceDescriptorHeap[Constants.Meshlets];
     StructuredBuffer<uint> Indices = ResourceDescriptorHeap[Constants.UniqueVertexIndices];
-    StructuredBuffer<uint> MeshletTriangles = ResourceDescriptorHeap[Constants.Triangles];
+    StructuredBuffer<uint> MeshletPrimitives = ResourceDescriptorHeap[Constants.Triangles];
 
     // -------- //
     Meshlet m = Meshlets[GroupID];
     SetMeshOutputCounts(m.VertCount, m.PrimCount);
 
-    if (GroupThreadID < m.PrimCount) {
-        uint packed = MeshletTriangles[m.PrimOffset + GroupThreadID];
-        uint vIdx0 = (packed >>  0) & 0xFF;
-        uint vIdx1 = (packed >>  8) & 0xFF;
-        uint vIdx2 = (packed >> 16) & 0xFF;
-        Triangles[GroupThreadID] = uint3(vIdx0, vIdx1, vIdx2);
+    uint indexProcessingIterations = (m.PrimCount + 32 - 1) / 32;
+    for (int i = 0; i < indexProcessingIterations; i++) {
+        if (GroupThreadID * indexProcessingIterations + i >= m.PrimCount) {
+            break;
+        }
+
+        Triangles[GroupThreadID * indexProcessingIterations + i] = uint3(
+            MeshletPrimitives[m.PrimOffset + ((GroupThreadID * indexProcessingIterations + i) * 3)],
+            MeshletPrimitives[m.PrimOffset + ((GroupThreadID * indexProcessingIterations + i) * 3 + 1)],
+            MeshletPrimitives[m.PrimOffset + ((GroupThreadID * indexProcessingIterations + i) * 3 + 2)]
+        );
     }
 
-    if (GroupThreadID < m.VertCount) {
-        uint vertexIndex = m.VertOffset + GroupThreadID;
-        vertexIndex = Indices[vertexIndex];
+    uint vertexProcessingIterations = (m.VertCount + 32 - 1) / 32;
+    for (int i = 0; i < vertexProcessingIterations; i++) {
+        if ((GroupThreadID * vertexProcessingIterations + i) >= m.VertCount) {
+            break;
+        }
 
-        Verts[GroupThreadID] = GetVertexAttributes(GroupThreadID, vertexIndex);
+        uint vertexIndex = GroupThreadID * vertexProcessingIterations + (i * 3);
+        Verts[GroupThreadID * vertexProcessingIterations + i] = GetVertexAttributes(GroupThreadID, vertexIndex);
     }
 }

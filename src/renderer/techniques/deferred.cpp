@@ -8,8 +8,11 @@
 
 #include "core/log.hpp"
 
+#include <meshopt/meshoptimizer.h>
+#include <cstdio>
+
 Deferred::Deferred(RenderContext::Ptr context)
-    : _context(context), _gbufferPipeline(PipelineType::Graphics), _gbufferPipelineMesh(PipelineType::Mesh), _lightingPipeline(PipelineType::Compute)
+    : _context(context), _gbufferPipeline(PipelineType::Graphics), _gbufferPipelineMesh(PipelineType::Mesh), _lightingPipeline(PipelineType::Compute), _testShader(PipelineType::Mesh)
 {
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
@@ -125,6 +128,26 @@ Deferred::Deferred(RenderContext::Ptr context)
         _lightingPipeline.ReflectRootSignature(false);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
         _lightingPipeline.Build(context);
+    }
+
+    {
+        _testShader.Specs.FormatCount = 1;
+        _testShader.Specs.Formats[0] = TextureFormat::RGBA16Float;
+        _testShader.Specs.DepthFormat = TextureFormat::R32Depth;
+        _testShader.Specs.Depth = DepthOperation::Less;
+        _testShader.Specs.DepthEnabled = true;
+        _testShader.Specs.Cull = CullMode::None;
+        _testShader.Specs.Fill = FillMode::Solid;
+        _testShader.Specs.CCW = false;
+
+        _testShader.SignatureInfo = {
+            { RootSignatureEntry::PushConstants },
+            4 * sizeof(uint32_t)
+        };
+        _testShader.ReflectRootSignature(false);
+        _testShader.AddShaderWatch("shaders/TestShaders/TriangleMesh.hlsl", "Main", ShaderType::Mesh);
+        _testShader.AddShaderWatch("shaders/TestShaders/TriangleFrag.hlsl", "Main", ShaderType::Fragment);
+        _testShader.Build(context);
     }
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -384,7 +407,7 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                 };
                 Data data = {
                     primitive.ModelBuffer[frameIndex]->CBV(),
-                    primitive.VertexBuffer->SRV(),
+                    primitive.VertexBufferRemapped->SRV(),
                     primitive.IndexBuffer->SRV(),
                     primitive.MeshletBuffer->SRV(),
                     primitive.MeshletTriangles->SRV(),
@@ -417,6 +440,40 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
         { _emissive, TextureLayout::ShaderResource },
         { _velocityBuffer, TextureLayout::ShaderResource }
     });
+    commandBuffer->EndEvent();
+}
+
+void Deferred::TestPass(Scene& scene, uint32_t width, uint32_t height)
+{
+    CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
+    uint32_t frameIndex = _context->GetBackBufferIndex();
+
+    OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
+    OPTICK_GPU_EVENT("Test");
+
+    struct Data {
+        uint32_t v;
+        uint32_t i;
+        uint32_t m;
+        uint32_t mt;
+    };
+    Data data = {
+        _vertexBuffer->SRV(),
+        _indexBuffer->SRV(),
+        _meshletBuffer->SRV(),
+        _meshletTrianglesBuffer->SRV()
+    };
+
+    commandBuffer->BeginEvent("Deferred Lighting");
+    commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
+    commandBuffer->ClearDepthTarget(_depthBuffer);
+    commandBuffer->ClearRenderTarget(_outputImage, 0, 0, 0, 1);
+    commandBuffer->SetViewport(0, 0, width, height);
+    commandBuffer->BindRenderTargets({ _outputImage }, _depthBuffer);
+    commandBuffer->BindMeshPipeline(_testShader.MeshPipeline);
+    commandBuffer->PushConstantsGraphics(&data, sizeof(data), 0);
+    commandBuffer->DispatchMesh(1, 1, 1);
+    commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
     commandBuffer->EndEvent();
 }
 
@@ -598,6 +655,7 @@ void Deferred::Reconstruct()
     _gbufferPipeline.CheckForRebuild(_context, "GBuffer Classic");
     _gbufferPipelineMesh.CheckForRebuild(_context, "GBuffer Mesh");
     _lightingPipeline.CheckForRebuild(_context, "Deferred");
+    _testShader.CheckForRebuild(_context, "Test Shader");
 }
 
 void Deferred::ConnectEnvironmentMap(EnvironmentMap& map)
