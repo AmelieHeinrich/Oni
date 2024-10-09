@@ -69,6 +69,9 @@ void HotReloadablePipeline::Build(RenderContext::Ptr context)
             } else {
                 Signature = context->CreateRootSignature(SignatureInfo);
             }
+            if (Specs.UseAmplification) {
+                Specs.Bytecodes[ShaderType::Amplification] = GetBytecode(ShaderType::Amplification);
+            }
             Specs.Bytecodes[ShaderType::Mesh] = GetBytecode(ShaderType::Mesh);
             Specs.Bytecodes[ShaderType::Fragment] = GetBytecode(ShaderType::Fragment);
             Specs.Signature = Signature;

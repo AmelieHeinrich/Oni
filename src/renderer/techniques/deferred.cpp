@@ -110,14 +110,16 @@ Deferred::Deferred(RenderContext::Ptr context)
         _gbufferPipelineMesh.Specs.Cull = CullMode::Front;
         _gbufferPipelineMesh.Specs.Fill = FillMode::Solid;
         _gbufferPipelineMesh.Specs.CCW = false;
+        _gbufferPipelineMesh.Specs.UseAmplification = true;
 
         _gbufferPipelineMesh.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
             16 * sizeof(uint32_t)
         };
         _gbufferPipelineMesh.ReflectRootSignature(false);
-        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/Mesh/GBufferMesh.hlsl", "Main", ShaderType::Mesh);
-        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/Mesh/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
+        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/MS/GBufferAmplification.hlsl", "Main", ShaderType::Amplification);
+        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/MS/GBufferMesh.hlsl", "Main", ShaderType::Mesh);
+        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/MS/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
         _gbufferPipelineMesh.Build(context);
 
         _useMesh = true;

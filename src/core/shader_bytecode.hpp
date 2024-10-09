@@ -15,7 +15,8 @@ enum class ShaderType : uint32_t
     Vertex = 1,
     Fragment = 2,
     Compute = 3,
-    Mesh = 4
+    Mesh = 4,
+    Amplification = 5,
     // TODO(ahi): Amplification
     // TODO(ahi): Raytracing
     // TODO(ahi): Node

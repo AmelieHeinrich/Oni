@@ -62,6 +62,7 @@ struct Primitive
     Buffer::Ptr MeshletBuffer;
     Buffer::Ptr MeshletVertices;
     Buffer::Ptr MeshletTriangles;
+    Buffer::Ptr MeshletBounds;
 
     uint32_t VertexCount;
     uint32_t IndexCount;

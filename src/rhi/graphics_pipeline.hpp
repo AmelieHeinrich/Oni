@@ -49,6 +49,8 @@ struct GraphicsPipelineSpecs
 
     std::unordered_map<ShaderType, ShaderBytecode> Bytecodes;
     RootSignature::Ptr Signature = nullptr;
+
+    bool UseAmplification = false;
 };
 
 class GraphicsPipeline

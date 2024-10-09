@@ -62,6 +62,11 @@ struct PushConstants
     float2 Jitter;
 };
 
+struct Payload
+{
+    uint MeshletIndices[32];
+};
+
 ConstantBuffer<PushConstants> Constants : register(b0);
 
 VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
@@ -89,6 +94,7 @@ VertexOut GetVertexAttributes(uint meshletIndex, uint vertexIndex)
 void Main(
     uint GroupThreadID: SV_GroupThreadID,
     uint GroupID : SV_GroupID,
+    in payload Payload payload,
     out indices uint3 Triangles[124],
     out vertices VertexOut Verts[64]
 )
@@ -99,7 +105,9 @@ void Main(
     StructuredBuffer<uint> MeshletPrimitives = ResourceDescriptorHeap[Constants.MeshletTriangleBuffer];
 
     // -------- //
-    Meshlet m = Meshlets[GroupID];
+    uint meshletIndex = payload.MeshletIndices[GroupID];
+    Meshlet m = Meshlets[meshletIndex];
+
     SetMeshOutputCounts(m.VertCount, m.PrimCount);
 
     for (uint i = GroupThreadID; i < m.PrimCount; i += 32) {

@@ -28,6 +28,9 @@ const char *GetProfileFromType(ShaderType type)
         case ShaderType::Mesh: {
             return "ms_6_6";
         }
+        case ShaderType::Amplification: {
+            return "as_6_6";
+        }
     }
     return "???";
 }

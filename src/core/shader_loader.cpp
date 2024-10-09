@@ -107,6 +107,9 @@ ShaderType ShaderLoader::GetTypeFromPath(const std::string& path)
     if (path.find("Mesh") != std::string::npos) {
         return ShaderType::Mesh;
     }
+    if (path.find("Amplification") != std::string::npos) {
+        return ShaderType::Amplification;
+    }
     return ShaderType::None;
 }
 

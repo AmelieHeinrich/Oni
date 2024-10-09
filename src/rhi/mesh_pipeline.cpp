@@ -10,10 +10,15 @@
 
 MeshPipeline::MeshPipeline(Device::Ptr devicePtr, GraphicsPipelineSpecs& specs)
 {
+    ShaderBytecode& ampBytecode = specs.Bytecodes[ShaderType::Amplification];
     ShaderBytecode& meshBytecode = specs.Bytecodes[ShaderType::Mesh];
     ShaderBytecode& fragmentBytecode = specs.Bytecodes[ShaderType::Fragment];
 
     D3DX12_MESH_SHADER_PIPELINE_STATE_DESC Desc = {};
+    if (specs.UseAmplification) {
+        Desc.AS.pShaderBytecode = ampBytecode.bytecode.data();
+        Desc.AS.BytecodeLength = ampBytecode.bytecode.size() * sizeof(uint32_t);
+    }
     Desc.MS.pShaderBytecode = meshBytecode.bytecode.data();
     Desc.MS.BytecodeLength = meshBytecode.bytecode.size() * sizeof(uint32_t);
     Desc.PS.pShaderBytecode = fragmentBytecode.bytecode.data();
