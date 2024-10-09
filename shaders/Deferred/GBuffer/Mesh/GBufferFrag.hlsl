@@ -28,13 +28,14 @@ struct FragmentOut
     float2 Velocity: SV_TARGET4;
 };
 
-struct SceneData
+struct PushConstants
 {
     uint Matrices;
-    uint Vertices;
-    uint UniqueVertexIndices;
-    uint Meshlets;
-    uint Triangles;
+    uint VertexBuffer;
+    uint IndexBuffer;
+    uint MeshletBuffer;
+    uint MeshletVertices;
+    uint MeshletTriangleBuffer;
 
     uint AlbedoTexture;
     uint NormalTexture;
@@ -46,10 +47,9 @@ struct SceneData
     uint DrawMeshlets;
     float EmissiveStrength;
     float2 Jitter;
-    float Pad;
 };
 
-ConstantBuffer<SceneData> Settings : register(b0);
+ConstantBuffer<PushConstants> Settings : register(b0);
 
 float3 GetNormalFromMap(FragmentIn Input)
 {

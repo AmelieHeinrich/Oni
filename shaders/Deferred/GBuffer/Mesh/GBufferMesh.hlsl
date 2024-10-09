@@ -36,6 +36,7 @@ struct VertexOut
     float4 CurrPosition : POSITION1;
     float3 Normals: NORMAL;
     uint MeshletIndex : COLOR0;
+
     float2 TexCoords : TEXCOORD;
     float2 Pad : POSITION2;
 };
@@ -46,6 +47,7 @@ struct PushConstants
     uint VertexBuffer;
     uint IndexBuffer;
     uint MeshletBuffer;
+    uint MeshletVertices;
     uint MeshletTriangleBuffer;
 
     uint AlbedoTexture;
@@ -58,7 +60,6 @@ struct PushConstants
     uint DrawMeshlets;
     float EmissiveStrength;
     float2 Jitter;
-    float Pad;
 };
 
 ConstantBuffer<PushConstants> Constants : register(b0);
@@ -94,32 +95,24 @@ void Main(
 {
     StructuredBuffer<uint> Indices = ResourceDescriptorHeap[Constants.IndexBuffer];
     StructuredBuffer<Meshlet> Meshlets = ResourceDescriptorHeap[Constants.MeshletBuffer];
+    StructuredBuffer<uint> MeshletVertices = ResourceDescriptorHeap[Constants.MeshletVertices];
     StructuredBuffer<uint> MeshletPrimitives = ResourceDescriptorHeap[Constants.MeshletTriangleBuffer];
 
     // -------- //
     Meshlet m = Meshlets[GroupID];
     SetMeshOutputCounts(m.VertCount, m.PrimCount);
 
-    uint indexProcessingIterations = (m.PrimCount + 32 - 1) / 32;
-    for (int i = 0; i < indexProcessingIterations; i++) {
-        if (GroupThreadID * indexProcessingIterations + i >= m.PrimCount) {
-            break;
-        }
-
-        Triangles[GroupThreadID * indexProcessingIterations + i] = uint3(
-            MeshletPrimitives[m.PrimOffset + ((GroupThreadID * indexProcessingIterations + i) * 3)],
-            MeshletPrimitives[m.PrimOffset + ((GroupThreadID * indexProcessingIterations + i) * 3 + 1)],
-            MeshletPrimitives[m.PrimOffset + ((GroupThreadID * indexProcessingIterations + i) * 3 + 2)]
+    for (uint i = GroupThreadID; i < m.PrimCount; i += 32) {
+        uint offset = m.PrimOffset + i * 3;
+        Triangles[i] = uint3(
+            MeshletPrimitives[offset],
+            MeshletPrimitives[offset + 1],
+            MeshletPrimitives[offset + 2]
         );
     }
 
-    uint vertexProcessingIterations = (m.VertCount + 32 - 1) / 32;
-    for (int i = 0; i < vertexProcessingIterations; i++) {
-        if ((GroupThreadID * vertexProcessingIterations + i) >= m.VertCount) {
-            break;
-        }
-
-        uint vertexIndex = GroupThreadID * vertexProcessingIterations + (i * 3);
-        Verts[GroupThreadID * vertexProcessingIterations + i] = GetVertexAttributes(GroupThreadID, vertexIndex);
+    for (uint i = GroupThreadID; i < m.VertCount; i += 32) {
+        uint index = MeshletVertices[m.VertOffset + i];
+        Verts[i] = GetVertexAttributes(GroupID, index);
     }
 }

@@ -391,6 +391,7 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t Vertices;
                     uint32_t Indices;
                     uint32_t Meshlets;
+                    uint32_t MeshletVertices;
                     uint32_t Triangles;
 
                     uint32_t Albedo;
@@ -403,13 +404,13 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t DrawMeshlets;
                     float EmissiveStrenght;
                     glm::vec2 Jitter;
-                    float Pad;
                 };
                 Data data = {
                     primitive.ModelBuffer[frameIndex]->CBV(),
-                    primitive.VertexBufferRemapped->SRV(),
+                    primitive.VertexBuffer->SRV(),
                     primitive.IndexBuffer->SRV(),
                     primitive.MeshletBuffer->SRV(),
+                    primitive.MeshletVertices->SRV(),
                     primitive.MeshletTriangles->SRV(),
                     
                     albedo->SRV(),
@@ -421,8 +422,7 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
 
                     _drawMeshlets,
                     _emissiveStrength,
-                    _currJitter,
-                    0.0
+                    _currJitter
                 };
                 if (!_jitter) {
                     data.Jitter = glm::vec2(0.0f);

@@ -29,8 +29,8 @@
 #include "renderer/techniques/debug_renderer.hpp"
 
 #define SCENE_BALLS 0
-#define SCENE_SPONZA 1
-#define SCENE_BISTRO 0
+#define SCENE_SPONZA 0
+#define SCENE_BISTRO 1
 #define SCENE_EMERALDSQUARE 0
 #define SCENE_SUNTEMPLE 0
 #define SCENE_SMALL 0
@@ -470,7 +470,7 @@ void App::SetupScene()
 
 #if SCENE_TEXTURE_COMPRESSION_TEST
     Model scifiHelmet = {};
-    scifiHelmet.Load(_renderContext, "assets/models/flighthelmet/FlightHelmet.gltf");
+    scifiHelmet.Load(_renderContext, "assets/models/scifi/SciFiHelmet.gltf");
     
     scene.Models.push_back(scifiHelmet);
     scene.Lights.SetSun(glm::vec3(0.0f, 20.0f, 0.0f), glm::vec3(-90.0f, 0.0f, 0.0f), glm::vec4(5.0f));
@@ -502,7 +502,7 @@ void App::SetupScene()
 
 #if SCENE_PLATFORM
     Model bistro = {};
-    bistro.Load(_renderContext, "assets/models/Suzanne/Suzanne.gltf");
+    bistro.Load(_renderContext, "assets/models/platform/Platform.gltf");
     scene.Lights.SetSun(glm::vec3(0.0f, 30.0f, 0.0f), glm::vec3(-90.0f, 30.0f, 0.0f), glm::vec4(5.0f));
 
     scene.Models.push_back(bistro);

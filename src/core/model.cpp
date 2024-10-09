@@ -97,10 +97,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.BoundingBox.Extent = (out.BoundingBox.Max - out.BoundingBox.Min);
 
     // Generate meshlets
-    std::vector<Vertex> outVertices;
     std::vector<meshopt_Meshlet> meshlets = {};
     std::vector<uint32_t> meshletVertices = {};
-    std::vector<uint32_t> meshletPrimitives = {};
     std::vector<uint8_t> meshletTriangles = {};
 
     const size_t kMaxTriangles = MAX_MESHLET_TRIANGLES;
@@ -131,12 +129,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     meshletTriangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
     meshlets.resize(meshletCount);
 
-    outVertices.resize(meshletVertices.size());
-    for (uint32_t i = 0; i < meshletVertices.size(); i++) {
-        outVertices[i] = vertices[meshletVertices[i]];
-    }
-
     // PUSH
+    std::vector<uint32_t> meshletPrimitives;
     for (auto& val : meshletTriangles) {
         meshletPrimitives.push_back(static_cast<uint32_t>(val));
     }
@@ -148,14 +142,14 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.VertexBuffer = context->CreateBuffer(vertices.size() * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
     out.VertexBuffer->BuildShaderResource();
 
-    out.VertexBufferRemapped = context->CreateBuffer(outVertices.size() * sizeof(Vertex), sizeof(Vertex), BufferType::Vertex, false, "Vertex Buffer");
-    out.VertexBufferRemapped->BuildShaderResource();
-
     out.IndexBuffer = context->CreateBuffer(indices.size() * sizeof(uint32_t), sizeof(uint32_t), BufferType::Index, false, "Index Buffer");
     out.IndexBuffer->BuildShaderResource();
 
-    out.MeshletBuffer = context->CreateBuffer(meshlets.size() * sizeof(Meshlet), sizeof(Meshlet), BufferType::Storage, false, "Meshlet Buffer");
+    out.MeshletBuffer = context->CreateBuffer(meshlets.size() * sizeof(meshopt_Meshlet), sizeof(meshopt_Meshlet), BufferType::Storage, false, "Meshlet Buffer");
     out.MeshletBuffer->BuildShaderResource();
+
+    out.MeshletVertices = context->CreateBuffer(meshletVertices.size() * sizeof(uint32_t), sizeof(uint32_t), BufferType::Storage, false, "Meshlet Vertices");
+    out.MeshletVertices->BuildShaderResource();
 
     out.MeshletTriangles = context->CreateBuffer(meshletPrimitives.size() * sizeof(uint32_t), sizeof(uint32_t), BufferType::Storage, false, "Meshlet Triangle Buffer");
     out.MeshletTriangles->BuildShaderResource();
@@ -182,9 +176,9 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     Uploader uploader = context->CreateUploader();
 
     uploader.CopyHostToDeviceLocal(vertices.data(), vertices.size() * sizeof(Vertex), out.VertexBuffer);
-    uploader.CopyHostToDeviceLocal(outVertices.data(), outVertices.size() * sizeof(Vertex), out.VertexBufferRemapped);
     uploader.CopyHostToDeviceLocal(indices.data(), indices.size() * sizeof(uint32_t), out.IndexBuffer);
-    uploader.CopyHostToDeviceLocal(meshlets.data(), meshlets.size() * sizeof(Meshlet), out.MeshletBuffer);
+    uploader.CopyHostToDeviceLocal(meshlets.data(), meshlets.size() * sizeof(meshopt_Meshlet), out.MeshletBuffer);
+    uploader.CopyHostToDeviceLocal(meshletVertices.data(), meshletVertices.size() * sizeof(uint32_t), out.MeshletVertices);
     uploader.CopyHostToDeviceLocal(meshletPrimitives.data(), meshletPrimitives.size() * sizeof(uint32_t), out.MeshletTriangles);
     
     // ALBEDO TEXTURE

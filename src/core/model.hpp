@@ -55,20 +55,12 @@ struct Material
     glm::vec3 FlatColor;
 };
 
-struct Meshlet
-{
-    uint32_t VertCount;
-    uint32_t VertOffset;
-    uint32_t PrimCount;
-    uint32_t PrimOffset;
-};
-
 struct Primitive
 {
     Buffer::Ptr VertexBuffer;
-    Buffer::Ptr VertexBufferRemapped;
     Buffer::Ptr IndexBuffer;
     Buffer::Ptr MeshletBuffer;
+    Buffer::Ptr MeshletVertices;
     Buffer::Ptr MeshletTriangles;
 
     uint32_t VertexCount;
