@@ -129,7 +129,7 @@ void DebugRenderer::Flush(Scene& scene, uint32_t width, uint32_t height)
     if (DrawAABB) {
         for (auto& model : scene.Models) {
             for (auto& primitive : model.Primitives) {
-                PushAABB(primitive.BoundingBox, primitive.Transform);
+                PushAABB(primitive.BoundingBox, primitive.Transform.Matrix);
             }
         }
     }

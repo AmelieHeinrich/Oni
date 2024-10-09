@@ -21,12 +21,26 @@ struct Meshlet
     uint PrimCount;
 };
 
+struct MeshletBounds
+{
+    /* bounding sphere, useful for frustum and occlusion culling */
+	float center[3];
+	float radius;
+
+	/* normal cone, useful for backface culling */
+	float cone_apex[3];
+	float cone_axis[3];
+	float cone_cutoff; /* = cos(angle/2) */
+};
+
 struct ModelMatrices
 {
     column_major float4x4 CameraMatrix;
     column_major float4x4 PrevCameraMatrix;
     column_major float4x4 Transform;
     column_major float4x4 PrevTransform;
+
+    float3 CameraPosition;
 };
 
 struct VertexOut
@@ -49,6 +63,7 @@ struct PushConstants
     uint MeshletBuffer;
     uint MeshletVertices;
     uint MeshletTriangleBuffer;
+    uint MeshletBoundsBuffer;
 
     uint AlbedoTexture;
     uint NormalTexture;
@@ -60,6 +75,7 @@ struct PushConstants
     uint DrawMeshlets;
     float EmissiveStrength;
     float2 Jitter;
+    uint Pad;
 };
 
 struct Payload

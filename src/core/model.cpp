@@ -18,7 +18,7 @@
 #undef min
 #undef max
 
-void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform, std::string name)
+void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, Transform transform, std::string name)
 {
     // Start
     if (primitive->type != cgltf_primitive_type_triangles) {
@@ -100,6 +100,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     std::vector<meshopt_Meshlet> meshlets = {};
     std::vector<uint32_t> meshletVertices = {};
     std::vector<uint8_t> meshletTriangles = {};
+    std::vector<MeshletBounds> meshletBounds = {};
 
     const size_t kMaxTriangles = MAX_MESHLET_TRIANGLES;
     const size_t kMaxVertices = MAX_MESHLET_VERTICES;
@@ -131,6 +132,19 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
 
     for (auto& m : meshlets) {
         meshopt_optimizeMeshlet(&meshletVertices[m.vertex_offset], &meshletTriangles[m.triangle_offset], m.triangle_count, m.vertex_count);
+    
+        // Generate bounds
+        meshopt_Bounds meshopt_bounds = meshopt_computeMeshletBounds(&meshletVertices[m.vertex_offset], &meshletTriangles[m.triangle_offset],
+                                                                     m.triangle_count, &vertices[0].Position.x, vertices.size(), sizeof(Vertex));
+        
+        MeshletBounds bounds;
+        memcpy(glm::value_ptr(bounds.center), meshopt_bounds.center, sizeof(float) * 3);
+        memcpy(glm::value_ptr(bounds.cone_apex), meshopt_bounds.cone_apex, sizeof(float) * 3);
+        memcpy(glm::value_ptr(bounds.cone_axis), meshopt_bounds.cone_axis, sizeof(float) * 3);
+
+        bounds.radius = meshopt_bounds.radius;
+        bounds.cone_cutoff = meshopt_bounds.cone_cutoff;
+        meshletBounds.push_back(bounds);
     }
 
     // PUSH
@@ -158,8 +172,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.MeshletTriangles = context->CreateBuffer(meshletPrimitives.size() * sizeof(uint32_t), sizeof(uint32_t), BufferType::Storage, false, "Meshlet Triangle Buffer");
     out.MeshletTriangles->BuildShaderResource();
 
+    out.MeshletBounds = context->CreateBuffer(meshletBounds.size() * sizeof(MeshletBounds), sizeof(MeshletBounds), BufferType::Storage, false, "Meshlet Bounds Buffer");
+    out.MeshletBounds->BuildShaderResource();
+
     for (int i = 0; i < 3; i++) {
-        out.ModelBuffer[i] = context->CreateBuffer(256, 0, BufferType::Constant, false, "Model Buffer");
+        out.ModelBuffer[i] = context->CreateBuffer(512, 0, BufferType::Constant, false, "Model Buffer");
         out.ModelBuffer[i]->BuildConstantBuffer();
     }
 
@@ -184,6 +201,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     uploader.CopyHostToDeviceLocal(meshlets.data(), meshlets.size() * sizeof(meshopt_Meshlet), out.MeshletBuffer);
     uploader.CopyHostToDeviceLocal(meshletVertices.data(), meshletVertices.size() * sizeof(uint32_t), out.MeshletVertices);
     uploader.CopyHostToDeviceLocal(meshletPrimitives.data(), meshletPrimitives.size() * sizeof(uint32_t), out.MeshletTriangles);
+    uploader.CopyHostToDeviceLocal(meshletBounds.data(), meshletBounds.size() * sizeof(MeshletBounds), out.MeshletBounds);
     
     // ALBEDO TEXTURE
     {
@@ -311,8 +329,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     ModelData temp;
     temp.Camera = glm::mat4(1.0f);
     temp.PrevCamera = glm::mat4(1.0f);
-    temp.Transform = out.Transform;
-    temp.PrevTransform = out.Transform;
+    temp.Transform = out.Transform.Matrix;
+    temp.PrevTransform = out.Transform.Matrix;
 
     VertexCount += out.VertexCount;
     IndexCount += out.IndexCount;
@@ -330,27 +348,32 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     Primitives.push_back(out);
 }
 
-void Model::ProcessNode(RenderContext::Ptr context, cgltf_node *node, glm::mat4 transform)
+void Model::ProcessNode(RenderContext::Ptr context, cgltf_node *node, Transform transform)
 {
-    glm::mat4 localTransform = transform;
+    Transform localTransform = transform;
     glm::mat4 translationMatrix(1.0f);
     glm::mat4 rotationMatrix(1.0f);
     glm::mat4 scaleMatrix(1.0f);
 
     if (node->has_translation) {
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(node->translation[0], node->translation[1], node->translation[2]));
+        glm::vec3 translation = glm::vec3(node->translation[0], node->translation[1], node->translation[2]);
+        localTransform.Position = translation;
+        translationMatrix = glm::translate(glm::mat4(1.0f), translation);
     }
     if (node->has_rotation) {
+        // TODO: transform quaternion
         rotationMatrix = glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
     }
     if (node->has_scale) {
-        scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(node->scale[0], node->scale[1], node->scale[2]));
+        glm::vec3 scale = glm::vec3(node->scale[0], node->scale[1], node->scale[2]);
+        localTransform.Scale = scale;
+        scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
     }
 
     if (node->has_matrix) {
-        localTransform *= glm::make_mat4(node->matrix);
+        localTransform.Matrix *= glm::make_mat4(node->matrix);
     } else {
-        localTransform *= translationMatrix * rotationMatrix * scaleMatrix;
+        localTransform.Matrix *= translationMatrix * rotationMatrix * scaleMatrix;
     }
 
     if (node->mesh) {
@@ -385,7 +408,7 @@ void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
 
     Directory = path.substr(0, path.find_last_of('/'));
     for (int i = 0; i < scene->nodes_count; i++) {
-        ProcessNode(renderContext, scene->nodes[i], glm::mat4(1.0f));
+        ProcessNode(renderContext, scene->nodes[i], Transform());
     }
     Logger::Info("[CGLTF] Successfully loaded model at path %s", path.c_str());
     cgltf_free(data);
@@ -394,6 +417,6 @@ void Model::Load(RenderContext::Ptr renderContext, const std::string& path)
 void Model::ApplyTransform(glm::mat4 transform)
 {
     for (auto& primitive : Primitives) {
-        primitive.Transform *= transform;
+        primitive.Transform.Matrix *= transform;
     }
 }

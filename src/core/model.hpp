@@ -12,6 +12,7 @@
 #include <cgltf/cgltf.h>
 
 #include "rhi/render_context.hpp"
+#include "core/transform.hpp"
 
 #define MAX_MESHLET_TRIANGLES 124
 #define MAX_MESHLET_VERTICES 64
@@ -55,6 +56,18 @@ struct Material
     glm::vec3 FlatColor;
 };
 
+struct MeshletBounds
+{
+    /* bounding sphere, useful for frustum and occlusion culling */
+	glm::vec3 center;
+	float radius;
+
+	/* normal cone, useful for backface culling */
+	glm::vec3 cone_apex;
+	glm::vec3 cone_axis;
+	float cone_cutoff; /* = cos(angle/2) */
+};
+
 struct Primitive
 {
     Buffer::Ptr VertexBuffer;
@@ -70,8 +83,8 @@ struct Primitive
 
     std::array<Buffer::Ptr, FRAMES_IN_FLIGHT> ModelBuffer;
 
-    glm::mat4 PrevTransform;
-    glm::mat4 Transform;
+    Transform PrevTransform;
+    Transform Transform;
     std::string Name;
 
     uint32_t MaterialIndex;
@@ -98,6 +111,6 @@ public:
 
     void ApplyTransform(glm::mat4 transform);
 private:
-    void ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, glm::mat4 transform, std::string name);
-    void ProcessNode(RenderContext::Ptr context, cgltf_node *node, glm::mat4 transform);
+    void ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primitive, Transform transform, std::string name);
+    void ProcessNode(RenderContext::Ptr context, cgltf_node *node, Transform transform);
 };

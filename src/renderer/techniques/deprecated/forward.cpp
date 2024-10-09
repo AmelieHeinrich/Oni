@@ -190,7 +190,7 @@ void Forward::RenderPBR(Scene& scene, uint32_t width, uint32_t height)
                     glm::vec4 FlatColor;
                 };
                 ModelData modelData = {
-                    primitive.Transform,
+                    primitive.Transform.Matrix,
                     glm::vec4(material.FlatColor, 1.0f)
                 };
 

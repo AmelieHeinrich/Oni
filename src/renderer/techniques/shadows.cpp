@@ -74,7 +74,7 @@ void Shadows::Render(Scene& scene, uint32_t width, uint32_t height)
                 };
                 PushConstants constants = {
                     depthProjection * depthView,
-                    primitive.Transform
+                    primitive.Transform.Matrix
                 };
 
                 commandBuffer->PushConstantsGraphics(&constants, sizeof(constants), 0);

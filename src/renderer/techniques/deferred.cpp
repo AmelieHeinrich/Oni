@@ -114,7 +114,7 @@ Deferred::Deferred(RenderContext::Ptr context)
 
         _gbufferPipelineMesh.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            16 * sizeof(uint32_t)
+            18 * sizeof(uint32_t)
         };
         _gbufferPipelineMesh.ReflectRootSignature(false);
         _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/MS/GBufferAmplification.hlsl", "Main", ShaderType::Amplification);
@@ -247,8 +247,8 @@ void Deferred::GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height)
                 ModelUpload matrices = {
                     scene.Camera.Projection() * scene.Camera.View(),
                     scene.PrevViewProj,
-                    primitive.Transform,
-                    primitive.PrevTransform
+                    primitive.Transform.Matrix,
+                    primitive.PrevTransform.Matrix
                 };
                 if (_visualizeShadow) {
                     matrices.CameraMatrix = depthProjection * depthView;
@@ -356,12 +356,17 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                     glm::mat4 PrevCameraMatrix;
                     glm::mat4 Transform;
                     glm::mat4 PrevTransform;
+
+                    glm::vec3 CameraPosition;
+                    float Scale;
                 };
                 ModelUpload matrices = {
                     scene.Camera.Projection() * scene.Camera.View(),
                     scene.PrevViewProj,
-                    primitive.Transform,
-                    primitive.PrevTransform
+                    primitive.Transform.Matrix,
+                    primitive.PrevTransform.Matrix,
+                    scene.Camera.GetPosition(),
+                    primitive.Transform.Scale.x
                 };
                 if (_visualizeShadow) {
                     matrices.CameraMatrix = depthProjection * depthView;
@@ -380,6 +385,7 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t Meshlets;
                     uint32_t MeshletVertices;
                     uint32_t Triangles;
+                    uint32_t MeshletBounds;
 
                     uint32_t Albedo;
                     uint32_t Normal;
@@ -391,6 +397,7 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                     uint32_t DrawMeshlets;
                     float EmissiveStrenght;
                     glm::vec2 Jitter;
+                    uint32_t Pad;
                 };
                 Data data = {
                     primitive.ModelBuffer[frameIndex]->CBV(),
@@ -399,6 +406,7 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                     primitive.MeshletBuffer->SRV(),
                     primitive.MeshletVertices->SRV(),
                     primitive.MeshletTriangles->SRV(),
+                    primitive.MeshletBounds->SRV(),
                     
                     albedo->SRV(),
                     normal->SRV(),

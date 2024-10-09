@@ -36,6 +36,7 @@ struct PushConstants
     uint MeshletBuffer;
     uint MeshletVertices;
     uint MeshletTriangleBuffer;
+    uint MeshletBoundsBuffer;
 
     uint AlbedoTexture;
     uint NormalTexture;
@@ -47,6 +48,7 @@ struct PushConstants
     uint DrawMeshlets;
     float EmissiveStrength;
     float2 Jitter;
+    uint Pad;
 };
 
 ConstantBuffer<PushConstants> Settings : register(b0);
