@@ -24,22 +24,26 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 
 ## Screenshots
 
-![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/NewBistro.png) ![](screenshots/Multiple%20Models.png) ![](screenshots/Bloom.png)
+![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/NewBistro.png) ![](screenshots/Meshlets.png) ![](screenshots/Bloom.png)
 
-## Renderer features
+## Renderer features (techniques)
 
 - Deferred rendering
-- Shadow mapping
-- Bloom (experimental, doesn't work well or look good)
+- Shadow mapping (directional)
 - HDR rendering
 - Color grading
 - TAA (Temporal Anti-Aliasing)
 - Film Grain
 - Bloom (Compute Downsample/Upsample)
 - Debug renderer (lines, motion vector visualizer)
-- PBR and emissive material workflow
+- PBR + metallic material workflow
+- Emissive materials
 - Point, directional lights
-- Screen Space Ambient Occlusion
+- Screen Space Ambient Occlusion (experimental)
+
+## Renderer features (GPU)
+- Meshlet rendering
+- Bindless resources via SM6.6
 
 ## Other features
 - UI powered by ImGui
@@ -48,7 +52,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - In-engine BC7 texture compressor using custom texture format
 
 ## WIP (GPU Driven and latest GPU tech)
-- Mesh shaders
+- Meshlet culling
 
 ## WIP (Shading and Math)
 

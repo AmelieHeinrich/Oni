@@ -75,6 +75,7 @@ public:
     void OnGUI();
     void OnOverlay();
 
+    Device::Ptr GetDevice() { return _device; }
 private:
     void SetStyle();
 

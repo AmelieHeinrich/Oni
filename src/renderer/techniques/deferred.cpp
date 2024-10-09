@@ -10,9 +10,10 @@
 
 #include <meshopt/meshoptimizer.h>
 #include <cstdio>
+#include <ImGui/imgui_internal.h>
 
 Deferred::Deferred(RenderContext::Ptr context)
-    : _context(context), _gbufferPipeline(PipelineType::Graphics), _gbufferPipelineMesh(PipelineType::Mesh), _lightingPipeline(PipelineType::Compute), _testShader(PipelineType::Mesh)
+    : _context(context), _gbufferPipeline(PipelineType::Graphics), _gbufferPipelineMesh(PipelineType::Mesh), _lightingPipeline(PipelineType::Compute)
 {
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
@@ -96,7 +97,7 @@ Deferred::Deferred(RenderContext::Ptr context)
         _gbufferPipeline.Build(context);
     }
 
-    {
+    if (_context->GetDevice()->GetFeatures().MeshShaders) {
         _gbufferPipelineMesh.Specs.FormatCount = 5;
         _gbufferPipelineMesh.Specs.Formats[0] = TextureFormat::RGBA16Float;
         _gbufferPipelineMesh.Specs.Formats[1] = TextureFormat::RGBA8;
@@ -118,6 +119,10 @@ Deferred::Deferred(RenderContext::Ptr context)
         _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/Mesh/GBufferMesh.hlsl", "Main", ShaderType::Mesh);
         _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/Mesh/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
         _gbufferPipelineMesh.Build(context);
+
+        _useMesh = true;
+    } else {
+        _useMesh = false;
     }
     
     {
@@ -128,26 +133,6 @@ Deferred::Deferred(RenderContext::Ptr context)
         _lightingPipeline.ReflectRootSignature(false);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
         _lightingPipeline.Build(context);
-    }
-
-    {
-        _testShader.Specs.FormatCount = 1;
-        _testShader.Specs.Formats[0] = TextureFormat::RGBA16Float;
-        _testShader.Specs.DepthFormat = TextureFormat::R32Depth;
-        _testShader.Specs.Depth = DepthOperation::Less;
-        _testShader.Specs.DepthEnabled = true;
-        _testShader.Specs.Cull = CullMode::None;
-        _testShader.Specs.Fill = FillMode::Solid;
-        _testShader.Specs.CCW = false;
-
-        _testShader.SignatureInfo = {
-            { RootSignatureEntry::PushConstants },
-            4 * sizeof(uint32_t)
-        };
-        _testShader.ReflectRootSignature(false);
-        _testShader.AddShaderWatch("shaders/TestShaders/TriangleMesh.hlsl", "Main", ShaderType::Mesh);
-        _testShader.AddShaderWatch("shaders/TestShaders/TriangleFrag.hlsl", "Main", ShaderType::Fragment);
-        _testShader.Build(context);
     }
 
     for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -443,40 +428,6 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->EndEvent();
 }
 
-void Deferred::TestPass(Scene& scene, uint32_t width, uint32_t height)
-{
-    CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
-    uint32_t frameIndex = _context->GetBackBufferIndex();
-
-    OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
-    OPTICK_GPU_EVENT("Test");
-
-    struct Data {
-        uint32_t v;
-        uint32_t i;
-        uint32_t m;
-        uint32_t mt;
-    };
-    Data data = {
-        _vertexBuffer->SRV(),
-        _indexBuffer->SRV(),
-        _meshletBuffer->SRV(),
-        _meshletTrianglesBuffer->SRV()
-    };
-
-    commandBuffer->BeginEvent("Deferred Lighting");
-    commandBuffer->ImageBarrier(_outputImage, TextureLayout::RenderTarget);
-    commandBuffer->ClearDepthTarget(_depthBuffer);
-    commandBuffer->ClearRenderTarget(_outputImage, 0, 0, 0, 1);
-    commandBuffer->SetViewport(0, 0, width, height);
-    commandBuffer->BindRenderTargets({ _outputImage }, _depthBuffer);
-    commandBuffer->BindMeshPipeline(_testShader.MeshPipeline);
-    commandBuffer->PushConstantsGraphics(&data, sizeof(data), 0);
-    commandBuffer->DispatchMesh(1, 1, 1);
-    commandBuffer->ImageBarrier(_outputImage, TextureLayout::Storage);
-    commandBuffer->EndEvent();
-}
-
 void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
@@ -624,8 +575,18 @@ void Deferred::OnUI()
             ImGui::Text("Culled Meshes: %d", _culledMeshes);
 
             // TODO: Freeze frustum
-            ImGui::Checkbox("Use Mesh Shaders", &_useMesh);
-            ImGui::Checkbox("Show Meshlets", &_drawMeshlets);
+            if (_context->GetDevice()->GetFeatures().MeshShaders) {
+                ImGui::Checkbox("Use Mesh Shaders", &_useMesh);
+                ImGui::Checkbox("Show Meshlets", &_drawMeshlets);
+            } else {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Mesh shaders are not supported on your GPU!");
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+                ImGui::Checkbox("Use Mesh Shaders", &_useMesh);
+                ImGui::Checkbox("Show Meshlets", &_drawMeshlets);
+                ImGui::PopItemFlag();
+                ImGui::PopStyleVar();
+            }
 
             ImGui::TreePop();
         }
@@ -655,7 +616,6 @@ void Deferred::Reconstruct()
     _gbufferPipeline.CheckForRebuild(_context, "GBuffer Classic");
     _gbufferPipelineMesh.CheckForRebuild(_context, "GBuffer Mesh");
     _lightingPipeline.CheckForRebuild(_context, "Deferred");
-    _testShader.CheckForRebuild(_context, "Test Shader");
 }
 
 void Deferred::ConnectEnvironmentMap(EnvironmentMap& map)

@@ -129,6 +129,10 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     meshletTriangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
     meshlets.resize(meshletCount);
 
+    for (auto& m : meshlets) {
+        meshopt_optimizeMeshlet(&meshletVertices[m.vertex_offset], &meshletTriangles[m.triangle_offset], m.triangle_count, m.vertex_count);
+    }
+
     // PUSH
     std::vector<uint32_t> meshletPrimitives;
     for (auto& val : meshletTriangles) {
