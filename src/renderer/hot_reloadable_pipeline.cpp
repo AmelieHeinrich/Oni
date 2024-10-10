@@ -8,6 +8,7 @@
 
 #include "core/log.hpp"
 #include "core/shader_loader.hpp"
+#include "core/file_system.hpp"
 
 HotReloadablePipeline::~HotReloadablePipeline()
 {
@@ -21,6 +22,10 @@ void HotReloadablePipeline::ReflectRootSignature(bool reflect)
 
 void HotReloadablePipeline::AddShaderWatch(const std::string& path, const std::string& entryPoint, ShaderType type)
 {
+    if (!FileSystem::Exists(path)) {
+        Logger::Error("Shader doesn't exist!");
+    }
+
     ShaderWatch watch;
     watch.Path = path;
     watch.EntryPoint = entryPoint;
@@ -78,6 +83,17 @@ void HotReloadablePipeline::Build(RenderContext::Ptr context)
             MeshPipeline = context->CreateMeshPipeline(Specs);
             break;
         }
+        case PipelineType::Raytracing: {
+            if (_reflectRootSignature) {
+                Logger::Error("Shader reflection for raytracing shaders is currently unsupported!");
+            } else {
+                Signature = context->CreateRootSignature(SignatureInfo);
+            }
+            RTSpecs.LibBytecode = GetBytecode(ShaderType::Raytracing);
+            RTSpecs.Signature = Signature;
+            RTPipeline = context->CreateRaytracingPipeline(RTSpecs);
+            break;
+        }
     }
 }
 
@@ -122,6 +138,18 @@ void HotReloadablePipeline::CheckForRebuild(RenderContext::Ptr context, const st
                     }
 
                     MeshPipeline.reset();
+                    Build(context);
+                    break;
+                }
+                case PipelineType::Raytracing: {
+                    ShaderBytecode temp;
+                    if (!ShaderCompiler::CompileShader(watch.Path, watch.EntryPoint, shader.first, temp)) {
+                        return;
+                    } else {
+                        watch.Bytecode.bytecode = temp.bytecode;
+                    }
+
+                    RTPipeline.reset();
                     Build(context);
                     break;
                 }

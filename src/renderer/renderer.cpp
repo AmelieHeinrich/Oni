@@ -20,6 +20,9 @@ Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
 {
     // Create
+    if (context->GetDevice()->GetFeatures().Raytracing) {
+        _rtShadows = std::make_shared<RTShadows>(context);
+    }
     _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
     _ssao = std::make_shared<SSAO>(context);
     _deferred = std::make_shared<Deferred>(context);

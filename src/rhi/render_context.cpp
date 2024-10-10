@@ -189,6 +189,11 @@ MeshPipeline::Ptr RenderContext::CreateMeshPipeline(GraphicsPipelineSpecs& specs
     return std::make_shared<MeshPipeline>(_device, specs);
 }
 
+RaytracingPipeline::Ptr RenderContext::CreateRaytracingPipeline(RaytracingPipelineSpecs& specs)
+{
+    return std::make_shared<RaytracingPipeline>(_device, _allocator, _heaps, specs);
+}
+
 Texture::Ptr RenderContext::CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name)
 {
     return std::make_shared<Texture>(_device, _allocator, _heaps, width, height, format, usage, mips, name);

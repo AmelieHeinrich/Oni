@@ -27,6 +27,7 @@
 #include "rhi/raytracing/acceleration_structure.hpp"
 #include "rhi/raytracing/blas.hpp"
 #include "rhi/raytracing/tlas.hpp"
+#include "rhi/raytracing/raytracing_pipeline.hpp"
 
 struct FencePair
 {
@@ -57,13 +58,17 @@ public:
     uint32_t GetBackBufferIndex() { return _frameIndex; }
 
     Buffer::Ptr CreateBuffer(uint64_t size, uint64_t stride, BufferType type, bool readback, const std::string& name = "Buffer");
+    Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
+    CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, int mips = 1, const std::string& name = "Cube Map");
+
     GraphicsPipeline::Ptr CreateGraphicsPipeline(GraphicsPipelineSpecs& specs);
     ComputePipeline::Ptr CreateComputePipeline(ShaderBytecode& shader, RootSignature::Ptr rootSignature = nullptr);
     MeshPipeline::Ptr CreateMeshPipeline(GraphicsPipelineSpecs& specs);
-    Texture::Ptr CreateTexture(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage, bool mips, const std::string& name = "Texture");
-    Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
-    CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, int mips = 1, const std::string& name = "Cube Map");
+    RaytracingPipeline::Ptr CreateRaytracingPipeline(RaytracingPipelineSpecs& specs);
+    
     CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type, bool close = true);
+    Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
+
     BLAS::Ptr CreateBLAS(Buffer::Ptr vertexBuffer, Buffer::Ptr indexBuffer, int vertexCount, int indexCount, const std::string& name = "BLAS");
     TLAS::Ptr CreateTLAS(Buffer::Ptr instanceBuffer, uint32_t numInstances, const std::string& name = "TLAS");
     
@@ -72,6 +77,7 @@ public:
     RootSignature::Ptr CreateDefaultRootSignature(uint32_t pushConstantSize);
     
     Uploader CreateUploader();
+
     void FlushUploader(Uploader& uploader, CommandBuffer::Ptr commandBuffer);
     void FlushUploader(Uploader& uploader);
 

@@ -11,6 +11,7 @@
 #include "rhi/graphics_pipeline.hpp"
 #include "rhi/compute_pipeline.hpp"
 #include "rhi/mesh_pipeline.hpp"
+#include "rhi/raytracing/raytracing_pipeline.hpp"
 
 #include <unordered_map>
 
@@ -18,9 +19,8 @@ enum class PipelineType
 {
     Graphics,
     Compute,
-    Mesh
-    // Raytracing
-    // Mesh
+    Mesh,
+    Raytracing
     // Graph Node
 };
 
@@ -41,11 +41,13 @@ public:
     void CheckForRebuild(RenderContext::Ptr context, const std::string &name = "");
 
     GraphicsPipelineSpecs Specs;
+    RaytracingPipelineSpecs RTSpecs;
     RootSignatureBuildInfo SignatureInfo;
 
     GraphicsPipeline::Ptr GraphicsPipeline;
     ComputePipeline::Ptr ComputePipeline;
     MeshPipeline::Ptr MeshPipeline;
+    RaytracingPipeline::Ptr RTPipeline;
 
     RootSignature::Ptr Signature;
 private:
