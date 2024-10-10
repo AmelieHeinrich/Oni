@@ -167,3 +167,12 @@ void Uploader::BuildBLAS(BLAS::Ptr blas)
 
     _commands.push_back(command);
 }
+
+void Uploader::BuildTLAS(TLAS::Ptr tlas)
+{
+    UploadCommand command;
+    command.type = UploadCommandType::BuildTLAS;
+    command.tlas = tlas;
+
+    _commands.push_back(command);
+}

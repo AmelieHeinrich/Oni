@@ -68,6 +68,16 @@ struct MeshletBounds
 	float cone_cutoff; /* = cos(angle/2) */
 };
 
+struct RaytracingInstance
+{
+    glm::mat3x4 Transform;
+    uint32_t InstanceID	: 24;
+    uint32_t InstanceMask : 8;
+    uint32_t InstanceContributionToHitGroupIndex : 24;
+    uint32_t Flags : 8;
+    uint64_t AccelerationStructure;
+};
+
 struct Primitive
 {
     Buffer::Ptr VertexBuffer;
@@ -77,6 +87,7 @@ struct Primitive
     Buffer::Ptr MeshletTriangles;
     Buffer::Ptr MeshletBounds;
 
+    RaytracingInstance RTInstance;
     BLAS::Ptr BottomLevelAS;
 
     uint32_t VertexCount;
@@ -104,6 +115,7 @@ public:
     uint32_t VertexCount;
     uint32_t IndexCount;
     uint32_t MeshletCount;
+    uint32_t InstanceCount;
 
     std::string Directory;
     std::string Name;

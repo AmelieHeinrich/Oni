@@ -225,6 +225,11 @@ BLAS::Ptr RenderContext::CreateBLAS(Buffer::Ptr vertexBuffer, Buffer::Ptr indexB
     return std::make_shared<BLAS>(vertexBuffer, indexBuffer, vertexCount, indexCount, name);
 }
 
+TLAS::Ptr RenderContext::CreateTLAS(Buffer::Ptr instanceBuffer, uint32_t numInstances, const std::string& name)
+{
+    return std::make_shared<TLAS>(_device, _allocator, _heaps, instanceBuffer, numInstances, name);
+}
+
 RootSignature::Ptr RenderContext::CreateRootSignature()
 {
     return std::make_shared<RootSignature>(_device);
@@ -281,6 +286,10 @@ void RenderContext::FlushUploader(Uploader& uploader, CommandBuffer::Ptr cmdBuf)
                 cmdBuf->BuildAccelerationStructure(command.blas->_accelerationStructure, command.blas->_inputs);
                 break;
             }
+            case Uploader::UploadCommandType::BuildTLAS: {
+                cmdBuf->BuildAccelerationStructure(command.tlas->_accelerationStructure, command.tlas->_inputs);
+                break;
+            }
             default: {
                 break;
             }
@@ -331,6 +340,10 @@ void RenderContext::FlushUploader(Uploader& uploader)
             }
             case Uploader::UploadCommandType::BuildBLAS: {
                 cmdBuf->BuildAccelerationStructure(command.blas->_accelerationStructure, command.blas->_inputs);
+                break;
+            }
+            case Uploader::UploadCommandType::BuildTLAS: {
+                cmdBuf->BuildAccelerationStructure(command.tlas->_accelerationStructure, command.tlas->_inputs);
                 break;
             }
             default: {

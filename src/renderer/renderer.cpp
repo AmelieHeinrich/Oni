@@ -63,6 +63,8 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 {
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
 
+    scene.Update(_renderContext);
+
     _deferred->ShouldJitter(_taa->IsEnabled());
 
     {

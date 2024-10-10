@@ -41,6 +41,8 @@ public:
     uint32_t CBV() { return _cbv.HeapIndex; }
     uint32_t UAV() { return _uav.HeapIndex; }
     uint32_t SRV() { return _srv.HeapIndex; }
+
+    uint64_t Address() { return _resource->Resource->GetGPUVirtualAddress(); }
 private:
     friend class BLAS;
     friend class TLAS;

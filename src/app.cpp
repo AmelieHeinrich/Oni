@@ -517,6 +517,8 @@ void App::SetupScene()
     scene.Models.push_back(bistro);
 #endif
 
+    scene.Bake(_renderContext);
+
     for (int i = 0; i < TEST_LIGHT_COUNT; i++) {
         scene.Lights.AddPointLight(PointLight(
             glm::vec3(util::random_range(-6.0f, 6.0f), util::random_range(1.0f, 8.0f), util::random_range(-6.0f, 6.0f)),

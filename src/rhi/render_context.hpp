@@ -65,6 +65,7 @@ public:
     CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, int mips = 1, const std::string& name = "Cube Map");
     CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type, bool close = true);
     BLAS::Ptr CreateBLAS(Buffer::Ptr vertexBuffer, Buffer::Ptr indexBuffer, int vertexCount, int indexCount, const std::string& name = "BLAS");
+    TLAS::Ptr CreateTLAS(Buffer::Ptr instanceBuffer, uint32_t numInstances, const std::string& name = "TLAS");
     
     RootSignature::Ptr CreateRootSignature();
     RootSignature::Ptr CreateRootSignature(RootSignatureBuildInfo& info);

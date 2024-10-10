@@ -28,12 +28,15 @@ BLAS::BLAS(Buffer::Ptr vertexBuffer, Buffer::Ptr indexBuffer, int vertexCount, i
     _accelerationStructure = ASBuilder::Allocate(_inputs, nullptr, name);
 }
 
-BLAS::~BLAS()
+void BLAS::FreeScratch()
 {
     _accelerationStructure.Scratch->Resource->Release();
     _accelerationStructure.Scratch->Allocation->Release();
     _accelerationStructure.Scratch->ClearFromAllocationList();
+}
 
+BLAS::~BLAS()
+{
     _accelerationStructure.AS->Resource->Release();
     _accelerationStructure.AS->Allocation->Release();
     _accelerationStructure.AS->ClearFromAllocationList();

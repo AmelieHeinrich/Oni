@@ -209,6 +209,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     uploader.CopyHostToDeviceLocal(meshletBounds.data(), meshletBounds.size() * sizeof(MeshletBounds), out.MeshletBounds);
     uploader.BuildBLAS(out.BottomLevelAS);
 
+    out.RTInstance.AccelerationStructure = out.BottomLevelAS->Address();
+    out.RTInstance.InstanceMask = 1;
+    out.RTInstance.InstanceID = 0;
+    out.RTInstance.Transform = glm::mat3x4(glm::transpose(out.Transform.Matrix));
+
     // ALBEDO TEXTURE
     {
         if (material->pbr_metallic_roughness.base_color_texture.texture) {
@@ -326,6 +331,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
 
     context->FlushUploader(uploader);
 
+    out.BottomLevelAS->FreeScratch();
+
     struct ModelData {
         glm::mat4 Camera;
         glm::mat4 PrevCamera;
@@ -341,6 +348,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     VertexCount += out.VertexCount;
     IndexCount += out.IndexCount;
     MeshletCount += out.MeshletCount;
+    InstanceCount += 1;
 
     Materials.push_back(meshMaterial);
 
