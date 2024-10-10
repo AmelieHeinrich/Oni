@@ -53,11 +53,11 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 
 ## WIP (GPU Driven and latest GPU tech)
 - Meshlet culling
+- Indirect Buffers
 
 ## WIP (Shading and Math)
 
-- Frustum culling and AABB viz
-- Cascaded shadow mapping
+- RT Shadows
 
 ## Dependencies
 
