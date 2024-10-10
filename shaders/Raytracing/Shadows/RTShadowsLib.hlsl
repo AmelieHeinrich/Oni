@@ -8,8 +8,8 @@
 
 struct RayPayload
 {
-    float3 Color;
     bool Missed;
+    float Depth;
 };
 
 struct Camera
@@ -66,19 +66,19 @@ void RayGeneration()
     ray.TMax = 10000.0;
 
     RayPayload payload = (RayPayload)0;
-    payload.Color = 1.0;
     payload.Missed = false;
+    payload.Depth = 0;
 
     TraceRay(scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
-    Target[index] = float4(payload.Color, 1.0);
+    float3 color = payload.Missed ? 0.5 : 1.0;
+    Target[index] = float4(color, 1.0);
 }
 
 [shader("miss")]
-void Miss(inout RayPayload paylod)
+void Miss(inout RayPayload payload)
 {
-    paylod.Color = 1.0;
-    paylod.Missed = true;
+    payload.Missed = true;
 }
 
 [shader("closesthit")]
@@ -91,17 +91,16 @@ void ClosestHit(inout RayPayload payload, BuiltInTriangleIntersectionAttributes 
 
     RayDesc shadowRay = (RayDesc)0;
     shadowRay.Origin = pos;
-    shadowRay.Direction = lights.Sun.Direction.xyz;
+    shadowRay.Direction = -lights.Sun.Direction.xyz;
     shadowRay.TMin = 0.001;
     shadowRay.TMax = 1;
 
     RayPayload shadowPayload = (RayPayload)0;
-    shadowPayload.Color = 0.0;
     shadowPayload.Missed = false;
+    shadowPayload.Depth = 0;
 
-    TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, shadowRay, shadowPayload);
-
-    if (!shadowPayload.Missed) {
-        payload.Color = 0.5;
+    if (payload.Depth < 2) {
+        TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, shadowRay, shadowPayload);
+        payload.Depth++;
     }
 }

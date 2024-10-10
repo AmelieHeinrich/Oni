@@ -27,23 +27,19 @@ TLAS::TLAS(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& 
     desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     desc.Format = DXGI_FORMAT_UNKNOWN;
-    desc.RaytracingAccelerationStructure.Location = _accelerationStructure.AS->Resource->GetGPUVirtualAddress();
+    desc.RaytracingAccelerationStructure.Location = _accelerationStructure.AS->GetGPUVirtualAddress();
 
     device->GetDevice()->CreateShaderResourceView(nullptr, &desc, _srv.CPU);
 }
 
 void TLAS::FreeScratch()
 {
-    _accelerationStructure.Scratch->Resource->Release();
-    _accelerationStructure.Scratch->Allocation->Release();
-    _accelerationStructure.Scratch->ClearFromAllocationList();
+    _accelerationStructure.Scratch->Release();
 }
 
 TLAS::~TLAS()
 {
     _heaps.ShaderHeap->Free(_srv);
 
-    _accelerationStructure.AS->Resource->Release();
-    _accelerationStructure.AS->Allocation->Release();
-    _accelerationStructure.AS->ClearFromAllocationList();
+    _accelerationStructure.AS->Release();
 }

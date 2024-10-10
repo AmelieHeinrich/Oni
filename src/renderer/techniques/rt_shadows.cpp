@@ -12,7 +12,8 @@ RTShadows::RTShadows(RenderContext::Ptr context)
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
 
-    _rtPipeline.RTSpecs.PayloadSize = 4 * sizeof(uint32_t);
+    _rtPipeline.RTSpecs.PayloadSize = 2 * sizeof(uint32_t);
+    _rtPipeline.RTSpecs.MaxTraceRecursionDepth = 3;
 
     _rtPipeline.SignatureInfo = {
         { RootSignatureEntry::PushConstants },
@@ -93,7 +94,7 @@ void RTShadows::Render(Scene& scene, uint32_t width, uint32_t height)
         });
         commandBuffer->BindRaytracingPipeline(_rtPipeline.RTPipeline);
         commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
-        //commandBuffer->TraceRays(width, height);
+        commandBuffer->TraceRays(width, height);
         commandBuffer->ImageBarrierBatch({
             { _output, TextureLayout::ShaderResource }
         });

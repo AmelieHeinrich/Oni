@@ -9,14 +9,14 @@
 void Scene::Update(RenderContext::Ptr context)
 {
     if (context->GetDevice()->GetFeatures().Raytracing) {
-        Instances.clear();
-        for (auto& m : Models) {
-            for (auto& primitive : m.Primitives) {
-                Instances.push_back(primitive.RTInstance);
-            }       
-        }
-
-        memcpy(pData, Instances.data(), Instances.size() * sizeof(RaytracingInstance));
+        //Instances.clear();
+        //for (auto& m : Models) {
+        //    for (auto& primitive : m.Primitives) {
+        //        Instances.push_back(primitive.RTInstance);
+        //    }       
+        //}
+//
+        //memcpy(pData, Instances.data(), Instances.size() * sizeof(RaytracingInstance));
     }
 }
 
@@ -34,6 +34,7 @@ void Scene::Bake(RenderContext::Ptr context)
 
         InstanceBuffers->Map(0, 0, &pData);
         memcpy(pData, Instances.data(), Instances.size() * sizeof(RaytracingInstance));
+        InstanceBuffers->Unmap(0, 0);
 
         // Create TLAS
         TLAS = context->CreateTLAS(InstanceBuffers, Instances.size(), "Scene TLAS");
