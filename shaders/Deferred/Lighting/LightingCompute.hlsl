@@ -70,6 +70,7 @@ struct Constants
     
     float Direct;
     float Indirect;
+    bool RTShadows;
 };
 
 ConstantBuffer<Constants> Settings : register(b0);
@@ -241,7 +242,12 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     albedo.xyz = pow(albedo.xyz, float3(2.2, 2.2, 2.2));
 
     // Shadow
-    float shadow = ShadowCalculation(data, ShadowMap, ShadowSampler, LightBuffer);
+    float shadow = 0.0;
+    if (Settings.RTShadows) {
+        shadow = ShadowMap.Sample(Sampler, TexCoords).r;
+    } else {
+        shadow = ShadowCalculation(data, ShadowMap, ShadowSampler, LightBuffer);
+    }
 
     // Velocity
     float2 velocity = Velocity.Sample(Sampler, TexCoords);
@@ -314,7 +320,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = Emissive.Sample(Sampler, TexCoords);
             break;
         case MODE_SPECULAR:
-            final = float4(directLighting, 1.0);
+            final = shadow;
             break;
         case MODE_AMBIENT:
             final = float4(indirectLighting, 1.0);

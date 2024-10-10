@@ -22,6 +22,7 @@ public:
     void OnUI();
     void Reconstruct();
 
+    Texture::Ptr GetOutput() { return _output; }
 private:
     RenderContext::Ptr _context;
 

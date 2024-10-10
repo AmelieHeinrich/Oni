@@ -70,6 +70,11 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
 
     scene.Update(_renderContext);
+    if (_useRTShadows) {
+        _deferred->ConnectShadowMap(_rtShadows->GetOutput());
+    } else {
+        _deferred->ConnectShadowMap(_shadows->GetOutput());
+    }
 
     _deferred->ShouldJitter(_taa->IsEnabled());
 
@@ -261,6 +266,9 @@ void Renderer::Screenshot(Texture::Ptr screenshotTexture, TextureLayout newLayou
 
 void Renderer::Reconstruct()
 {
+    if (_useRTShadows) {
+        _rtShadows->Reconstruct();
+    }
     _shadows->Reconstruct();
     _ssao->Reconstruct();
     _deferred->Reconstruct();

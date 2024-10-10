@@ -63,13 +63,13 @@ void RayGeneration()
     ray.Origin = origin;
     ray.Direction = direction;
     ray.TMin = 0.001;
-    ray.TMax = 10000.0;
+    ray.TMax = 1000.0;
 
     RayPayload payload = (RayPayload)0;
     payload.Missed = false;
-    payload.Depth = 0;
+    payload.Depth = 1;
 
-    TraceRay(scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
+    TraceRay(scene, 0, ~0, 0, 0, 0, ray, payload);
 
     float3 color = payload.Missed ? 0.5 : 1.0;
     Target[index] = float4(color, 1.0);
@@ -91,16 +91,16 @@ void ClosestHit(inout RayPayload payload, BuiltInTriangleIntersectionAttributes 
 
     RayDesc shadowRay = (RayDesc)0;
     shadowRay.Origin = pos;
-    shadowRay.Direction = -lights.Sun.Direction.xyz;
+    shadowRay.Direction = lights.Sun.Direction.xyz;
     shadowRay.TMin = 0.001;
-    shadowRay.TMax = 1;
+    shadowRay.TMax = 1.0;
 
     RayPayload shadowPayload = (RayPayload)0;
     shadowPayload.Missed = false;
-    shadowPayload.Depth = 0;
+    shadowPayload.Depth = payload.Depth + 1;
 
     if (payload.Depth < 2) {
-        TraceRay(scene, RAY_FLAG_NONE, 0xFF, 0, 0, 0, shadowRay, shadowPayload);
-        payload.Depth++;
+        TraceRay(scene, RAY_FLAG_NONE, ~0, 0, 0, 0, shadowRay, shadowPayload);
     }
+    payload.Missed = shadowPayload.Missed;
 }

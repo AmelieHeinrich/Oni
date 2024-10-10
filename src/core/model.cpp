@@ -212,6 +212,7 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.RTInstance.AccelerationStructure = out.BottomLevelAS->Address();
     out.RTInstance.InstanceMask = 1;
     out.RTInstance.InstanceID = 0;
+    // Because D3D12 wants it in row major
     out.RTInstance.Transform = glm::mat3x4(glm::transpose(out.Transform.Matrix));
 
     // ALBEDO TEXTURE

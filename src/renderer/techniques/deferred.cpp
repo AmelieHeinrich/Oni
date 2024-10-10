@@ -130,7 +130,7 @@ Deferred::Deferred(RenderContext::Ptr context)
     {
         _lightingPipeline.SignatureInfo = {
             { RootSignatureEntry::PushConstants },
-            84
+            88
         };
         _lightingPipeline.ReflectRootSignature(false);
         _lightingPipeline.AddShaderWatch("shaders/Deferred/Lighting/LightingCompute.hlsl", "Main", ShaderType::Compute);
@@ -508,7 +508,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             
             float direct;
             float indirect;
-            float _Pad0;
+            bool RTShadows;
         };
         Constants constants = {
             _depthBuffer->SRV(),
@@ -531,7 +531,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             _outputImage->UAV(),
             _directTerm,
             _indirectTerm,
-            0.0f
+            _shadowMap->GetWidth() == width ? true : false
         };
 
         commandBuffer->SetViewport(0, 0, width, height);
