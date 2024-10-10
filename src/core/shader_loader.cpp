@@ -110,6 +110,9 @@ ShaderType ShaderLoader::GetTypeFromPath(const std::string& path)
     if (path.find("Amplification") != std::string::npos) {
         return ShaderType::Amplification;
     }
+    if (path.find("Lib") != std::string::npos) {
+        return ShaderType::Raytracing;
+    }
     return ShaderType::None;
 }
 

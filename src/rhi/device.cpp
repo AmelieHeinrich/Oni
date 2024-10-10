@@ -149,7 +149,7 @@ void DeviceFeatures::CheckSupport(ID3D12Device *device)
     device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &meshShaderData, sizeof(meshShaderData));
     device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &workGraphData, sizeof(workGraphData));
 
-    Raytracing = raytracingData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
-    MeshShaders = meshShaderData.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
-    WorkGraphs = workGraphData.WorkGraphsTier != D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED;
+    Raytracing = raytracingData.RaytracingTier == D3D12_RAYTRACING_TIER_1_1; // 1_1 for execute indirect
+    MeshShaders = meshShaderData.MeshShaderTier == D3D12_MESH_SHADER_TIER_1;
+    WorkGraphs = workGraphData.WorkGraphsTier == D3D12_WORK_GRAPHS_TIER_1_0;
 }

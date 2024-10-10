@@ -31,6 +31,9 @@ const char *GetProfileFromType(ShaderType type)
         case ShaderType::Amplification: {
             return "as_6_6";
         }
+        case ShaderType::Raytracing: {
+            return "lib_6_6";
+        }
     }
     return "???";
 }
@@ -74,7 +77,9 @@ bool ShaderCompiler::CompileShader(const std::string& path, const std::string& e
         L"-Zi",
         L"-Fd",
         L"-Fre",
-        L"-Qembed_debug"
+        L"-Qembed_debug",
+        L"-Wno-payload-access-perf",
+        L"-Wno-payload-access-shader"
     };
 
     ComPtr<IDxcOperationResult> pResult;

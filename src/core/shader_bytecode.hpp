@@ -17,8 +17,7 @@ enum class ShaderType : uint32_t
     Compute = 3,
     Mesh = 4,
     Amplification = 5,
-    // TODO(ahi): Amplification
-    // TODO(ahi): Raytracing
+    Raytracing = 6,
     // TODO(ahi): Node
 };
 

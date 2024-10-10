@@ -41,7 +41,7 @@ private:
     std::string _name;
     DeviceFeatures _features;
 
-    ID3D12Device2* _device;
+    ID3D12Device6* _device;
     ID3D12Debug1* _debug;
     ID3D12DebugDevice* _debugDevice;
     IDXGIAdapter1* _adapter;
