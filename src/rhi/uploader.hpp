@@ -10,6 +10,7 @@
 #include "command_queue.hpp"
 #include "command_buffer.hpp"
 #include "device.hpp"
+#include "raytracing/blas.hpp"
 
 #include "core/bitmap.hpp"
 #include "core/texture_file.hpp"
@@ -28,6 +29,8 @@ public:
     void CopyTextureToTexture(Texture::Ptr pSourceTexture, Texture::Ptr pDestTexture);
     void CopyBufferToTexture(Buffer::Ptr pSourceBuffer, Texture::Ptr pDestTexture);
     void CopyTextureToBuffer(Texture::Ptr pSourceTexture, Buffer::Ptr pDestBuffer);
+    
+    void BuildBLAS(BLAS::Ptr blas);
 private:
     friend class RenderContext;
 
@@ -46,7 +49,8 @@ private:
         BufferToBuffer,
         TextureToTexture,
         BufferToTexture,
-        TextureToBuffer
+        TextureToBuffer,
+        BuildBLAS
     };
 
     struct UploadCommand
@@ -62,6 +66,8 @@ private:
 
         Buffer::Ptr sourceBuffer;
         Buffer::Ptr destBuffer;
+
+        BLAS::Ptr blas;
     };
     std::vector<UploadCommand> _commands;
 };

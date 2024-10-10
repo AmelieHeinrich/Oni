@@ -207,7 +207,8 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     uploader.CopyHostToDeviceLocal(meshletVertices.data(), meshletVertices.size() * sizeof(uint32_t), out.MeshletVertices);
     uploader.CopyHostToDeviceLocal(meshletPrimitives.data(), meshletPrimitives.size() * sizeof(uint32_t), out.MeshletTriangles);
     uploader.CopyHostToDeviceLocal(meshletBounds.data(), meshletBounds.size() * sizeof(MeshletBounds), out.MeshletBounds);
-    
+    uploader.BuildBLAS(out.BottomLevelAS);
+
     // ALBEDO TEXTURE
     {
         if (material->pbr_metallic_roughness.base_color_texture.texture) {

@@ -158,3 +158,12 @@ void Uploader::CopyTextureToBuffer(Texture::Ptr pSourceTexture, Buffer::Ptr pDes
 
     _commands.push_back(command);
 }
+
+void Uploader::BuildBLAS(BLAS::Ptr blas)
+{
+    UploadCommand command;
+    command.type = UploadCommandType::BuildBLAS;
+    command.blas = blas;
+
+    _commands.push_back(command);
+}

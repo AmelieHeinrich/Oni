@@ -277,6 +277,10 @@ void RenderContext::FlushUploader(Uploader& uploader, CommandBuffer::Ptr cmdBuf)
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout::ShaderResource);
                 break;
             }
+            case Uploader::UploadCommandType::BuildBLAS: {
+                cmdBuf->BuildAccelerationStructure(command.blas->_accelerationStructure, command.blas->_inputs);
+                break;
+            }
             default: {
                 break;
             }
@@ -323,6 +327,10 @@ void RenderContext::FlushUploader(Uploader& uploader)
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout::CopyDest);
                 cmdBuf->CopyTextureFileToTexture(command.destTexture, command.sourceBuffer, command.textureFile);
                 cmdBuf->ImageBarrier(command.destTexture, TextureLayout::ShaderResource);
+                break;
+            }
+            case Uploader::UploadCommandType::BuildBLAS: {
+                cmdBuf->BuildAccelerationStructure(command.blas->_accelerationStructure, command.blas->_inputs);
                 break;
             }
             default: {

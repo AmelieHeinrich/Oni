@@ -17,6 +17,7 @@ BLAS::BLAS(Buffer::Ptr vertexBuffer, Buffer::Ptr indexBuffer, int vertexCount, i
     _geometryDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
     _geometryDesc.Triangles.VertexBuffer.StartAddress = vertexBuffer->_resource->Resource->GetGPUVirtualAddress();
     _geometryDesc.Triangles.VertexBuffer.StrideInBytes = vertexBuffer->_stride;
+    _geometryDesc.Triangles.Transform3x4 = 0;
 
     _inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
     _inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;

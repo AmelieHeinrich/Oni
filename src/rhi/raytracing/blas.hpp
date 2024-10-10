@@ -24,14 +24,13 @@ public:
 
     int GetInstanceIndex() { return _blasInstanceIndex; }
 private:
-    friend class CommandBuffer;
-    friend class Uploader;
+    friend class RenderContext;
 
     static int _instanceCounter;
     int _blasInstanceIndex = 0;
 
-    AccelerationStructure _accelerationStructure;
+    AccelerationStructure _accelerationStructure = {};
 
-    D3D12_RAYTRACING_GEOMETRY_DESC _geometryDesc;
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS _inputs;
+    D3D12_RAYTRACING_GEOMETRY_DESC _geometryDesc = {};
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS _inputs = {};
 };
