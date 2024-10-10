@@ -77,6 +77,8 @@ struct Primitive
     Buffer::Ptr MeshletTriangles;
     Buffer::Ptr MeshletBounds;
 
+    BLAS::Ptr BottomLevelAS;
+
     uint32_t VertexCount;
     uint32_t IndexCount;
     uint32_t MeshletCount;

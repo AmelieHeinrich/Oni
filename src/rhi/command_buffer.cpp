@@ -473,6 +473,16 @@ void CommandBuffer::CopyTextureToBuffer(Buffer::Ptr dst, Texture::Ptr src)
     _commandList->CopyTextureRegion(&CopyDest, 0, 0, 0, &CopySource, nullptr);
 }
 
+void CommandBuffer::BuildAccelerationStructure(AccelerationStructure structure, const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs)
+{
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+    buildDesc.Inputs = inputs;
+    buildDesc.DestAccelerationStructureData = structure.AS->Resource->GetGPUVirtualAddress();
+    buildDesc.ScratchAccelerationStructureData = structure.Scratch->Resource->GetGPUVirtualAddress();
+
+    _commandList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+}
+
 void CommandBuffer::BeginImGui(int width, int height)
 {
     ImGuiIO& io = ImGui::GetIO();

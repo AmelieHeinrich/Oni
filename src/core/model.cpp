@@ -175,6 +175,11 @@ void Model::ProcessPrimitive(RenderContext::Ptr context, cgltf_primitive *primit
     out.MeshletBounds = context->CreateBuffer(meshletBounds.size() * sizeof(MeshletBounds), sizeof(MeshletBounds), BufferType::Storage, false, "Meshlet Bounds Buffer");
     out.MeshletBounds->BuildShaderResource();
 
+    if (context->GetDevice()->GetFeatures().Raytracing) {
+        // Build BLAS
+        out.BottomLevelAS = context->CreateBLAS(out.VertexBuffer, out.IndexBuffer, out.VertexCount, out.IndexCount, "Bottom Level Acceleration Structure");
+    }
+
     for (int i = 0; i < 3; i++) {
         out.ModelBuffer[i] = context->CreateBuffer(512, 0, BufferType::Constant, false, "Model Buffer");
         out.ModelBuffer[i]->BuildConstantBuffer();

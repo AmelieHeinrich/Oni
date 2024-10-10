@@ -19,6 +19,8 @@
 #include "compute_pipeline.hpp"
 #include "mesh_pipeline.hpp"
 
+#include "raytracing/acceleration_structure.hpp"
+
 #define SUBRESOURCE_ALL 999
 
 enum class CommandQueueType;
@@ -103,6 +105,10 @@ public:
 
     void CopyBufferToTextureLOD(Texture::Ptr dst, Buffer::Ptr src, int mip);
     void CopyTextureFileToTexture(Texture::Ptr dst, Buffer::Ptr srcTexels, TextureFile *file);
+
+    // RT
+    void BuildAccelerationStructure(AccelerationStructure structure, const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& inputs);
+    //
 
     void BeginImGui(int width, int height);
     void EndImGui();

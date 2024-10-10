@@ -31,7 +31,7 @@ public:
     Device();
     ~Device();
 
-    ID3D12Device2* GetDevice() { return _device; }
+    ID3D12Device6* GetDevice() { return _device; }
     IDXGIFactory3* GetFactory() { return _factory; }
     IDXGIAdapter1* GetAdapter() { return _adapter; }
 

@@ -24,6 +24,10 @@
 #include "rhi/uploader.hpp"
 #include "rhi/cube_map.hpp"
 
+#include "rhi/raytracing/acceleration_structure.hpp"
+#include "rhi/raytracing/blas.hpp"
+#include "rhi/raytracing/tlas.hpp"
+
 struct FencePair
 {
     Fence::Ptr Fence;
@@ -60,6 +64,7 @@ public:
     Sampler::Ptr CreateSampler(SamplerAddress address, SamplerFilter filter, bool mips, int anisotropyLevel);
     CubeMap::Ptr CreateCubeMap(uint32_t width, uint32_t height, TextureFormat format, int mips = 1, const std::string& name = "Cube Map");
     CommandBuffer::Ptr CreateCommandBuffer(CommandQueueType type, bool close = true);
+    BLAS::Ptr CreateBLAS(Buffer::Ptr vertexBuffer, Buffer::Ptr indexBuffer, int vertexCount, int indexCount, const std::string& name = "BLAS");
     
     RootSignature::Ptr CreateRootSignature();
     RootSignature::Ptr CreateRootSignature(RootSignatureBuildInfo& info);

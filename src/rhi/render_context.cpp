@@ -90,6 +90,8 @@ RenderContext::RenderContext(std::shared_ptr<Window> hwnd)
     _mipmapPipeline = CreateComputePipeline(bytecode, CreateDefaultRootSignature(sizeof(glm::vec4) * 2));
     _mipmapSampler = CreateSampler(SamplerAddress::Clamp, SamplerFilter::Linear, true, 0);
 
+    ASBuilder::Init(_allocator, _device);
+
     WaitForGPU();
 }
 
@@ -216,6 +218,11 @@ CubeMap::Ptr RenderContext::CreateCubeMap(uint32_t width, uint32_t height, Textu
 CommandBuffer::Ptr RenderContext::CreateCommandBuffer(CommandQueueType type, bool close)
 {
     return std::make_shared<CommandBuffer>(_device, _allocator, _heaps, type, close);
+}
+
+BLAS::Ptr RenderContext::CreateBLAS(Buffer::Ptr vertexBuffer, Buffer::Ptr indexBuffer, int vertexCount, int indexCount, const std::string& name)
+{
+    return std::make_shared<BLAS>(vertexBuffer, indexBuffer, vertexCount, indexCount, name);
 }
 
 RootSignature::Ptr RenderContext::CreateRootSignature()

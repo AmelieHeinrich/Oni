@@ -3,6 +3,10 @@
 Oni is a modern graphics engine written in C++ with the DirectX 12 API. Its goal is to showcase the latest advancements in real-time rendering.
 Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- everything that isn't a draw call is done through compute.
 
+## DISCLAIMER
+
+This is an experimental renderer as I am currently learning graphics programming. Please take this into consideration when reading the code for this renderer.
+
 ## Requirements
 
 - [xmake](https://xmake.io/#/)
@@ -39,7 +43,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - PBR + metallic material workflow
 - Emissive materials
 - Point, directional lights
-- Screen Space Ambient Occlusion (experimental)
+- Screen Space Ambient Occlusion (EXPERIMENTAL)
 
 ## Renderer features (GPU)
 - Meshlet rendering & frustum culling

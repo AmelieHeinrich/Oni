@@ -17,7 +17,8 @@ enum class BufferType
     Index,
     Constant,
     Storage,
-    Copy
+    Copy,
+    AccelerationStructure
 };
 
 class Buffer
@@ -41,6 +42,8 @@ public:
     uint32_t UAV() { return _uav.HeapIndex; }
     uint32_t SRV() { return _srv.HeapIndex; }
 private:
+    friend class BLAS;
+    friend class TLAS;
     friend class CommandBuffer;
 
     Device::Ptr _devicePtr;

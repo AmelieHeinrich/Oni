@@ -29,7 +29,20 @@ Buffer::Buffer(Device::Ptr devicePtr, Allocator::Ptr allocator, DescriptorHeap::
         ResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
 
-    _state = type == BufferType::Constant ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_COMMON;
+    switch (type) {
+        case BufferType::Constant: {
+            _state = D3D12_RESOURCE_STATE_GENERIC_READ;
+            break;
+        }
+        case BufferType::AccelerationStructure: {
+            _state = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+            break;
+        }
+        default: {
+            _state = D3D12_RESOURCE_STATE_COMMON;
+            break;
+        }
+    }
 
     _resource = allocator->Allocate(&AllocationDesc, &ResourceDesc, _state, name);
 
