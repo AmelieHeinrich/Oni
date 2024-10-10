@@ -17,13 +17,18 @@ public:
     RTShadows(RenderContext::Ptr context);
     ~RTShadows() = default;
 
-    void Render(Scene& scene, uint32_t width, uint32_t height) {}
+    void Render(Scene& scene, uint32_t width, uint32_t height);
     void Resize(uint32_t width, uint32_t height, Texture::Ptr inputHDR) {}
-    void OnUI() {}
-    void Reconstruct() {}
+    void OnUI();
+    void Reconstruct();
 
 private:
     RenderContext::Ptr _context;
+
+    Texture::Ptr _output;
+    Buffer::Ptr _cameraBuffers[FRAMES_IN_FLIGHT];
+    Buffer::Ptr _lightBuffers[FRAMES_IN_FLIGHT];
+    bool _enable = true;
 
     HotReloadablePipeline _rtPipeline;
 };

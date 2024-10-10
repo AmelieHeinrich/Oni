@@ -13,6 +13,7 @@
 #include <ctime>
 
 #include <ImGui/imgui.h>
+#include <ImGui/imgui_internal.h>
 #include <stb/stb_image_write.h>
 #include <optick.h>
 
@@ -22,6 +23,8 @@ Renderer::Renderer(RenderContext::Ptr context)
     // Create
     if (context->GetDevice()->GetFeatures().Raytracing) {
         _rtShadows = std::make_shared<RTShadows>(context);
+    } else {
+        _useRTShadows = false;
     }
     _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
     _ssao = std::make_shared<SSAO>(context);
@@ -73,9 +76,15 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
     {
         OPTICK_EVENT("Frame Render");
 
-        _stats.PushFrameTime("Shadows", [this, &scene, width, height]() {
-            _shadows->Render(scene, width, height);
-        });
+        if (_useRTShadows) {
+            _stats.PushFrameTime("RT Shadows", [this, &scene, width, height]() {
+                _rtShadows->Render(scene, width, height);
+            });
+        } else {
+            _stats.PushFrameTime("Shadows", [this, &scene, width, height]() {
+                _shadows->Render(scene, width, height);
+            });
+        }
         _stats.PushFrameTime("GBuffer", [this, &scene, width, height]() {
             if (_deferred->UseMeshShaders()) {
                 _deferred->GBufferPassMesh(scene, width, height);
@@ -166,7 +175,27 @@ void Renderer::OnUI()
 {
     ImGui::Begin("Renderer Settings");
 
-    _shadows->OnUI();
+    if (ImGui::TreeNodeEx("Raytracing", ImGuiTreeNodeFlags_Framed)) {
+        if (_renderContext->GetDevice()->GetFeatures().MeshShaders) {
+            ImGui::Checkbox("Use RT Shadows", &_useRTShadows);
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Mesh shaders are not supported on your GPU!");
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Checkbox("Use RT Shadows", &_useRTShadows);
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
+
+    if (_useRTShadows) {
+        _rtShadows->OnUI();
+    } else {
+        _shadows->OnUI();
+    }
     _ssao->OnUI();
     _deferred->OnUI();
     _envMapForward->OnUI();

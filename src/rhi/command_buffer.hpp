@@ -20,6 +20,7 @@
 #include "mesh_pipeline.hpp"
 
 #include "raytracing/acceleration_structure.hpp"
+#include "raytracing/raytracing_pipeline.hpp"
 
 #define SUBRESOURCE_ALL 999
 
@@ -75,6 +76,9 @@ public:
     void BindIndexBuffer(Buffer::Ptr buffer);
 
     void BindMeshPipeline(MeshPipeline::Ptr pipeline);
+
+    void BindRaytracingPipeline(RaytracingPipeline::Ptr pipeline);
+
     void BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline);
     void BindGraphicsConstantBuffer(Buffer::Ptr buffer, int index);
     void BindGraphicsShaderResource(Texture::Ptr texture, int index);
@@ -97,6 +101,7 @@ public:
     void DrawIndexed(int indexCount);
     void Dispatch(int x, int y, int z);
     void DispatchMesh(int x, int y, int z);
+    void TraceRays(int width, int height);
 
     void CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src);
     void CopyBufferToBuffer(Buffer::Ptr dst, Buffer::Ptr src);
@@ -122,4 +127,6 @@ private:
     D3D12_COMMAND_LIST_TYPE _type;
     ID3D12GraphicsCommandList6* _commandList; // TODO(ahi): Switch to newer version of command list to get access to DXR, Mesh shaders and Work Graphs
     ID3D12CommandAllocator* _commandAllocator;
+
+    RaytracingPipeline::Ptr _currentlyBoundRT = nullptr;
 };

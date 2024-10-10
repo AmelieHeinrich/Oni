@@ -6,7 +6,10 @@
 
 #include "tlas.hpp"
 
+#include "core/log.hpp"
+
 TLAS::TLAS(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, Buffer::Ptr instanceBuffer, uint32_t numInstances, const std::string& name)
+    : _heaps(heaps)
 {
     _inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
     _inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
@@ -17,6 +20,16 @@ TLAS::TLAS(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& 
     _accelerationStructure = ASBuilder::Allocate(_inputs, &_updateScratchSize, "TLAS");
 
     _tlasUpdate = std::make_shared<Buffer>(device, allocator, heaps, _updateScratchSize, 0, BufferType::Storage, false, name);
+
+    _srv = heaps.ShaderHeap->Allocate();
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+    desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+    desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    desc.Format = DXGI_FORMAT_UNKNOWN;
+    desc.RaytracingAccelerationStructure.Location = _accelerationStructure.AS->Resource->GetGPUVirtualAddress();
+
+    device->GetDevice()->CreateShaderResourceView(nullptr, &desc, _srv.CPU);
 }
 
 void TLAS::FreeScratch()
@@ -28,6 +41,8 @@ void TLAS::FreeScratch()
 
 TLAS::~TLAS()
 {
+    _heaps.ShaderHeap->Free(_srv);
+
     _accelerationStructure.AS->Resource->Release();
     _accelerationStructure.AS->Allocation->Release();
     _accelerationStructure.AS->ClearFromAllocationList();

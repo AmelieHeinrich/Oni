@@ -15,7 +15,6 @@ struct RayPayload
 struct Camera
 {
     column_major float4x4 CameraMatrix;
-
     float3 CameraPosition;
     float Pad;
 };

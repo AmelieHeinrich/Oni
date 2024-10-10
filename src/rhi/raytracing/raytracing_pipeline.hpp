@@ -32,6 +32,7 @@ public:
 
     ID3D12StateObject* GetPipeline() { return _pipeline; }
     RootSignature::Ptr GetSignature() { return _signature; }
+    Buffer::Ptr GetTables() { return _idBuffer; }
 private:
     ID3D12StateObject* _pipeline = nullptr;
     RootSignature::Ptr _signature = nullptr;

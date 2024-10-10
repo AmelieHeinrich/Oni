@@ -83,4 +83,6 @@ private:
     
     // Debug renderer
     std::shared_ptr<DebugRenderer> _debugRenderer;
+
+    bool _useRTShadows = true;
 };

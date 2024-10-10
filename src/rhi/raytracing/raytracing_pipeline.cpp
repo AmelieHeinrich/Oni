@@ -16,6 +16,8 @@ RaytracingPipeline::RaytracingPipeline(Device::Ptr device, Allocator::Ptr alloca
         return;
     }
 
+    _signature = specs.Signature;
+
     D3D12_DXIL_LIBRARY_DESC lib = {};
     lib.DXILLibrary.BytecodeLength = specs.LibBytecode.bytecode.size() * sizeof(uint32_t);
     lib.DXILLibrary.pShaderBytecode = specs.LibBytecode.bytecode.data();

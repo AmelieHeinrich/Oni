@@ -250,6 +250,14 @@ void CommandBuffer::BindMeshPipeline(MeshPipeline::Ptr pipeline)
     _commandList->SetGraphicsRootSignature(pipeline->GetSignature()->GetSignature());
 }
 
+void CommandBuffer::BindRaytracingPipeline(RaytracingPipeline::Ptr pipeline)
+{
+    _currentlyBoundRT = pipeline;
+
+    _commandList->SetPipelineState1(pipeline->GetPipeline());
+    _commandList->SetComputeRootSignature(pipeline->GetSignature()->GetSignature());
+}
+
 void CommandBuffer::BindGraphicsPipeline(GraphicsPipeline::Ptr pipeline)
 {
     _commandList->SetPipelineState(pipeline->GetPipeline());
@@ -345,6 +353,27 @@ void CommandBuffer::Dispatch(int x, int y, int z)
 void CommandBuffer::DispatchMesh(int x, int y, int z)
 {
     _commandList->DispatchMesh(x, y, z);
+}
+
+void CommandBuffer::TraceRays(int width, int height)
+{
+    if (_currentlyBoundRT == nullptr) {
+        Logger::Error("Please bind a raytracing pipeline before calling TraceRays");
+    }
+    uint64_t address = _currentlyBoundRT->GetTables()->Address();
+
+    D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
+    dispatchDesc.RayGenerationShaderRecord.StartAddress = address;
+    dispatchDesc.RayGenerationShaderRecord.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+    dispatchDesc.MissShaderTable.StartAddress = address + D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
+    dispatchDesc.MissShaderTable.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+    dispatchDesc.HitGroupTable.StartAddress = address + (2 * D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+    dispatchDesc.HitGroupTable.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+    dispatchDesc.Width = width;
+    dispatchDesc.Height = height;
+    dispatchDesc.Depth = 1;
+
+    _commandList->DispatchRays(&dispatchDesc);
 }
 
 void CommandBuffer::CopyTextureToTexture(Texture::Ptr dst, Texture::Ptr src)

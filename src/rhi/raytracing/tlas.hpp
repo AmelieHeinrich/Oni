@@ -22,9 +22,11 @@ public:
     TLAS(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& heaps, Buffer::Ptr instanceBuffer, uint32_t numInstances, const std::string& name = "TLAS");
     ~TLAS();
 
+    uint32_t SRV() { return _srv.HeapIndex; }
     void FreeScratch();
 private:
     friend class RenderContext;
+    DescriptorHeap::Heaps _heaps;
 
     AccelerationStructure _accelerationStructure = {};
     
@@ -32,4 +34,5 @@ private:
     Buffer::Ptr _tlasUpdate;
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS _inputs = {};
+    DescriptorHeap::Descriptor _srv;
 };
