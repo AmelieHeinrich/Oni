@@ -359,6 +359,8 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
 
                     glm::vec3 CameraPosition;
                     float Scale;
+
+                    glm::vec4 Planes[6];
                 };
                 ModelUpload matrices = {
                     scene.Camera.Projection() * scene.Camera.View(),
@@ -366,11 +368,14 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
                     primitive.Transform.Matrix,
                     primitive.PrevTransform.Matrix,
                     scene.Camera.GetPosition(),
-                    primitive.Transform.Scale.x
+                    (primitive.Transform.Scale.x + primitive.Transform.Scale.y + primitive.Transform.Scale.y) / 3.0f
                 };
                 if (_visualizeShadow) {
                     matrices.CameraMatrix = depthProjection * depthView;
                     matrices.PrevCameraMatrix = depthProjection * depthView;
+                }
+                for (int i = 0; i < 6; i++) {
+                    matrices.Planes[i] = scene.Camera.GetPlane(i);
                 }
 
                 void *pData;

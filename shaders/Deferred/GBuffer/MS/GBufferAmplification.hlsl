@@ -30,6 +30,8 @@ struct ModelMatrices
 
     float3 CameraPosition;
     float Scale;
+
+    float4 Planes[6];    
 };
 
 struct PushConstants
@@ -63,14 +65,23 @@ bool IsVisible(MeshletBounds bound)
 {
     ConstantBuffer<ModelMatrices> Matrices = ResourceDescriptorHeap[Constants.Matrices];
     
-    float4 center = mul(float4(bound.center.xyz, 1), Matrices.Transform);
-    
-    float3 axis = normalize(mul(float4(bound.cone_axis.xyz, 0), Matrices.Transform)).xyz;
+    float4 center = mul(Matrices.Transform, float4(bound.center.xyz, 1));
+    float radius = bound.radius * Matrices.Scale;
+
+    float3 axis = normalize(mul(Matrices.Transform, float4(bound.cone_axis.xyz, 0))).xyz;
     float3 apex = center.xyz - axis * bound.cone_apex;
     float3 view = normalize(Matrices.CameraPosition - apex);
 
-    if (dot(view, -axis) > bound.cone_cutoff)
-        return true;
+    // CONE CULLING: FIX THAT SHIT BRO
+    //if (dot(view, -axis) > bound.cone_cutoff)
+    //    return true;
+    
+    // FRUSTUM CULLING
+    for (int i = 0; i < 6; i++) {
+        if (dot(Matrices.Planes[i].xyz, center.xyz) - Matrices.Planes[i].w <= -radius)
+            return false;
+    }
+
     return true;
 }
 

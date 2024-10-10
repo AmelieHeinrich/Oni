@@ -135,6 +135,29 @@ bool FreeCamera::InFrustum(AABB aabb)
             IsOnOrForwardPlane(_Frustum.Far, aabb));
 }
 
+glm::vec4 FreeCamera::GetPlane(int i)
+{
+    if (i == 0) {
+        return glm::vec4(_Frustum.Left.Normal, _Frustum.Left.Distance);
+    }
+    if (i == 1) {
+        return glm::vec4(_Frustum.Right.Normal, _Frustum.Right.Distance);
+    }
+    if (i == 2) {
+        return glm::vec4(_Frustum.Top.Normal, _Frustum.Top.Distance);
+    }
+    if (i == 3) {
+        return glm::vec4(_Frustum.Bottom.Normal, _Frustum.Bottom.Distance);
+    }
+    if (i == 4) {
+        return glm::vec4(_Frustum.Near.Normal, _Frustum.Near.Distance);
+    }
+    if (i == 5) {
+        return glm::vec4(_Frustum.Far.Normal, _Frustum.Far.Distance);
+    }
+    return glm::vec4(1.0f);
+}
+
 bool FreeCamera::IsOnOrForwardPlane(const Plane& plane, AABB aabb)
 {
     glm::vec3 vmin, vmax;

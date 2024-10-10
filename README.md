@@ -42,7 +42,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - Screen Space Ambient Occlusion (experimental)
 
 ## Renderer features (GPU)
-- Meshlet rendering
+- Meshlet rendering & frustum culling
 - Bindless resources via SM6.6
 
 ## Other features
@@ -52,7 +52,7 @@ Oni makes heavy use of compute shaders to accelerate the rendering pipeline -- e
 - In-engine BC7 texture compressor using custom texture format
 
 ## WIP (GPU Driven and latest GPU tech)
-- Meshlet culling
+- Meshlet cone culling
 - Indirect Buffers
 
 ## WIP (Shading and Math)

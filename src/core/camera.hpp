@@ -53,6 +53,7 @@ public:
     glm::vec3& GetPosition() { return _Position; }
 
     bool InFrustum(AABB aabb);
+    glm::vec4 GetPlane(int i);
 private:
     bool IsOnOrForwardPlane(const Plane& plane, AABB aabb);
     Frustum _Frustum;
