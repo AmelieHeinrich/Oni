@@ -46,14 +46,17 @@ This is an experimental renderer as I am currently learning graphics programming
 - Screen Space Ambient Occlusion (EXPERIMENTAL)
 
 ## Renderer features (GPU)
-- Meshlet rendering & frustum culling
+- Hardware accelerated mesh shaders & amplification shaders
+- Meshlet rendering & culling
 - Bindless resources via SM6.6
+- Hardware accelerated raytracing
+- In-engine BC7 texture compressor using custom texture format
+- Mipmaps
 
 ## Other features
 - UI powered by ImGui
 - In-engine screenshot system
 - Shader hot reloading and caching
-- In-engine BC7 texture compressor using custom texture format
 
 ## WIP (GPU Driven and latest GPU tech)
 - Meshlet cone culling
