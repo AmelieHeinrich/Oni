@@ -29,12 +29,12 @@
 #include "renderer/techniques/debug_renderer.hpp"
 
 #define SCENE_BALLS 0
-#define SCENE_SPONZA 0
+#define SCENE_SPONZA 1
 #define SCENE_BISTRO 0
 #define SCENE_METRO 0
 #define SCENE_EMERALDSQUARE 0
 #define SCENE_SUNTEMPLE 0
-#define SCENE_SMALL 1
+#define SCENE_SMALL 0
 #define SCENE_TEXTURE_COMPRESSION_TEST 0
 #define SCENE_PLATFORM 0
 

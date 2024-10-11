@@ -44,29 +44,17 @@ void RTShadows::Render(Scene& scene, uint32_t width, uint32_t height)
 
     // Update data
     struct CameraData {
-        glm::vec3 WorldTopLeft;
-        glm::vec3 WorldTopRight;
-        glm::vec3 WorldBottomLeft;
+        glm::mat4 InvView;
+        glm::mat4 InvProj;
 
         glm::vec3 CameraPosition;
         float Pad;
     };
     CameraData cam;
+    cam.InvView = glm::inverse(scene.Camera.View());
+    cam.InvProj = glm::inverse(scene.Camera.Projection());
     cam.CameraPosition = scene.Camera.GetPosition();
     cam.Pad = 0.0f;
-
-    glm::mat4 invViewProj = glm::inverse(scene.Camera.Projection() * scene.Camera.View());
-    glm::vec4 WorldTopLeft = glm::vec4(0, 0, 0, 0);
-    glm::vec4 WorldTopRight = glm::vec4(1, 0, 0, 0);
-    glm::vec4 WorldBottomLeft = glm::vec4(0, -1, 0, 0);
-
-    WorldTopLeft = invViewProj * WorldTopLeft;
-    WorldTopRight = invViewProj * WorldTopRight;
-    WorldBottomLeft = invViewProj * WorldBottomLeft;
-
-    cam.WorldTopLeft = glm::vec3((glm::vec3(WorldTopLeft) / WorldTopLeft.w));
-    cam.WorldTopRight = glm::vec3((glm::vec3(WorldTopRight) / WorldTopRight.w));
-    cam.WorldBottomLeft = glm::vec3((glm::vec3(WorldBottomLeft) / WorldBottomLeft.w));
 
     void *pData;
     _lightBuffers[frameIndex]->Map(0, 0, &pData);

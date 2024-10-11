@@ -44,6 +44,7 @@ This is an experimental renderer as I am currently learning graphics programming
 - Emissive materials
 - Point, directional lights
 - Screen Space Ambient Occlusion (EXPERIMENTAL)
+- Fully raytraced shadows with DXR
 
 ## Renderer features (GPU)
 - Hardware accelerated mesh shaders & amplification shaders
@@ -64,7 +65,7 @@ This is an experimental renderer as I am currently learning graphics programming
 
 ## WIP (Shading and Math)
 
-- RT Shadows
+- Clustered forward
 
 ## Dependencies
 

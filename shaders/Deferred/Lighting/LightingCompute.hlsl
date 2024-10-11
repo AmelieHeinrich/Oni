@@ -268,11 +268,16 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
 
     float3 directLighting = 0.0;
     {
+        float shadowFactor = shadow;
+        if (!Settings.RTShadows) {
+            shadowFactor = (1.0 - shadowFactor);
+        }
+
         for (int i = 0; i < LightBuffer.PointLightCount; i++) {
             Lo += CalcPointLight(data, LightBuffer.PointLights[i], V, N, F0, roughness, metallic, albedo);
         }
         if (LightBuffer.HasSun) {
-            Lo += CalcDirectionalLight(data, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo) * (1.0 - shadow);
+            Lo += CalcDirectionalLight(data, LightBuffer.Sun, V, N, F0, roughness, metallic, albedo) * shadowFactor;
         }
         directLighting += Lo;
     }
