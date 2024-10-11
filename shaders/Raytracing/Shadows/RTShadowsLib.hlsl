@@ -14,7 +14,10 @@ struct RayPayload
 
 struct Camera
 {
-    column_major float4x4 CameraMatrix;
+    float3 WorldTopLeft;
+    float3 WorldTopRight;
+    float3 WorldBottomLeft;
+
     float3 CameraPosition;
     float Pad;
 };
@@ -28,29 +31,33 @@ struct Constants
 };
 
 ConstantBuffer<Constants> Settings : register(b0);
+RaytracingAccelerationStructure Scene : register(t1);
 
+// Special thanks to https://github.com/DeadMG/dx12/blob/master/Renderer.Direct3D12/Shaders/Raytrace/RayGen/Camera.hlsl
 void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
 {
     ConstantBuffer<Camera> Matrices = ResourceDescriptorHeap[Settings.Camera];
 
-    float2 xy = index + 0.5f; // center in the middle of the pixel.
-    float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
-
-    // Invert Y for DirectX-style coordinates.
-    screenPos.y = -screenPos.y;
-
-    // Unproject the pixel coordinate into a ray.
-    float4 world = mul(Matrices.CameraMatrix, float4(screenPos, 0, 1));
-    world.xyz /= world.w;
+    // Get the location within the dispatched 2D grid of work items
+    // (often maps to pixels, so this could represent a pixel coordinate).
+    uint2 launchIndex = DispatchRaysIndex().xy;
+    // 0.5f puts us in the center of that pixel
+    float2 pixelCoordinate = launchIndex.xy + 0.5f;
+    // The given dimensions are the absolute maximum of the frustum; they are on the boundaries. There's 1 more boundary than there is pixels.
+    float2 dims = float2(DispatchRaysDimensions().xy) + 1.0f;
+    
+    float3 top = (Matrices.WorldTopRight - Matrices.WorldTopLeft) / dims.x;
+    float3 down = (Matrices.WorldBottomLeft - Matrices.WorldTopLeft) / dims.y;
+    
+    float3 target = Matrices.WorldTopLeft + (top * pixelCoordinate.x) + (down * pixelCoordinate.y);
 
     origin = Matrices.CameraPosition;
-    direction = normalize(world.xyz - origin);
+    direction = normalize(target - Matrices.CameraPosition);
 }
 
 [shader("raygeneration")]
 void RayGeneration()
 {
-    RaytracingAccelerationStructure scene = ResourceDescriptorHeap[Settings.Scene];
     RWTexture2D<float4> Target = ResourceDescriptorHeap[Settings.Output];
 
     uint2 index = DispatchRaysIndex().xy;
@@ -69,9 +76,9 @@ void RayGeneration()
     payload.Missed = false;
     payload.Depth = 1;
 
-    TraceRay(scene, 0, ~0, 0, 0, 0, ray, payload);
+    TraceRay(Scene, 0, ~0, 0, 0, 0, ray, payload);
 
-    float3 color = payload.Missed ? 0.5 : 1.0;
+    float3 color = payload.Missed ? 1.0 : 0.5;
     Target[index] = float4(color, 1.0);
 }
 
@@ -84,14 +91,11 @@ void Miss(inout RayPayload payload)
 [shader("closesthit")]
 void ClosestHit(inout RayPayload payload, BuiltInTriangleIntersectionAttributes attrib)
 {
-    RaytracingAccelerationStructure scene = ResourceDescriptorHeap[Settings.Scene];
     ConstantBuffer<LightData> lights = ResourceDescriptorHeap[Settings.Light];
 
-    float3 pos = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
-
     RayDesc shadowRay = (RayDesc)0;
-    shadowRay.Origin = pos;
-    shadowRay.Direction = lights.Sun.Direction.xyz;
+    shadowRay.Origin = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
+    shadowRay.Direction = normalize(lights.Sun.Direction.xyz);
     shadowRay.TMin = 0.001;
     shadowRay.TMax = 1.0;
 
@@ -100,7 +104,7 @@ void ClosestHit(inout RayPayload payload, BuiltInTriangleIntersectionAttributes 
     shadowPayload.Depth = payload.Depth + 1;
 
     if (payload.Depth < 2) {
-        TraceRay(scene, RAY_FLAG_NONE, ~0, 0, 0, 0, shadowRay, shadowPayload);
+        TraceRay(Scene, RAY_FLAG_NONE, ~0, 0, 0, 0, shadowRay, shadowPayload);
     }
     payload.Missed = shadowPayload.Missed;
 }

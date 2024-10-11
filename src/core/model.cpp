@@ -433,5 +433,6 @@ void Model::ApplyTransform(glm::mat4 transform)
 {
     for (auto& primitive : Primitives) {
         primitive.Transform.Matrix *= transform;
+        primitive.RTInstance.Transform = glm::mat3x4(glm::transpose(primitive.Transform.Matrix));
     }
 }

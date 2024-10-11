@@ -21,6 +21,7 @@
 
 #include "raytracing/acceleration_structure.hpp"
 #include "raytracing/raytracing_pipeline.hpp"
+#include "raytracing/tlas.hpp"
 
 #define SUBRESOURCE_ALL 999
 
@@ -88,6 +89,7 @@ public:
     void BindComputePipeline(ComputePipeline::Ptr pipeline);
     void BindComputeShaderResource(Texture::Ptr texture, int index, int mip = 0);
     void BindComputeStorageTexture(Texture::Ptr texture, int index, int mip = 0);
+    void BindComputeAccelerationStructure(TLAS::Ptr tlas, int index);
     void BindComputeCubeMapShaderResource(CubeMap::Ptr texture, int index);
     void BindComputeCubeMapStorage(CubeMap::Ptr texture, int index, int mip = 0);
     void BindComputeConstantBuffer(Buffer::Ptr buffer, int index);

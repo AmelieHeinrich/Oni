@@ -310,6 +310,11 @@ void CommandBuffer::BindComputeCubeMapStorage(CubeMap::Ptr texture, int index, i
     _commandList->SetComputeRootDescriptorTable(index, texture->_uavs[mip].GPU);
 }
 
+void CommandBuffer::BindComputeAccelerationStructure(TLAS::Ptr tlas, int index)
+{
+    _commandList->SetComputeRootDescriptorTable(index, tlas->_srv.GPU);
+}
+
 void CommandBuffer::BindComputeConstantBuffer(Buffer::Ptr buffer, int index)
 {
     _commandList->SetComputeRootDescriptorTable(index, buffer->_cbv.GPU);

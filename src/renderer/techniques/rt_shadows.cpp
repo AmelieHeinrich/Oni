@@ -16,7 +16,7 @@ RTShadows::RTShadows(RenderContext::Ptr context)
     _rtPipeline.RTSpecs.MaxTraceRecursionDepth = 3;
 
     _rtPipeline.SignatureInfo = {
-        { RootSignatureEntry::PushConstants },
+        { RootSignatureEntry::PushConstants, RootSignatureEntry::SRV },
         4 * sizeof(uint32_t)
     };
     _rtPipeline.ReflectRootSignature(false);
@@ -44,15 +44,29 @@ void RTShadows::Render(Scene& scene, uint32_t width, uint32_t height)
 
     // Update data
     struct CameraData {
-        glm::mat4 CameraMatrix;
+        glm::vec3 WorldTopLeft;
+        glm::vec3 WorldTopRight;
+        glm::vec3 WorldBottomLeft;
+
         glm::vec3 CameraPosition;
         float Pad;
     };
-    CameraData cam = {
-        scene.Camera.Projection() * scene.Camera.View(),
-        scene.Camera.GetPosition(),
-        0.0f
-    };
+    CameraData cam;
+    cam.CameraPosition = scene.Camera.GetPosition();
+    cam.Pad = 0.0f;
+
+    glm::mat4 invViewProj = glm::inverse(scene.Camera.Projection() * scene.Camera.View());
+    glm::vec4 WorldTopLeft = glm::vec4(0, 0, 0, 0);
+    glm::vec4 WorldTopRight = glm::vec4(1, 0, 0, 0);
+    glm::vec4 WorldBottomLeft = glm::vec4(0, -1, 0, 0);
+
+    WorldTopLeft = invViewProj * WorldTopLeft;
+    WorldTopRight = invViewProj * WorldTopRight;
+    WorldBottomLeft = invViewProj * WorldBottomLeft;
+
+    cam.WorldTopLeft = glm::vec3((glm::vec3(WorldTopLeft) / WorldTopLeft.w));
+    cam.WorldTopRight = glm::vec3((glm::vec3(WorldTopRight) / WorldTopRight.w));
+    cam.WorldBottomLeft = glm::vec3((glm::vec3(WorldBottomLeft) / WorldBottomLeft.w));
 
     void *pData;
     _lightBuffers[frameIndex]->Map(0, 0, &pData);
@@ -62,6 +76,8 @@ void RTShadows::Render(Scene& scene, uint32_t width, uint32_t height)
     _cameraBuffers[frameIndex]->Map(0, 0, &pData);
     memcpy(pData, &cam, sizeof(cam));
     _cameraBuffers[frameIndex]->Unmap(0, 0);
+
+    commandBuffer->BeginEvent("RT Shadows");
 
     // Clear Output
     commandBuffer->BeginEvent("RT Shadows Clear");
@@ -94,12 +110,15 @@ void RTShadows::Render(Scene& scene, uint32_t width, uint32_t height)
         });
         commandBuffer->BindRaytracingPipeline(_rtPipeline.RTPipeline);
         commandBuffer->PushConstantsCompute(&data, sizeof(data), 0);
+        commandBuffer->BindComputeAccelerationStructure(scene.TLAS, 1);
         commandBuffer->TraceRays(width, height);
         commandBuffer->ImageBarrierBatch({
             { _output, TextureLayout::ShaderResource }
         });
         commandBuffer->EndEvent();
     }
+
+    commandBuffer->EndEvent();
 }
 
 void RTShadows::OnUI()

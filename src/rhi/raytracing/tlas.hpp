@@ -26,6 +26,8 @@ public:
     void FreeScratch();
 private:
     friend class RenderContext;
+    friend class CommandBuffer;
+
     DescriptorHeap::Heaps _heaps;
 
     AccelerationStructure _accelerationStructure = {};
