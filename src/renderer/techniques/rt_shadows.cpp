@@ -17,7 +17,7 @@ RTShadows::RTShadows(RenderContext::Ptr context)
 
     _rtPipeline.SignatureInfo = {
         { RootSignatureEntry::PushConstants, RootSignatureEntry::SRV },
-        4 * sizeof(uint32_t)
+        8 * sizeof(uint32_t)
     };
     _rtPipeline.ReflectRootSignature(false);
     _rtPipeline.AddShaderWatch("shaders/Raytracing/Shadows/RTShadowsLib.hlsl", "", ShaderType::Raytracing);
@@ -84,12 +84,19 @@ void RTShadows::Render(Scene& scene, uint32_t width, uint32_t height)
             uint32_t Camera;
             uint32_t Light;
             uint32_t Output;
+
+            float ShadowRayMax;
+            float ShadowIntensity;
+            glm::vec2 Pad;
         };
         Data data = {
             scene.TLAS->SRV(),
             _cameraBuffers[frameIndex]->CBV(),
             _lightBuffers[frameIndex]->CBV(),
-            _output->UAV()
+            _output->UAV(),
+            _shadowRayMax,
+            _shadowIntensity,
+            glm::vec2(0.0f)
         };
 
         commandBuffer->BeginEvent("RT Shadows");
@@ -113,6 +120,8 @@ void RTShadows::OnUI()
 {
     if (ImGui::TreeNodeEx("RT Shadows", ImGuiTreeNodeFlags_Framed)) {
         ImGui::Checkbox("Enable", &_enable);
+        ImGui::SliderFloat("Shadow Intensity", &_shadowIntensity, 0.0f, 1.0f, "%.1f");
+        ImGui::SliderFloat("Secondary Ray TMax", &_shadowRayMax, 1.0f, 1000.0f, "%.1f");
         ImGui::TreePop();
     }
 }

@@ -30,6 +30,8 @@ private:
     Buffer::Ptr _cameraBuffers[FRAMES_IN_FLIGHT];
     Buffer::Ptr _lightBuffers[FRAMES_IN_FLIGHT];
     bool _enable = true;
+    float _shadowIntensity = 1.0f;
+    float _shadowRayMax = 50.0f;
 
     HotReloadablePipeline _rtPipeline;
 };

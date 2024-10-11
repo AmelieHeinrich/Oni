@@ -27,6 +27,10 @@ struct Constants
     uint Camera;
     uint Light;
     uint Output;
+
+    float ShadowRayMax;
+    float ShadowIntensity;
+    float2 _Pad;
 };
 
 ConstantBuffer<Constants> Settings : register(b0);
@@ -64,7 +68,7 @@ void RayGeneration()
     ray.Origin = origin;
     ray.Direction = direction;
     ray.TMin = 0.001;
-    ray.TMax = 1000.0;
+    ray.TMax = 10000.0;
 
     RayPayload payload = (RayPayload)0;
     payload.Missed = false;
@@ -72,7 +76,7 @@ void RayGeneration()
 
     TraceRay(Scene, 0, ~0, 0, 0, 0, ray, payload);
 
-    float3 color = payload.Missed ? 1.0 : 0.0;
+    float3 color = payload.Missed ? 1.0 : (1.0 - Settings.ShadowIntensity);
     Target[index] = float4(color, 1.0);
 }
 
@@ -91,7 +95,7 @@ void ClosestHit(inout RayPayload payload, BuiltInTriangleIntersectionAttributes 
     shadowRay.Origin = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
     shadowRay.Direction = lights.Sun.Direction.xyz;
     shadowRay.TMin = 0.001;
-    shadowRay.TMax = 100.0;
+    shadowRay.TMax = Settings.ShadowRayMax;
 
     RayPayload shadowPayload = (RayPayload)0;
     shadowPayload.Missed = false;
