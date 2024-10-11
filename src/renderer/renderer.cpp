@@ -101,7 +101,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
             _ssao->Render(scene, width, height);
         });
         _stats.PushFrameTime("Lighting", [this, &scene, width, height]() {
-            _deferred->LightingPass(scene, width, height);
+            _deferred->LightingPass(scene, width, height, _useRTShadows);
         });
         _stats.PushFrameTime("Environment Map", [this, &scene, width, height]() {
             _envMapForward->Render(scene, width, height);

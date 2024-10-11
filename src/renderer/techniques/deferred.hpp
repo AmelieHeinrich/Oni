@@ -19,7 +19,7 @@ public:
     Deferred(RenderContext::Ptr renderContext);
     ~Deferred();
 
-    void Render(Scene& scene, uint32_t width, uint32_t height);
+    void Render(Scene& scene, uint32_t width, uint32_t height, bool rtShadows);
     void Resize(uint32_t width, uint32_t height);
     void OnUI();
     void Reconstruct();
@@ -40,7 +40,7 @@ public:
 
     void GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height);
     void GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height);
-    void LightingPass(Scene& scene, uint32_t width, uint32_t height);
+    void LightingPass(Scene& scene, uint32_t width, uint32_t height, bool rtShadows);
 private:
     RenderContext::Ptr _context;
     EnvironmentMap _map;

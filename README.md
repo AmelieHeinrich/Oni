@@ -28,7 +28,17 @@ This is an experimental renderer as I am currently learning graphics programming
 
 ## Screenshots
 
-![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png) ![](screenshots/NewBistro.png) ![](screenshots/Meshlets.png) ![](screenshots/Bloom.png)
+### Sponza Scene
+![](screenshots/engine/Screenshot%20Fri%20Sep%2027%2022_56_42%202024.png)
+
+### Editor showing meshlets and raytraced shadows output
+![](screenshots/Editor.png)
+
+### Bistro scene
+![](screenshots/RTShadows.png)
+
+### Bloom
+![](screenshots/Bloom.png)
 
 ## Renderer features (techniques)
 

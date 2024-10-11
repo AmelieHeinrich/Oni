@@ -325,7 +325,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
             final = Emissive.Sample(Sampler, TexCoords);
             break;
         case MODE_SPECULAR:
-            final = shadow;
+            final = float4(directLighting, 1.0);
             break;
         case MODE_AMBIENT:
             final = float4(indirectLighting, 1.0);

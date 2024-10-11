@@ -443,7 +443,7 @@ void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->EndEvent();
 }
 
-void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
+void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height, bool rtShadows)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
     uint32_t frameIndex = _context->GetBackBufferIndex();
@@ -531,7 +531,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
             _outputImage->UAV(),
             _directTerm,
             _indirectTerm,
-            _shadowMap->GetWidth() == width ? true : false
+            rtShadows
         };
 
         commandBuffer->SetViewport(0, 0, width, height);
@@ -543,14 +543,14 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height)
     commandBuffer->EndEvent();
 }
 
-void Deferred::Render(Scene& scene, uint32_t width, uint32_t height)
+void Deferred::Render(Scene& scene, uint32_t width, uint32_t height, bool rtShadows)
 {
     if (_useMesh) {
         GBufferPassClassic(scene, width, height);
     } else {
         GBufferPassMesh(scene, width, height);
     }
-    LightingPass(scene, width, height);
+    LightingPass(scene, width, height, rtShadows);
 }
 
 void Deferred::Resize(uint32_t width, uint32_t height)
