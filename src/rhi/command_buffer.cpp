@@ -511,8 +511,8 @@ void CommandBuffer::BuildAccelerationStructure(AccelerationStructure structure, 
 {
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
     buildDesc.Inputs = inputs;
-    buildDesc.DestAccelerationStructureData = structure.AS->GetGPUVirtualAddress();
-    buildDesc.ScratchAccelerationStructureData = structure.Scratch->GetGPUVirtualAddress();
+    buildDesc.DestAccelerationStructureData = structure.AS->Resource->GetGPUVirtualAddress();
+    buildDesc.ScratchAccelerationStructureData = structure.Scratch->Resource->GetGPUVirtualAddress();
 
     _commandList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
 }

@@ -30,10 +30,14 @@ BLAS::BLAS(Buffer::Ptr vertexBuffer, Buffer::Ptr indexBuffer, int vertexCount, i
 
 void BLAS::FreeScratch()
 {
-    _accelerationStructure.Scratch->Release();
+    _accelerationStructure.Scratch->Resource->Release();
+    _accelerationStructure.Scratch->Allocation->Release();
+    _accelerationStructure.Scratch->ClearFromAllocationList();
 }
 
 BLAS::~BLAS()
 {
-    _accelerationStructure.AS->Release();
+    _accelerationStructure.AS->Resource->Release();
+    _accelerationStructure.AS->Allocation->Release();
+    _accelerationStructure.AS->ClearFromAllocationList();
 }

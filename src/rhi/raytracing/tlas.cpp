@@ -12,7 +12,7 @@ TLAS::TLAS(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& 
     : _heaps(heaps)
 {
     _inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-    _inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
+    _inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE | D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
     _inputs.NumDescs = numInstances;
     _inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     _inputs.InstanceDescs = instanceBuffer->Address();
@@ -27,19 +27,23 @@ TLAS::TLAS(Device::Ptr device, Allocator::Ptr allocator, DescriptorHeap::Heaps& 
     desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     desc.Format = DXGI_FORMAT_UNKNOWN;
-    desc.RaytracingAccelerationStructure.Location = _accelerationStructure.AS->GetGPUVirtualAddress();
+    desc.RaytracingAccelerationStructure.Location = _accelerationStructure.AS->Resource->GetGPUVirtualAddress();
 
     device->GetDevice()->CreateShaderResourceView(nullptr, &desc, _srv.CPU);
 }
 
 void TLAS::FreeScratch()
 {
-    _accelerationStructure.Scratch->Release();
+    _accelerationStructure.Scratch->Resource->Release();
+    _accelerationStructure.Scratch->Allocation->Release();
+    _accelerationStructure.Scratch->ClearFromAllocationList();
 }
 
 TLAS::~TLAS()
 {
     _heaps.ShaderHeap->Free(_srv);
 
-    _accelerationStructure.AS->Release();
+    _accelerationStructure.AS->Resource->Release();
+    _accelerationStructure.AS->Allocation->Release();
+    _accelerationStructure.AS->ClearFromAllocationList();
 }

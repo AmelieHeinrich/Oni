@@ -10,8 +10,8 @@
 
 struct AccelerationStructure
 {
-    ID3D12Resource* AS;
-    ID3D12Resource* Scratch;
+    GPUResource* AS;
+    GPUResource* Scratch;
 };
 
 class ASBuilder

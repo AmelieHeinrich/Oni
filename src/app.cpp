@@ -29,8 +29,8 @@
 #include "renderer/techniques/debug_renderer.hpp"
 
 #define SCENE_BALLS 0
-#define SCENE_SPONZA 0
-#define SCENE_BISTRO 1
+#define SCENE_SPONZA 1
+#define SCENE_BISTRO 0
 #define SCENE_METRO 0
 #define SCENE_EMERALDSQUARE 0
 #define SCENE_SUNTEMPLE 0
@@ -60,7 +60,7 @@ App::App()
     ShaderLoader::TraverseDirectory("shaders/");
 
     // Make window
-    _window = std::make_shared<Window>(1920, 1080, "ONI");
+    _window = std::make_shared<Window>(1920, 1080, "Oni");
     _window->OnResize([&](uint32_t width, uint32_t height) {
         _renderContext->Resize(width, height);
         _renderer->Resize(width, height);

@@ -25,7 +25,7 @@ public:
     int GetInstanceIndex() { return _blasInstanceIndex; }
     void FreeScratch();
 
-    uint64_t Address() { return _accelerationStructure.AS->GetGPUVirtualAddress(); }
+    uint64_t Address() { return _accelerationStructure.AS->Resource->GetGPUVirtualAddress(); }
 private:
     friend class RenderContext;
 
