@@ -71,6 +71,7 @@ struct Constants
     float Direct;
     float Indirect;
     bool RTShadows;
+    uint Accel;
 };
 
 ConstantBuffer<Constants> Settings : register(b0);
@@ -202,6 +203,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     ConstantBuffer<LightData> LightBuffer = ResourceDescriptorHeap[Settings.LightBuffer];
     ConstantBuffer<OutputBuffer> OutputData = ResourceDescriptorHeap[Settings.OutputData];
     RWTexture2D<float4> HDRBuffer = ResourceDescriptorHeap[Settings.HDRBuffer];
+    RaytracingAccelerationStructure Accel = ResourceDescriptorHeap[Settings.Accel];
 
     // Start
 
@@ -211,7 +213,6 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     if (ThreadID.x > width || ThreadID.y > height) {
         return;
     }
-
     float2 TexCoords = TexelToUV(ThreadID.xy, 1.0 / float2(width, height));
 
     FragmentData data;
@@ -222,6 +223,7 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     // Position
     float4 position = GetPositionFromDepth(TexCoords, depth, SceneBuffer.CameraProjViewInv);
     float4 shadowPosition = mul(SceneBuffer.SunMatrix, position);
+
 
     // Normals
     float4 normals = Normals.Sample(Sampler, TexCoords);
@@ -244,7 +246,28 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     // Shadow
     float shadow = 0.0;
     if (Settings.RTShadows) {
-        shadow = ShadowMap.Sample(Sampler, TexCoords).r;
+        float attenuation = clamp(dot(normals.rgb, LightBuffer.Sun.Direction.xyz), 0.0, 1.0);
+
+        if (attenuation > 0.0f) {
+            RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
+                 RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
+                 RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+
+            RayDesc desc;
+            desc.Origin = position.xyz + normals.rgb * 0.01;
+            desc.Direction = LightBuffer.Sun.Direction.xyz;
+            desc.TMin = 0.01;
+            desc.TMax = 10000.0;
+
+            q.TraceRayInline(Accel, RAY_FLAG_CULL_NON_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, desc);
+            q.Proceed();
+
+            if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT) {
+                shadow = 0.0;
+            } else {
+                shadow = 1.0;
+            }
+        }
     } else {
         shadow = ShadowCalculation(data, ShadowMap, ShadowSampler, LightBuffer);
     }

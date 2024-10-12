@@ -8,7 +8,6 @@
 #include "scene.hpp"
 #include "core/timer.hpp"
 
-#include "techniques/rt_shadows.hpp"
 #include "techniques/shadows.hpp"
 #include "techniques/ssao.hpp"
 #include "techniques/deferred.hpp"
@@ -65,7 +64,6 @@ private:
     RenderContext::Ptr _renderContext;
 
     // Geometry and lighting
-    std::shared_ptr<RTShadows> _rtShadows;
     std::shared_ptr<Shadows> _shadows;
     std::shared_ptr<SSAO> _ssao;
     std::shared_ptr<Deferred> _deferred;

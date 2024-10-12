@@ -22,7 +22,7 @@ Renderer::Renderer(RenderContext::Ptr context)
 {
     // Create
     if (context->GetDevice()->GetFeatures().Raytracing) {
-        _rtShadows = std::make_shared<RTShadows>(context);
+        _useRTShadows = true;
     } else {
         _useRTShadows = false;
     }
@@ -70,22 +70,13 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
     CommandBuffer::Ptr cmdBuf = _renderContext->GetCurrentCommandBuffer();
 
     scene.Update(_renderContext);
-    if (_useRTShadows) {
-        _deferred->ConnectShadowMap(_rtShadows->GetOutput());
-    } else {
-        _deferred->ConnectShadowMap(_shadows->GetOutput());
-    }
 
     _deferred->ShouldJitter(_taa->IsEnabled());
 
     {
         OPTICK_EVENT("Frame Render");
 
-        if (_useRTShadows) {
-            _stats.PushFrameTime("RT Shadows", [this, &scene, width, height]() {
-                _rtShadows->Render(scene, width, height);
-            });
-        } else {
+        if (!_useRTShadows) {
             _stats.PushFrameTime("Shadows", [this, &scene, width, height]() {
                 _shadows->Render(scene, width, height);
             });
@@ -196,9 +187,7 @@ void Renderer::OnUI()
 
     ImGui::Separator();
 
-    if (_useRTShadows) {
-        _rtShadows->OnUI();
-    } else {
+    if (!_useRTShadows) {
         _shadows->OnUI();
     }
     _ssao->OnUI();
@@ -266,9 +255,6 @@ void Renderer::Screenshot(Texture::Ptr screenshotTexture, TextureLayout newLayou
 
 void Renderer::Reconstruct()
 {
-    if (_useRTShadows) {
-        _rtShadows->Reconstruct();
-    }
     _shadows->Reconstruct();
     _ssao->Reconstruct();
     _deferred->Reconstruct();
