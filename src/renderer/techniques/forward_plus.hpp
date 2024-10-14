@@ -15,10 +15,10 @@ public:
     ForwardPlus(RenderContext::Ptr renderContext);
     ~ForwardPlus() = default;
 
-    void Render(Scene& scene, uint32_t width, uint32_t height, bool rtShadows) {}
+    void Render(Scene& scene, uint32_t width, uint32_t height, bool rtShadows);
     void Resize(uint32_t width, uint32_t height) {}
-    void OnUI() {}
-    void Reconstruct() {}
+    void OnUI();
+    void Reconstruct();
 
     void ConnectEnvironmentMap(EnvironmentMap& map) {}
     void ConnectShadowMap(Texture::Ptr texture) {}

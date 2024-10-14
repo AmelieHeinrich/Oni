@@ -45,20 +45,6 @@ Renderer::Renderer(RenderContext::Ptr context)
 
     _debugRenderer = std::make_shared<DebugRenderer>(context, _tonemapping->GetOutput());
 
-    // Connect
-    _ssao->SetDepthBuffer(_deferred->GetDepthBuffer());
-    _ssao->SetNormalBuffer(_deferred->GetNormalBuffer());
-
-    _deferred->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
-    _deferred->ConnectShadowMap(_shadows->GetOutput());
-    _deferred->ConnectSSAO(_ssao->GetOutput());
-
-    _taa->SetVelocityBuffer(_deferred->GetVelocityBuffer());
-    _motionBlur->SetVelocityBuffer(_deferred->GetVelocityBuffer());
-    _bloom->ConnectEmissiveBuffer(_deferred->GetEmissiveBuffer());
-
-    _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());
-
     //
     DebugRenderer::SetDebugRenderer(_debugRenderer);
 }
@@ -74,10 +60,36 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 
     scene.Update(_renderContext);
 
+    // Connect
     if (_gpType == GeometryPassType::Deferred) {
+        _ssao->SetDepthBuffer(_deferred->GetDepthBuffer());
+        _ssao->SetNormalBuffer(_deferred->GetNormalBuffer());
+
+        _deferred->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
+        _deferred->ConnectShadowMap(_shadows->GetOutput());
+        _deferred->ConnectSSAO(_ssao->GetOutput());
+
         _deferred->ShouldJitter(_taa->IsEnabled());
+
+        _taa->SetVelocityBuffer(_deferred->GetVelocityBuffer());
+        _motionBlur->SetVelocityBuffer(_deferred->GetVelocityBuffer());
+        _bloom->ConnectEmissiveBuffer(_deferred->GetEmissiveBuffer());
+
+        _debugRenderer->SetVelocityBuffer(_deferred->GetVelocityBuffer());
     } else {
+        _ssao->SetDepthBuffer(_forwardPlus->GetDepthBuffer());
+
+        _forwardPlus->ConnectEnvironmentMap(_envMapForward->GetEnvMap());
+        _forwardPlus->ConnectShadowMap(_shadows->GetOutput());
+        _forwardPlus->ConnectSSAO(_ssao->GetOutput());
+
         _forwardPlus->ShouldJitter(_taa->IsEnabled());
+    
+        _taa->SetVelocityBuffer(_forwardPlus->GetVelocityBuffer());
+        _motionBlur->SetVelocityBuffer(_forwardPlus->GetVelocityBuffer());
+        _bloom->ConnectEmissiveBuffer(_forwardPlus->GetEmissiveBuffer());
+
+        _debugRenderer->SetVelocityBuffer(_forwardPlus->GetVelocityBuffer());
     }
 
     {

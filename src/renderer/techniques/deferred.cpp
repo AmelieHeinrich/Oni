@@ -631,7 +631,9 @@ void Deferred::OnUI()
 void Deferred::Reconstruct()
 {
     _gbufferPipeline.CheckForRebuild(_context, "GBuffer Classic");
-    _gbufferPipelineMesh.CheckForRebuild(_context, "GBuffer Mesh");
+    if (_useMesh) {
+        _gbufferPipelineMesh.CheckForRebuild(_context, "GBuffer Mesh");
+    }
     _lightingPipeline.CheckForRebuild(_context, "Deferred");
 }
 

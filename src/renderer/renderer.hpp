@@ -91,5 +91,5 @@ private:
     std::shared_ptr<DebugRenderer> _debugRenderer;
 
     bool _useRTShadows = true;
-    GeometryPassType _gpType = GeometryPassType::ForwardPlus;
+    GeometryPassType _gpType = GeometryPassType::Deferred;
 };
