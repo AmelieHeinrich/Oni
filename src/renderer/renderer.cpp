@@ -20,14 +20,17 @@
 Renderer::Renderer(RenderContext::Ptr context)
     : _renderContext(context)
 {
-    // Create
+    // Check for hardware capabilities
     if (context->GetDevice()->GetFeatures().Raytracing) {
         _useRTShadows = true;
     } else {
         _useRTShadows = false;
     }
+
+    // Build passes
     _shadows = std::make_shared<Shadows>(context, ShadowMapResolution::Ultra);
     _ssao = std::make_shared<SSAO>(context);
+    _forwardPlus = std::make_shared<ForwardPlus>(context);
     _deferred = std::make_shared<Deferred>(context);
     _envMapForward = std::make_shared<EnvMapForward>(context, _deferred->GetOutput(), _deferred->GetDepthBuffer());
 
@@ -71,7 +74,11 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
 
     scene.Update(_renderContext);
 
-    _deferred->ShouldJitter(_taa->IsEnabled());
+    if (_gpType == GeometryPassType::Deferred) {
+        _deferred->ShouldJitter(_taa->IsEnabled());
+    } else {
+        _forwardPlus->ShouldJitter(_taa->IsEnabled());
+    }
 
     {
         OPTICK_EVENT("Frame Render");
@@ -81,23 +88,51 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
                 _shadows->Render(scene, width, height);
             });
         }
-        _stats.PushFrameTime("GBuffer", [this, &scene, width, height]() {
-            if (_deferred->UseMeshShaders()) {
-                _deferred->GBufferPassMesh(scene, width, height);
-            } else {
-                _deferred->GBufferPassClassic(scene, width, height);
-            }
-        });
-        _stats.PushFrameTime("SSAO", [this, &scene, width, height]() {
-            _ssao->Render(scene, width, height);
-        });
-        _stats.PushFrameTime("Lighting", [this, &scene, width, height]() {
-            _deferred->LightingPass(scene, width, height, _useRTShadows);
-        });
+
+        // Geometry + SSAO
+        if (_gpType == GeometryPassType::Deferred) {
+            _stats.PushFrameTime("GBuffer", [this, &scene, width, height]() {
+                if (_deferred->UseMeshShaders()) {
+                    _deferred->GBufferPassMesh(scene, width, height);
+                } else {
+                    _deferred->GBufferPassClassic(scene, width, height);
+                }
+            });
+            _stats.PushFrameTime("SSAO", [this, &scene, width, height]() {
+                _ssao->Render(scene, width, height);
+            });
+            _stats.PushFrameTime("Lighting", [this, &scene, width, height]() {
+                _deferred->LightingPass(scene, width, height, _useRTShadows);
+            });
+        } else  {
+            _stats.PushFrameTime("Z Prepass", [this, &scene, width, height]() {
+                if (_forwardPlus->UseMeshShaders()) {
+                    _forwardPlus->ZPrepassMesh(scene, width, height);
+                } else {
+                    _forwardPlus->ZPrepassClassic(scene, width, height);
+                }
+            });
+            _stats.PushFrameTime("SSAO", [this, &scene, width, height]() {
+                _ssao->Render(scene, width, height);
+            });
+            _stats.PushFrameTime("Cull Lights", [this, &scene, width, height]() {
+                _forwardPlus->LightCullPass(scene, width, height);
+            });
+            _stats.PushFrameTime("Lighting", [this, &scene, width, height]() {
+                if (_forwardPlus->UseMeshShaders()) {
+                    _forwardPlus->LightingMesh(scene, width, height, _useRTShadows);
+                } else {
+                    _forwardPlus->LightingClassic(scene, width, height, _useRTShadows);
+                }
+            });
+        }
+
+        // Skybox
         _stats.PushFrameTime("Environment Map", [this, &scene, width, height]() {
             _envMapForward->Render(scene, width, height);
         });
 
+        // Post FX stack
         _stats.PushFrameTime("Temporal Anti-Aliasing", [this, &scene, width, height]() {
             _taa->Render(scene, width, height);
         });
@@ -123,6 +158,7 @@ void Renderer::Render(Scene& scene, uint32_t width, uint32_t height, float dt)
             _tonemapping->Render(scene, width, height);
         });
 
+        // Debug renderer
         _stats.PushFrameTime("Debug Renderer", [this, &scene, width, height]() {
             _debugRenderer->Flush(scene, width, height);
         });
@@ -171,39 +207,46 @@ void Renderer::OnUI()
 {
     ImGui::Begin("Renderer Settings");
 
-    if (ImGui::TreeNodeEx("Raytracing", ImGuiTreeNodeFlags_Framed)) {
+    if (ImGui::TreeNodeEx("Global Settings", ImGuiTreeNodeFlags_Framed)) {
         if (_renderContext->GetDevice()->GetFeatures().MeshShaders) {
             ImGui::Checkbox("Use RT Shadows", &_useRTShadows);
         } else {
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Mesh shaders are not supported on your GPU!");
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Raytracing is not supported on your GPU!");
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
             ImGui::Checkbox("Use RT Shadows", &_useRTShadows);
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
+        
+        static const char* Modes[] = { "Forward+", "Deferred" };
+        ImGui::Combo("Mode", (int*)&_gpType, Modes, 2, 2);
+
         ImGui::TreePop();
     }
 
     ImGui::Separator();
 
-    if (!_useRTShadows) {
-        _shadows->OnUI();
-    }
-    _ssao->OnUI();
-    _deferred->OnUI();
-    _envMapForward->OnUI();
+    if (ImGui::TreeNodeEx("Per-Pass Settings", ImGuiTreeNodeFlags_Framed)) {
+        if (!_useRTShadows) {
+            _shadows->OnUI();
+        }
+        _ssao->OnUI();
+        _deferred->OnUI();
+        _envMapForward->OnUI();
 
-    _taa->OnUI();
-    _motionBlur->OnUI();
-    _chromaticAberration->OnUI();
-    _bloom->OnUI();
-    _colorCorrection->OnUI();
-    _filmGrain->OnUI();
-    _autoExposure->OnUI();
-    _tonemapping->OnUI();
-    
-    _debugRenderer->OnUI();
+        _taa->OnUI();
+        _motionBlur->OnUI();
+        _chromaticAberration->OnUI();
+        _bloom->OnUI();
+        _colorCorrection->OnUI();
+        _filmGrain->OnUI();
+        _autoExposure->OnUI();
+        _tonemapping->OnUI();
+
+        _debugRenderer->OnUI();
+        ImGui::TreePop();
+    }
 
     ImGui::End();
 }

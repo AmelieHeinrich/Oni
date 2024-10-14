@@ -4,33 +4,13 @@
 // $Create Time: 2024-10-07 19:15:54
 //
 
-#define DEBUG_TRIANGLE
+#include "shaders/Common/Mesh.hlsl"
 
 struct Vertex
 {
     float3 Position : POSITION;
     float2 TexCoords : TEXCOORD;
     float3 Normals : NORMAL;
-};
-
-struct Meshlet
-{
-    uint VertOffset;
-    uint PrimOffset;
-    uint VertCount;
-    uint PrimCount;
-};
-
-struct MeshletBounds
-{
-    /* bounding sphere, useful for frustum and occlusion culling */
-	float center[3];
-	float radius;
-
-	/* normal cone, useful for backface culling */
-	float cone_apex[3];
-	float cone_axis[3];
-	float cone_cutoff; /* = cos(angle/2) */
 };
 
 struct ModelMatrices

@@ -10,6 +10,7 @@
 
 #include "techniques/shadows.hpp"
 #include "techniques/ssao.hpp"
+#include "techniques/forward_plus.hpp"
 #include "techniques/deferred.hpp"
 #include "techniques/envmap_forward.hpp"
 
@@ -25,6 +26,12 @@
 #include "techniques/debug_renderer.hpp"
 
 #include <vector>
+
+enum class GeometryPassType
+{
+    ForwardPlus = 0,
+    Deferred = 1
+};
 
 class Renderer
 {
@@ -66,6 +73,7 @@ private:
     // Geometry and lighting
     std::shared_ptr<Shadows> _shadows;
     std::shared_ptr<SSAO> _ssao;
+    std::shared_ptr<ForwardPlus> _forwardPlus;
     std::shared_ptr<Deferred> _deferred;
     std::shared_ptr<EnvMapForward> _envMapForward;
 
@@ -83,4 +91,5 @@ private:
     std::shared_ptr<DebugRenderer> _debugRenderer;
 
     bool _useRTShadows = true;
+    GeometryPassType _gpType = GeometryPassType::ForwardPlus;
 };

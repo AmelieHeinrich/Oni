@@ -94,6 +94,9 @@ ShaderType ShaderLoader::GetTypeFromPath(const std::string& path)
     if (path.find("shaders/Common/Compute.hlsl") != std::string::npos) {
         return ShaderType::None;
     }
+    if (path.find("shaders/Common/Mesh.hlsl") != std::string::npos) {
+        return ShaderType::None;
+    }
 
     if (path.find("Vert") != std::string::npos) {
         return ShaderType::Vertex;
