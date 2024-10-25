@@ -25,9 +25,9 @@ ForwardPlus::ForwardPlus(RenderContext::Ptr context)
             9 * sizeof(uint32_t)
         };
         _zprepassMesh.ReflectRootSignature(false);
-        _zprepassMesh.AddShaderWatch("shaders/Forward+/MS/ZPrepassAmplification.hlsl", "Main", ShaderType::Amplification);
-        _zprepassMesh.AddShaderWatch("shaders/Forward+/MS/ZPrepassMesh.hlsl", "Main", ShaderType::Mesh);
-        _zprepassMesh.AddShaderWatch("shaders/Forward+/MS/ZPrepassFrag.hlsl", "Main", ShaderType::Fragment);
+        _zprepassMesh.AddShaderWatch("shaders/Forward+/ZPrepassAmplification.hlsl", "Main", ShaderType::Amplification);
+        _zprepassMesh.AddShaderWatch("shaders/Forward+/ZPrepassMesh.hlsl", "Main", ShaderType::Mesh);
+        _zprepassMesh.AddShaderWatch("shaders/Forward+/ZPrepassFrag.hlsl", "Main", ShaderType::Fragment);
         _zprepassMesh.Build(context);
     }
 

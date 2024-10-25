@@ -38,8 +38,7 @@ public:
 
     bool UseMeshShaders() { return _useMesh; }
 
-    void GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height);
-    void GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height);
+    void GBufferPass(Scene& scene, uint32_t width, uint32_t height);
     void LightingPass(Scene& scene, uint32_t width, uint32_t height, bool rtShadows);
 private:
     RenderContext::Ptr _context;
@@ -60,7 +59,6 @@ private:
 
     Texture::Ptr _ssao;
 
-    HotReloadablePipeline _gbufferPipeline;
     HotReloadablePipeline _gbufferPipelineMesh;
     HotReloadablePipeline _lightingPipeline;
 

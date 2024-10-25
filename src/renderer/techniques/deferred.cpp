@@ -13,7 +13,7 @@
 #include <ImGui/imgui_internal.h>
 
 Deferred::Deferred(RenderContext::Ptr context)
-    : _context(context), _gbufferPipeline(PipelineType::Graphics), _gbufferPipelineMesh(PipelineType::Mesh), _lightingPipeline(PipelineType::Compute)
+    : _context(context), _gbufferPipelineMesh(PipelineType::Mesh), _lightingPipeline(PipelineType::Compute)
 {
     uint32_t width, height;
     context->GetWindow()->GetSize(width, height);
@@ -73,30 +73,6 @@ Deferred::Deferred(RenderContext::Ptr context)
     _depthBuffer->BuildDepthTarget(TextureFormat::R32Depth);
     _depthBuffer->BuildShaderResource(TextureFormat::R32Float);
 
-    {
-        _gbufferPipeline.Specs.FormatCount = 5;
-        _gbufferPipeline.Specs.Formats[0] = TextureFormat::RGBA16Float;
-        _gbufferPipeline.Specs.Formats[1] = TextureFormat::RGBA8;
-        _gbufferPipeline.Specs.Formats[2] = TextureFormat::RGBA8;
-        _gbufferPipeline.Specs.Formats[3] = TextureFormat::RGBA16Float;
-        _gbufferPipeline.Specs.Formats[4] = TextureFormat::RG16Float;
-        _gbufferPipeline.Specs.DepthFormat = TextureFormat::R32Depth;
-        _gbufferPipeline.Specs.Depth = DepthOperation::Less;
-        _gbufferPipeline.Specs.DepthEnabled = true;
-        _gbufferPipeline.Specs.Cull = CullMode::Front;
-        _gbufferPipeline.Specs.Fill = FillMode::Solid;
-        _gbufferPipeline.Specs.CCW = false;
-
-        _gbufferPipeline.SignatureInfo = {
-            { RootSignatureEntry::PushConstants },
-            48
-        };
-        _gbufferPipeline.ReflectRootSignature(false);
-        _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/Classic/GBufferVert.hlsl", "Main", ShaderType::Vertex);
-        _gbufferPipeline.AddShaderWatch("shaders/Deferred/GBuffer/Classic/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
-        _gbufferPipeline.Build(context);
-    }
-
     if (_context->GetDevice()->GetFeatures().MeshShaders) {
         _gbufferPipelineMesh.Specs.FormatCount = 5;
         _gbufferPipelineMesh.Specs.Formats[0] = TextureFormat::RGBA16Float;
@@ -117,14 +93,12 @@ Deferred::Deferred(RenderContext::Ptr context)
             18 * sizeof(uint32_t)
         };
         _gbufferPipelineMesh.ReflectRootSignature(false);
-        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/MS/GBufferAmplification.hlsl", "Main", ShaderType::Amplification);
-        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/MS/GBufferMesh.hlsl", "Main", ShaderType::Mesh);
-        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/MS/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
+        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/GBufferAmplification.hlsl", "Main", ShaderType::Amplification);
+        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/GBufferMesh.hlsl", "Main", ShaderType::Mesh);
+        _gbufferPipelineMesh.AddShaderWatch("shaders/Deferred/GBuffer/GBufferFrag.hlsl", "Main", ShaderType::Fragment);
         _gbufferPipelineMesh.Build(context);
 
         _useMesh = true;
-    } else {
-        _useMesh = false;
     }
     
     {
@@ -183,126 +157,7 @@ Deferred::~Deferred()
 
 }
 
-void Deferred::GBufferPassClassic(Scene& scene, uint32_t width, uint32_t height)
-{
-    CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
-    uint32_t frameIndex = _context->GetBackBufferIndex();
-
-    OPTICK_GPU_CONTEXT(commandBuffer->GetCommandList());
-    OPTICK_GPU_EVENT("Construct GBuffer");
-
-    // Construct matrices
-    glm::mat4 depthProjection = glm::ortho(-25.0f, 25.0f, -25.0f, 25.0f, 0.05f, 50.0f);
-    glm::mat4 depthView = glm::lookAt(scene.Lights.SunTransform.Position, scene.Lights.SunTransform.Position - scene.Lights.SunTransform.GetFrontVector(), glm::vec3(0.0f, 1.0f, 0.0f));
-
-    // Apply jitter
-    _currJitter = _haltonSequence[_jitterCounter];
-    _jitterCounter = (_jitterCounter + 1) % (_haltonSequence.size());
-
-    // Start rendering
-    commandBuffer->BeginEvent("GBuffer");
-    commandBuffer->ImageBarrierBatch({
-        { _depthBuffer, TextureLayout::Depth },
-        { _normals, TextureLayout::RenderTarget },
-        { _albedoEmission, TextureLayout::RenderTarget },
-        { _pbrData, TextureLayout::RenderTarget },
-        { _emissive, TextureLayout::RenderTarget },
-        { _velocityBuffer, TextureLayout::RenderTarget }
-    });
-    commandBuffer->ClearDepthTarget(_depthBuffer);
-    commandBuffer->ClearRenderTarget(_normals, 0.0f, 0.0f, 0.0f, 1.0f);
-    commandBuffer->ClearRenderTarget(_albedoEmission, 0.0f, 0.0f, 0.0f, 1.0f);
-    commandBuffer->ClearRenderTarget(_pbrData, 0.0f, 0.0f, 0.0f, 1.0f);
-    commandBuffer->ClearRenderTarget(_emissive, 0.0f, 0.0f, 0.0f, 1.0f);
-    commandBuffer->ClearRenderTarget(_velocityBuffer, 0.0f, 0.0f, 0.0f, 1.0f);
-    if (_draw) { 
-        commandBuffer->SetViewport(0, 0, width, height);
-        commandBuffer->SetTopology(Topology::TriangleList);
-        commandBuffer->BindRenderTargets({ _normals, _albedoEmission, _pbrData, _emissive, _velocityBuffer }, _depthBuffer);
-        commandBuffer->BindGraphicsPipeline(_gbufferPipeline.GraphicsPipeline);
-
-        for (auto model : scene.Models) {
-            _totalMeshes += model.Primitives.size();
-            for (auto primitive : model.Primitives) {
-                // Cull
-                if (!scene.Camera.InFrustum(primitive.BoundingBox)) {
-                    _culledMeshes++;
-                    //continue;
-                }
-
-                auto material = model.Materials[primitive.MaterialIndex];
-
-                Texture::Ptr albedo = material.HasAlbedo ? material.AlbedoTexture : _whiteTexture;
-                Texture::Ptr normal = material.HasNormal ? material.NormalTexture : _whiteTexture;
-                Texture::Ptr pbr = material.HasMetallicRoughness ? material.PBRTexture : _blackTexture;
-                Texture::Ptr emissive = material.HasEmissive ? material.EmissiveTexture : _blackTexture;
-                Texture::Ptr ao = material.HasAO ? material.AOTexture : _whiteTexture;
-
-                struct ModelUpload {
-                    glm::mat4 CameraMatrix;
-                    glm::mat4 PrevCameraMatrix;
-                    glm::mat4 Transform;
-                    glm::mat4 PrevTransform;
-                };
-                ModelUpload matrices = {
-                    scene.Camera.Projection() * scene.Camera.View(),
-                    scene.PrevViewProj,
-                    primitive.Transform.Matrix,
-                    primitive.PrevTransform.Matrix
-                };
-                if (_visualizeShadow) {
-                    matrices.CameraMatrix = depthProjection * depthView;
-                    matrices.PrevCameraMatrix = depthProjection * depthView;
-                }
-
-                void *pData;
-                primitive.ModelBuffer[frameIndex]->Map(0, 0, &pData);
-                memcpy(pData, &matrices, sizeof(matrices));
-                primitive.ModelBuffer[frameIndex]->Unmap(0, 0);
-
-                struct Data {
-                    uint32_t ModelBuffer;
-                    uint32_t AlbedoTexture;
-                    uint32_t NormalTexture; 
-                    uint32_t PBRTexture;
-                    uint32_t EmissiveTexture;
-                    uint32_t AOTexture;
-                    uint32_t Sampler;
-                    float EmissiveStrength;
-                    glm::vec2 Jitter;
-                };
-                Data data;
-                data.ModelBuffer = primitive.ModelBuffer[frameIndex]->CBV();
-                data.AlbedoTexture = albedo->SRV();
-                data.NormalTexture = normal->SRV();
-                data.PBRTexture = pbr->SRV();
-                data.EmissiveTexture = emissive->SRV();
-                data.AOTexture = ao->SRV();
-                data.Sampler = _anisotropicSampler->BindlesssSampler();
-                data.Jitter = _currJitter;
-                if (!_jitter) {
-                    data.Jitter = glm::vec2(0.0f, 0.0f);
-                }
-                data.EmissiveStrength = _emissiveStrength;
-
-                commandBuffer->BindVertexBuffer(primitive.VertexBuffer);
-                commandBuffer->BindIndexBuffer(primitive.IndexBuffer);
-                commandBuffer->PushConstantsGraphics(&data, sizeof(data), 0);
-                commandBuffer->DrawIndexed(primitive.IndexCount);
-            }
-        }
-    }
-    commandBuffer->ImageBarrierBatch({
-        { _normals, TextureLayout::ShaderResource },
-        { _albedoEmission, TextureLayout::ShaderResource },
-        { _pbrData, TextureLayout::ShaderResource },
-        { _emissive, TextureLayout::ShaderResource },
-        { _velocityBuffer, TextureLayout::ShaderResource }
-    });
-    commandBuffer->EndEvent();
-}
-
-void Deferred::GBufferPassMesh(Scene& scene, uint32_t width, uint32_t height)
+void Deferred::GBufferPass(Scene& scene, uint32_t width, uint32_t height)
 {
     CommandBuffer::Ptr commandBuffer = _context->GetCurrentCommandBuffer();
     uint32_t frameIndex = _context->GetBackBufferIndex();
@@ -547,11 +402,7 @@ void Deferred::LightingPass(Scene& scene, uint32_t width, uint32_t height, bool 
 
 void Deferred::Render(Scene& scene, uint32_t width, uint32_t height, bool rtShadows)
 {
-    if (_useMesh) {
-        GBufferPassClassic(scene, width, height);
-    } else {
-        GBufferPassMesh(scene, width, height);
-    }
+    GBufferPass(scene, width, height);
     LightingPass(scene, width, height, rtShadows);
 }
 
@@ -630,10 +481,7 @@ void Deferred::OnUI()
 
 void Deferred::Reconstruct()
 {
-    _gbufferPipeline.CheckForRebuild(_context, "GBuffer Classic");
-    if (_useMesh) {
-        _gbufferPipelineMesh.CheckForRebuild(_context, "GBuffer Mesh");
-    }
+    _gbufferPipelineMesh.CheckForRebuild(_context, "GBuffer Mesh");
     _lightingPipeline.CheckForRebuild(_context, "Deferred");
 }
 

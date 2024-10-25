@@ -276,7 +276,6 @@ void Main(uint3 ThreadID : SV_DispatchThreadID)
     float2 velocity = Velocity.Sample(Sampler, TexCoords);
 
     // Do light calcs!
-
     float3 N = normalize(normals.xyz);
     float3 V = normalize(SceneBuffer.CameraPosition - position).xyz;
     float3 R = reflect(-V, N);
